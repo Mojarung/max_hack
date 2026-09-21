@@ -6,15 +6,16 @@ from zoneinfo import ZoneInfo
 
 TZ = ZoneInfo("Europe/Moscow")
 
-WEEKDAYS = {
-    "понедельник": 0,
-    "вторник": 1,
-    "сред": 2,
-    "четверг": 3,
-    "пятниц": 4,
-    "суббот": 5,
-    "воскресень": 6,
-}
+# \b отсекает «субботник» и похожие слова, которые начинаются с названия дня
+WEEKDAYS = (
+    (re.compile(r"\bпонедельник\b"), 0),
+    (re.compile(r"\bвторник\b"), 1),
+    (re.compile(r"\bсред[аеуы]\b"), 2),
+    (re.compile(r"\bчетверг\b"), 3),
+    (re.compile(r"\bпятниц[аеуы]\b"), 4),
+    (re.compile(r"\bсуббот[аеуы]\b"), 5),
+    (re.compile(r"\bвоскресень[еяю]\b"), 6),
+)
 TIME_RE = re.compile(r"\bв\s*(\d{1,2})(?:[:.](\d{2}))?\s*(?:час|ч\b|утра|вечера|дня)?")
 DATE_RE = re.compile(r"\b(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?\b")
 DEFAULT_HOUR = 11
@@ -48,8 +49,8 @@ def parse_when(text: str, now: datetime | None = None) -> datetime | None:
     elif "сегодня" in low:
         day = now
     else:
-        for stem, weekday in WEEKDAYS.items():
-            if stem in low:
+        for pattern, weekday in WEEKDAYS:
+            if pattern.search(low):
                 delta = (weekday - now.weekday()) % 7 or 7
                 day = now + timedelta(days=delta)
                 break

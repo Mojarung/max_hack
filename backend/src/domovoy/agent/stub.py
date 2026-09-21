@@ -5,6 +5,7 @@
 вызывает подходящий инструмент и пересказывает его ответ вежливо и от лица Кузи.
 """
 
+import json
 import re
 from collections.abc import Sequence
 from typing import Any
@@ -24,6 +25,10 @@ SPEAKER_RE = re.compile(r"^\[([^\]]+)\]:\s*")
 CREATE_EVENT_WORDS = ("созда", "организ", "устро", "запланир", "собер", "проведем", "давайте")
 EVENT_WORDS = ("субботник", "мероприят", "событи", "праздник", "встреч", "собрани", "пикник", "турнир")
 INTENTS: tuple[tuple[tuple[str, ...], str], ...] = (
+    # инструменты MCP-сервера «Жилищный навигатор» (подключается к агенту по MCP)
+    (("тариф", "сколько стоит вода", "стоимость отоплен"), "gis_zhkh__utility_tariffs"),
+    (("капремонт", "капитальн"), "gis_zhkh__capital_repair_plan"),
+    (("паспорт дома", "год постройки", "сколько этажей"), "gis_zhkh__house_passport"),
     (("укрыт", "убежищ", "бомбоуб", "беспилот", "тревог", "дрон", "бпла"), "nearest_shelters"),
     (
         ("не работает", "сломал", "течет", "протека", "сообщи о проблем", "новая заявк", "прорвал", "засор"),
@@ -35,8 +40,55 @@ INTENTS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("ачивк", "очк", "уровень", "рейтинг", "мой профиль", "награ"), "my_profile"),
     (("как дела", "как дом", "статус дома", "настроени", "как ты", "пульс"), "house_status"),
 )
+ACTION_TOOLS = frozenset({"create_event", "create_issue", "vote_issue"})
 GREETINGS = ("привет", "здравств", "добрый", "доброе", "hello", "/start", "хай", "салют")
 THANKS = ("спасибо", "благодар", "спс")
+
+
+FIELD_TITLES = {
+    "region": "Регион",
+    "address": "Адрес",
+    "title": "Дом",
+    "uk": "Управляющая организация",
+    "management": "Способ управления",
+    "energy_class": "Класс энергоэффективности",
+    "work": "",
+    "planned_years": "годы",
+    "status": "статус",
+    "source": "Источник",
+    "year_built": "Год постройки",
+    "floors": "Этажей",
+    "entrances": "Подъездов",
+    "apartments": "Квартир",
+    "wall_material": "Стены",
+}
+
+
+def _humanize(text: str) -> str:
+    """Структурированный ответ MCP (JSON) пересказываем строками, как это сделала бы LLM."""
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return text
+    lines: list[str] = []
+
+    def row(item: dict[str, Any]) -> str:
+        if "price_rub" in item:
+            return f"{item.get('service')}: {item['price_rub']} ₽ за {item.get('unit', 'ед.')}"
+        return ", ".join(f"{FIELD_TITLES.get(k, k)} {v}".strip() for k, v in item.items())
+
+    if isinstance(data, list):
+        data = {"items": data}
+    if not isinstance(data, dict):
+        return text
+    for key, value in data.items():
+        if isinstance(value, list):
+            lines.extend(f"• {row(v)}" if isinstance(v, dict) else f"• {v}" for v in value)
+        elif key != "source" and value is not None:
+            lines.append(f"{FIELD_TITLES.get(key, key)}: {value}")
+    if data.get("source"):
+        lines.append(f"({data['source']})")
+    return "\n".join(lines)
 
 
 def _last_human(messages: Sequence[BaseMessage]) -> str:
@@ -123,8 +175,10 @@ class StubChatModel(BaseChatModel):
             for msg in reversed(messages):
                 if not isinstance(msg, ToolMessage):
                     break
-                results.append(str(msg.content))
+                results.append(_humanize(str(msg.content)))
             body = "\n\n".join(reversed(results))
+            if messages[-1].name in ACTION_TOOLS:
+                return AIMessage(content=f"{name}, {body[:1].lower()}{body[1:]}")
             return AIMessage(content=f"{name}, вот что я узнал:\n\n{body}\n\nЕсли нужно что-то ещё, спрашивай!")
 
         text = _last_human(messages)

@@ -172,7 +172,8 @@ async def create_event(session: AsyncSession, *, user: User, house: House, data:
             chat_id=house.max_chat_id,
             text=(
                 f"📣 **{ev.title}**\n🗓 {local} (МСК)\n📍 {ev.place}\n"
-                f"{ev.description[:300]}\n\nОрганизатор: {user.full_name}. Жмите «Иду», я напомню за пару часов!"
+                + (f"{ev.description[:300]}\n" if ev.description else "")
+                + f"\nОрганизатор: {user.full_name}. Жмите «Иду», я напомню за пару часов!"
             ),
             buttons=join_buttons(ev),
         )

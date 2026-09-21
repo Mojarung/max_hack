@@ -92,6 +92,9 @@ class TestTimeParse:
     def test_evening_shift(self) -> None:
         assert parse_when("в пятницу в 7 вечера", self.now) == datetime(2026, 9, 25, 19, 0, tzinfo=TZ)
 
+    def test_subbotnik_word_is_not_saturday(self) -> None:
+        assert parse_when("создай субботник в воскресенье в 12", self.now) == datetime(2026, 9, 27, 12, 0, tzinfo=TZ)
+
     def test_no_date(self) -> None:
         assert parse_when("когда-нибудь", self.now) is None
 

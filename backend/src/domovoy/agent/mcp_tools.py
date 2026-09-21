@@ -59,7 +59,7 @@ async def load_tools(conn: McpConnection, request_timeout: float) -> list[BaseTo
                 return f"MCP-сервер {conn.name} вернул ошибку: {_render(result)}"
             return _render(result)
 
-        schema = t.inputSchema or {"type": "object", "properties": {}}
+        schema = t.input_schema or {"type": "object", "properties": {}}
         tools.append(
             StructuredTool(
                 name=f"{conn.name}__{remote_name}"[:64],
