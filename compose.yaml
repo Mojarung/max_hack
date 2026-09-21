@@ -1,0 +1,116 @@
+# Запуск всех компонентов одной командой:  docker compose up -d --build
+# Мини-приложение: http://localhost:8080   API и Swagger: http://localhost:8000/docs
+
+x-backend: &backend
+  build: ./backend
+  image: domovoy-backend:local
+  env_file:
+    - path: .env
+      required: false
+  environment: &backend-env
+    DATABASE_URL: postgresql+asyncpg://domovoy:${POSTGRES_PASSWORD:-domovoy}@postgres:5432/domovoy
+    RABBIT_URL: amqp://${RABBIT_USER:-domovoy}:${RABBIT_PASSWORD:-domovoy}@rabbitmq:5672/
+    S3_ENDPOINT: minio:9000
+    S3_ACCESS_KEY: ${MINIO_ROOT_USER:-domovoy}
+    S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-domovoy-secret}
+    INTERNAL_MCP_URL: http://mcp:8765/mcp
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+    minio:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_DB: domovoy
+      POSTGRES_USER: domovoy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-domovoy}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U domovoy -d domovoy"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-domovoy}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD:-domovoy}
+    ports:
+      - "${RABBIT_PORT:-5672}:5672"
+      - "${RABBIT_UI_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-domovoy}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-domovoy-secret}
+    volumes:
+      - miniodata:/data
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    <<: *backend
+    command: ["domovoy", "api", "--port", "8000"]
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  mcp:
+    <<: *backend
+    command: ["domovoy", "mcp", "--port", "8765"]
+    ports:
+      - "${MCP_PORT:-8765}:8765"
+
+  bot:
+    <<: *backend
+    command: ["domovoy", "bot"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  worker:
+    <<: *backend
+    command: ["domovoy", "worker"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  miniodata:
