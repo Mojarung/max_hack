@@ -1,0 +1,68 @@
+[project]
+name = "domovoy"
+version = "0.1.0"
+description = "Домовой Кузя: бот и мини-приложение MAX для жителей многоквартирного дома"
+readme = "README.md"
+authors = [
+    { name = "verikirill", email = "verikirill@mail.ru" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "asyncpg>=0.31.0",
+    "fastapi[standard]>=0.141.1",
+    "fastmcp>=4.0.5",
+    "faststream[rabbit]>=0.7.6",
+    "httpx>=0.28.1",
+    "langchain>=1.4.2",
+    "langchain-core>=1.6.4",
+    "langchain-ollama>=1.1.0",
+    "langgraph>=1.2.12",
+    "langgraph-checkpoint-postgres>=3.1.2",
+    "miniopy-async>=1.23.5",
+    "pgvector>=0.5.0",
+    "pillow>=12.3.0",
+    "psycopg[binary]>=3.3.6",
+    "pydantic-settings>=2.15.0",
+    "python-multipart>=0.0.32",
+    "sqlalchemy[asyncio]>=2.0.54",
+    "sse-starlette>=3.4.11",
+    "structlog>=26.1.0",
+]
+
+[project.scripts]
+domovoy = "domovoy:main"
+
+[build-system]
+requires = ["uv_build>=0.12.15,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.8",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "RUF", "SIM", "BLE"]
+ignore = ["RUF001", "RUF002", "RUF003", "S101", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "PLR2004"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = false
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
