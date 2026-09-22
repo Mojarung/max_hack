@@ -9,6 +9,7 @@ import pytest
 from domovoy.agent.mcp_tools import UnsafeMcpUrlError, ensure_public_url
 from domovoy.agent.stub import pick_intent
 from domovoy.agent.timeparse import TZ, parse_when
+from domovoy.agent.tools import infer_kind
 from domovoy.core.embeddings import embed
 from domovoy.core.max_auth import InitDataError, sign, validate_init_data
 from domovoy.modules.issues.classifier import classify_rules
@@ -134,6 +135,10 @@ class TestAgentStub:
 
     def test_shelter_intent(self) -> None:
         assert (pick_intent("Где ближайшее укрытие?", self.tools) or ("",))[0] == "nearest_shelters"
+
+    def test_event_kind_from_title(self) -> None:
+        assert infer_kind("Субботник во дворе") == "subbotnik"
+        assert infer_kind("Собрание жителей") == "meeting"
 
     def test_greeting_needs_no_tool(self) -> None:
         assert pick_intent("Привет, Кузя!", self.tools) is None

@@ -67,7 +67,7 @@ def phrase_for(mood: Mood, s: PulseStats) -> str:
     if mood == "alarm":
         return "Тревога! Отойдите от окон и идите в укрытие, я покажу дорогу."
     if s.overdue_issues:
-        return f"Исполнители просрочили заявки: {s.overdue_issues}. Я готовлю жалобу в жилинспекцию."
+        return f"Сроки по заявкам сорваны ({s.overdue_issues} шт.), готовлю жалобу в жилинспекцию."
     if mood == "happy":
         if s.upcoming_events:
             return "Дом в порядке, а скоро событие во дворе. Приходи, будет весело!"

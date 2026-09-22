@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from domovoy.api.deps import CtxDep, SessionDep
 from domovoy.core.config import get_settings
 from domovoy.modules.achievements.catalog import level_for
-from domovoy.modules.users.models import Membership, User
+from domovoy.modules.users.models import House, Membership, User
 from domovoy.modules.users.pulse import PulseOut, house_pulse
 
 router = APIRouter(tags=["Профиль и дом"])
@@ -94,6 +94,34 @@ async def me(ctx: CtxDep) -> MeOut:
 @router.get("/house/pulse", response_model=PulseOut)
 async def pulse(session: SessionDep, ctx: CtxDep) -> PulseOut:
     return await house_pulse(session, ctx.house.id)
+
+
+class HouseIn(BaseModel):
+    title: str | None = Field(default=None, min_length=3, max_length=256)
+    address: str | None = Field(default=None, min_length=5, max_length=512)
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lon: float | None = Field(default=None, ge=-180, le=180)
+    vote_threshold_pct: int | None = Field(default=None, ge=5, le=100)
+    apartment: str | None = Field(default=None, max_length=16, description="Квартира текущего жителя")
+
+
+@router.patch("/house", response_model=MeOut)
+async def update_house(body: HouseIn, session: SessionDep, ctx: CtxDep) -> MeOut:
+    """Настройка дома администратором (адрес, координаты для укрытий, порог голосов) и своей квартиры."""
+    house_fields = body.model_dump(exclude_none=True, exclude={"apartment"})
+    if house_fields and not ctx.is_admin:
+        raise HTTPException(403, "Настройки дома меняет администратор")
+    house = await session.get(House, ctx.house.id)
+    user = await session.get(User, ctx.user.id)
+    if house is None or user is None:
+        raise HTTPException(404, "Дом не найден")
+    for key, value in house_fields.items():
+        setattr(house, key, value)
+    if body.apartment is not None:
+        user.apartment = body.apartment.strip() or None
+    await session.commit()
+    ctx.house, ctx.user = house, user
+    return await me(ctx)
 
 
 @router.get("/dev/users", response_model=list[DevUser], tags=["Мок-режим"])

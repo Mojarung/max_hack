@@ -35,6 +35,22 @@ class AgentContext:
     house_id: int
 
 
+KIND_WORDS = (
+    ("субботник", "subbotnik"),
+    ("уборк", "subbotnik"),
+    ("собрани", "meeting"),
+    ("праздник", "holiday"),
+    ("турнир", "sport"),
+    ("футбол", "sport"),
+    ("дет", "kids"),
+)
+
+
+def infer_kind(title: str) -> str:
+    low = title.lower()
+    return next((kind for word, kind in KIND_WORDS if word in low), "other")
+
+
 def _fmt_dt(dt: datetime) -> str:
     return dt.astimezone(MSK).strftime("%d.%m %H:%M")
 
@@ -137,8 +153,8 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
         starts_at = parse_when(when)
         if starts_at is None:
             return "Не понял дату. Уточни, пожалуйста, день и время, например «в субботу в 11»."
-        if kind not in events.KINDS:
-            kind = "subbotnik" if "субботник" in title.lower() else "other"
+        if kind not in events.KINDS or kind == "other":
+            kind = infer_kind(title)
         async with sm() as session:
             user, house = await load(session)
             try:
