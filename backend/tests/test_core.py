@@ -9,7 +9,7 @@ import pytest
 from domovoy.agent.mcp_tools import UnsafeMcpUrlError, ensure_public_url
 from domovoy.agent.stub import pick_intent
 from domovoy.agent.timeparse import TZ, parse_when
-from domovoy.agent.tools import infer_kind
+from domovoy.agent.tools import infer_kind, short_list
 from domovoy.core.embeddings import embed
 from domovoy.core.max_auth import InitDataError, sign, validate_init_data
 from domovoy.modules.issues.classifier import classify_rules
@@ -141,6 +141,11 @@ class TestAgentStub:
     def test_event_kind_from_title(self) -> None:
         assert infer_kind("Субботник во дворе") == "subbotnik"
         assert infer_kind("Собрание жителей") == "meeting"
+
+    def test_long_lists_are_cut_for_group_chat(self) -> None:
+        text = short_list("Проблемы дома (8)", [f"№{i}" for i in range(8)], "все заявки в приложении")
+        assert text.count("№") == 5
+        assert text.endswith("...и ещё 3, все заявки в приложении.")
 
     def test_greeting_needs_no_tool(self) -> None:
         assert pick_intent("Привет, Кузя!", self.tools) is None

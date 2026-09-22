@@ -51,6 +51,19 @@ def infer_kind(title: str) -> str:
     return next((kind for word, kind in KIND_WORDS if word in low), "other")
 
 
+# В общем чате длинные списки мешают соседям: показываем начало, остальное в приложении
+CHAT_LIST_LIMIT = 5
+
+
+def short_list(title: str, lines: list[str], rest_hint: str) -> str:
+    shown = lines[:CHAT_LIST_LIMIT]
+    text = f"{title}:\n" + "\n".join(shown)
+    hidden = len(lines) - len(shown)
+    if hidden > 0:
+        text += f"\n...и ещё {hidden}, {rest_hint}."
+    return text
+
+
 def _fmt_dt(dt: datetime) -> str:
     return dt.astimezone(MSK).strftime("%d.%m %H:%M")
 
@@ -82,18 +95,17 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
         """Список проблем дома. status: open (открытые) или all (все)."""
         async with sm() as session:
             items = await issues.list_issues(
-                session, ctx.house_id, ctx.user_id, None if status == "all" else "open", limit=10
+                session, ctx.house_id, ctx.user_id, None if status == "all" else "open", limit=50
             )
         if not items:
             return "Открытых проблем нет. Дом в порядке!"
         lines = [
             f"№{i.id} «{i.title}» - {i.status_title}"
             + (f", голосов {i.votes_count}/{i.votes_needed}" if i.status == "voting" else "")
-            + (f", отвечает {i.responsible_org.name}" if i.responsible_org else "")
             + (" (срок истёк!)" if i.is_overdue else "")
             for i in items
         ]
-        return "Проблемы дома:\n" + "\n".join(lines)
+        return short_list(f"Проблемы дома ({len(items)})", lines, "все заявки в приложении")
 
     @tool
     async def create_issue(description: str) -> str:
@@ -135,11 +147,12 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
             items = await events.list_events(session, ctx.house_id, ctx.user_id)
         if not items:
             return "Ближайших событий нет. Можно организовать субботник или встречу соседей!"
-        return "Ближайшие события:\n" + "\n".join(
-            f"№{e.id} «{e.title}» {_fmt_dt(e.starts_at)} (МСК), {e.place}, идут {e.participants_count}"
-            + (" - ты записан(а)" if e.joined_by_me else "")
-            for e in items[:10]
-        )
+        lines = [
+            f"№{e.id} «{e.title}» {_fmt_dt(e.starts_at)}, {e.place}, идут {e.participants_count}"
+            + (" (ты записан(а))" if e.joined_by_me else "")
+            for e in items
+        ]
+        return short_list(f"Ближайшие события ({len(items)})", lines, "все события в приложении")
 
     @tool
     async def create_event(
@@ -177,13 +190,11 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
     async def list_listings(query: str = "") -> str:
         """Объявления барахолки дома. query: что ищем (необязательно)."""
         async with sm() as session:
-            items = await market.list_listings(session, ctx.house_id, ctx.user_id, q=query or None, limit=8)
+            items = await market.list_listings(session, ctx.house_id, ctx.user_id, q=query or None, limit=50)
         if not items:
             return "На барахолке пока пусто по этому запросу."
-        return "Барахолка:\n" + "\n".join(
-            f"№{i.id} «{i.title}» - {'даром' if i.is_free else f'{i.price} ₽'}, кв. {i.author.apartment or '?'}"
-            for i in items
-        )
+        lines = [f"№{i.id} «{i.title}» - {'даром' if i.is_free else f'{i.price} ₽'}" for i in items]
+        return short_list(f"Барахолка ({len(items)})", lines, "все объявления в приложении")
 
     @tool
     async def nearest_shelters() -> str:

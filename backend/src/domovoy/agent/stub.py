@@ -179,7 +179,7 @@ class StubChatModel(BaseChatModel):
             body = "\n\n".join(reversed(results))
             if messages[-1].name in ACTION_TOOLS:
                 return AIMessage(content=f"{name}, {body[:1].lower()}{body[1:]}")
-            return AIMessage(content=f"{name}, вот что я узнал:\n\n{body}\n\nЕсли нужно что-то ещё, спрашивай!")
+            return AIMessage(content=f"{name}, вот что я узнал:\n\n{body}")
 
         text = _last_human(messages)
         low = text.lower()
