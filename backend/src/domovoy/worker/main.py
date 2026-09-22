@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 import structlog
 from sqlalchemy import select
 
-from domovoy.core import bus
+from domovoy.core import aio, bus
 from domovoy.core.bus import EXCHANGE, Q_ISSUE_DISPATCH, get_broker
 from domovoy.core.config import get_settings
 from domovoy.core.db import get_sessionmaker, init_db
@@ -150,4 +150,4 @@ async def main() -> None:
 
 
 def run() -> None:
-    asyncio.run(main())
+    aio.run(main())

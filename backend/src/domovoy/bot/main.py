@@ -9,6 +9,7 @@ from sqlalchemy import select
 from domovoy.bot.gateway import Gateway, MaxGateway, MockGateway
 from domovoy.bot.handlers import handle_update
 from domovoy.bot.max_client import MaxApiError, MaxClient
+from domovoy.core import aio
 from domovoy.core.bus import EXCHANGE, Q_BOT_INBOUND, Q_BOT_SEND, get_broker
 from domovoy.core.config import get_settings
 from domovoy.core.db import get_sessionmaker, init_db
@@ -102,4 +103,4 @@ async def main() -> None:
 
 
 def run() -> None:
-    asyncio.run(main())
+    aio.run(main())

@@ -9,7 +9,6 @@
 """
 
 import argparse
-import asyncio
 import logging
 
 import structlog
@@ -42,8 +41,15 @@ def main() -> None:
     if args.command == "api":
         import uvicorn
 
+        from domovoy.core.aio import UVICORN_LOOP
+
         uvicorn.run(
-            "domovoy.api.app:create_app", factory=True, host=args.host, port=args.port or 8000, proxy_headers=True
+            "domovoy.api.app:create_app",
+            factory=True,
+            host=args.host,
+            port=args.port or 8000,
+            proxy_headers=True,
+            loop=UVICORN_LOOP,
         )
     elif args.command == "bot":
         from domovoy.bot.main import run
@@ -65,4 +71,6 @@ def main() -> None:
             await init_db()
             await seed_demo()
 
-        asyncio.run(_seed())
+        from domovoy.core import aio
+
+        aio.run(_seed())
