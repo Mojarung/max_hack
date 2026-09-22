@@ -6,11 +6,11 @@
 <style>
   @page { size: 1280px 720px; margin: 0; }
   :root {
-    --bg: #fffaf3; --ink: #2b2118; --muted: #7a6a5c; --accent: #e8741c; --accent-soft: #fde6d2;
-    --teal: #16857c; --teal-soft: #d8f0ed; --line: #eadfd2; --red: #c8372d;
+    --bg: #CAF0F8; --ink: #03045E; --muted: #023E8A; --accent: #0077B6; --accent-soft: #ADE8F4;
+    --teal: #0096C7; --teal-soft: #90E0EF; --line: #90E0EF; --red: #023E8A;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: "Segoe UI", "Inter", system-ui, sans-serif; color: var(--ink); background: #ddd; }
+  body { margin: 0; font-family: "Segoe UI", "Inter", system-ui, sans-serif; color: var(--ink); background: #ADE8F4; }
   .slide {
     width: 1280px; height: 720px; padding: 56px 72px; background: var(--bg); position: relative;
     page-break-after: always; overflow: hidden; display: flex; flex-direction: column;
@@ -26,23 +26,23 @@
   .small { font-size: 15px; }
   .tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); margin-right: 6px; }
   .tag.teal { background: var(--teal-soft); color: var(--teal); }
-  .tag.red { background: #f9dcd9; color: var(--red); }
+  .tag.red { background: #90E0EF; color: var(--red); }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; }
   .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-  .card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; }
+  .card { background: #ADE8F4; border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; }
   .card p, .card li { font-size: 17px; }
   table { border-collapse: collapse; width: 100%; font-size: 16px; }
   th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { color: var(--muted); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: .4px; }
   .footer { position: absolute; bottom: 22px; left: 72px; right: 72px; display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
   .kuzya { position: absolute; right: 60px; bottom: 50px; width: 260px; }
-  .shot { border-radius: 22px; border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(80,40,10,.12); height: 520px; }
+  .shot { border-radius: 22px; border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(3,4,94,.18); height: 520px; }
   .steps { counter-reset: s; list-style: none; padding: 0; }
   .steps li { counter-increment: s; position: relative; padding-left: 44px; font-size: 18px; margin-bottom: 11px; }
-  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 15px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #CAF0F8; font-weight: 700; display: grid; place-items: center; font-size: 15px; }
   .big { font-size: 44px; font-weight: 700; color: var(--accent); }
   .tech td:first-child { width: 290px; color: var(--muted); }
-  code { font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; background: #f4ebe0; padding: 1px 6px; border-radius: 6px; }
+  code { font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; background: #ADE8F4; padding: 1px 6px; border-radius: 6px; }
   .arch { width: 100%; height: 470px; }
 </style>
 </head>
@@ -204,8 +204,8 @@
 <section class="slide">
   <h2>Архитектура</h2>
   <svg class="arch" viewBox="0 0 1136 470" font-family="Segoe UI, sans-serif" font-size="15">
-    <defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7a6a5c"/></marker></defs>
-    <g fill="#fff" stroke="#eadfd2" stroke-width="2">
+    <defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#023E8A"/></marker></defs>
+    <g fill="#ADE8F4" stroke="#90E0EF" stroke-width="2">
       <rect x="10" y="40" width="220" height="80" rx="14"/><rect x="10" y="190" width="220" height="80" rx="14"/>
       <rect x="330" y="40" width="200" height="80" rx="14"/><rect x="330" y="190" width="200" height="80" rx="14"/>
       <rect x="330" y="340" width="200" height="80" rx="14"/>
@@ -214,19 +214,19 @@
       <rect x="920" y="40" width="200" height="80" rx="14"/><rect x="920" y="190" width="200" height="80" rx="14"/>
       <rect x="920" y="340" width="200" height="80" rx="14"/>
     </g>
-    <g fill="#2b2118" font-weight="600" text-anchor="middle">
+    <g fill="#03045E" font-weight="600" text-anchor="middle">
       <text x="120" y="75">Домовой чат MAX</text><text x="120" y="225">Мини-приложение</text>
       <text x="430" y="75">bot</text><text x="430" y="225">api (FastAPI)</text><text x="430" y="375">worker</text>
       <text x="725" y="225">RabbitMQ</text><text x="725" y="75">ReAct-агент</text><text x="725" y="375">Postgres + pgvector</text>
       <text x="1020" y="75">Ollama / stub</text><text x="1020" y="225">MCP-серверы</text><text x="1020" y="375">MinIO (фото)</text>
     </g>
-    <g fill="#7a6a5c" text-anchor="middle" font-size="13">
+    <g fill="#023E8A" text-anchor="middle" font-size="13">
       <text x="120" y="98">Bot API, long polling</text><text x="120" y="248">Vue 3 + MAX Bridge</text>
       <text x="430" y="98">модерация, агент, отправка</text><text x="430" y="248">REST + SSE</text><text x="430" y="398">обращения, напоминания, ГЖИ</text>
       <text x="725" y="248">topic exchange</text><text x="725" y="98">LangGraph, память в Postgres</text><text x="725" y="398">гибридный RAG-поиск</text>
       <text x="1020" y="98">fallback на stub</text><text x="1020" y="248">Жилищный навигатор + внешние</text><text x="1020" y="398">без EXIF</text>
     </g>
-    <g stroke="#7a6a5c" stroke-width="2" fill="none" marker-end="url(#a)">
+    <g stroke="#023E8A" stroke-width="2" fill="none" marker-end="url(#a)">
       <path d="M230,80 H328"/><path d="M230,230 H328"/><path d="M530,230 H628"/><path d="M530,80 C580,80 580,210 628,215"/>
       <path d="M530,380 C580,380 580,250 628,245"/><path d="M530,70 H628"/><path d="M820,80 H918"/><path d="M820,95 C870,95 870,215 918,220"/>
       <path d="M530,245 C600,300 600,360 628,370"/><path d="M530,260 C700,330 850,380 918,380"/>
