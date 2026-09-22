@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domovoy.core import bus
+from domovoy.core.db import lock_row
 from domovoy.core.embeddings import embed
 from domovoy.modules.achievements import service as achievements
 from domovoy.modules.issues.catalog import OPEN_STATUSES, STATUS_TITLES, category
@@ -143,7 +144,13 @@ def _mark_sent(session: AsyncSession, issue: Issue, note: str) -> None:
 
 
 async def vote(session: AsyncSession, issue: Issue, user: User) -> tuple[Issue, bool]:
-    """Голос за заявку. Возвращает заявку и признак «порог только что набран»."""
+    """Голос за заявку. Возвращает заявку и признак «порог только что набран».
+
+    Строка заявки блокируется (SELECT ... FOR UPDATE), поэтому одновременные голоса соседей
+    не теряются, а переход через порог происходит ровно один раз.
+    """
+    await lock_row(session, Issue, issue.id)
+    await session.refresh(issue)
     if issue.status != "voting":
         raise HTTPException(409, "Голосование по этой заявке уже закрыто")
     if await has_voted(session, issue.id, user.id):
@@ -172,6 +179,8 @@ async def vote(session: AsyncSession, issue: Issue, user: User) -> tuple[Issue, 
 
 
 async def unvote(session: AsyncSession, issue: Issue, user: User) -> Issue:
+    await lock_row(session, Issue, issue.id)
+    await session.refresh(issue)
     if issue.status != "voting":
         raise HTTPException(409, "Голосование уже закрыто, голос отозвать нельзя")
     if issue.author_id == user.id:

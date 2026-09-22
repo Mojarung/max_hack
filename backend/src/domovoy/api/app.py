@@ -6,9 +6,11 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from faststream.rabbit import RabbitQueue
+from sqlalchemy.exc import IntegrityError
 
 from domovoy.agent.runtime import close_runtime
 from domovoy.api.system import router as system_router
@@ -90,6 +92,12 @@ def create_app() -> FastAPI:
     @api.get("/health", tags=["Служебное"])
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.exception_handler(IntegrityError)
+    async def integrity_error(_: Request, exc: IntegrityError) -> JSONResponse:
+        # гонка двух одинаковых запросов (двойной клик «Поддерживаю»): отвечаем как на повтор
+        log.warning("api.integrity_error", error=str(exc.orig)[:200])
+        return JSONResponse({"detail": "Действие уже выполнено"}, status_code=409)
 
     app.include_router(api)
     return app

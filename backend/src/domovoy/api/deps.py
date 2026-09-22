@@ -56,18 +56,26 @@ async def resolve_ctx(
     else:
         raise HTTPException(401, "Откройте приложение из MAX")
 
-    house: House | None = None
+    # Дом из заголовка принимается только если житель уже в нём состоит: заголовок присылает клиент.
     if house_id is not None:
-        house = await session.get(House, house_id)
-    if house is None and chat_id is not None:
+        role = await member_role(session, user.id, house_id)
+        chosen = await session.get(House, house_id) if role else None
+        if chosen is None or role is None:
+            raise HTTPException(403, "Вы не состоите в этом доме")
+        await session.commit()
+        return Ctx(user=user, house=chosen, role=role)
+
+    # Доверенные источники дома: чат из подписанного initData, затем существующее членство.
+    house: House | None = None
+    if chat_id is not None:
         house = await house_by_chat(session, chat_id)
     if house is None:
         house = await first_house_of(session, user)
-    if house is None:
-        # Житель пришёл впервые не из чата дома: подключаем к пилотному дому.
+    if house is None and settings.pilot_house_fallback:
+        # Житель открыл приложение из лички, ещё не написав в чат дома: подключаем к пилотному дому.
         house = await session.scalar(select(House).order_by(House.id).limit(1))
     if house is None:
-        raise HTTPException(404, "Дом ещё не подключён: добавьте бота в чат дома")
+        raise HTTPException(404, "Дом ещё не подключён: добавьте Кузю в чат дома и откройте приложение оттуда")
 
     member = await ensure_membership(session, user, house)
     await session.commit()
@@ -87,7 +95,13 @@ CtxDep = Annotated[Ctx, Depends(get_ctx)]
 
 
 def require_admin_or_mock(ctx: Ctx) -> None:
+    """Тестовая тревога в мок-режиме доступна всем демо-жителям, иначе только администратору."""
     if not (ctx.is_admin or get_settings().mock_max):
+        raise HTTPException(403, "Действие доступно только администратору дома")
+
+
+def require_admin(ctx: Ctx) -> None:
+    if not ctx.is_admin:
         raise HTTPException(403, "Действие доступно только администратору дома")
 
 

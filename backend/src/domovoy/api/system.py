@@ -28,7 +28,7 @@ async def media(key: str) -> Response:
         data = await read_object(key)
     except Exception as exc:
         raise HTTPException(404, "Файл не найден") from exc
-    return Response(data, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=31536000, immutable"})
+    return Response(data, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=31536000, immutable"})
 
 
 @router.get("/realtime/stream", tags=["Реалтайм"])

@@ -25,7 +25,7 @@ from psycopg_pool import AsyncConnectionPool
 from sqlalchemy import select
 
 from domovoy.agent.llm import get_llm, get_stub, is_real_llm
-from domovoy.agent.mcp_tools import McpConnection, Transport, load_tools
+from domovoy.agent.mcp_tools import McpConnection, Transport, UnsafeMcpUrlError, ensure_public_url, load_tools
 from domovoy.agent.tools import AgentContext, build_tools, now_msk
 from domovoy.core.config import get_settings
 from domovoy.core.db import get_sessionmaker
@@ -107,9 +107,16 @@ async def mcp_connections() -> list[McpConnection]:
     except (json.JSONDecodeError, KeyError, TypeError):
         log.warning("agent.extra_mcp_invalid")
     async with get_sessionmaker()() as session:
-        for srv in await session.scalars(select(McpServer).where(McpServer.enabled.is_(True))):
-            transport: Transport = "sse" if srv.transport == "sse" else "streamable_http"
-            conns[srv.name] = McpConnection(name=srv.name, url=srv.url, transport=transport, headers=srv.headers or {})
+        registry = list(await session.scalars(select(McpServer).where(McpServer.enabled.is_(True))))
+    for srv in registry:
+        if not s.mcp_allow_private_urls:
+            try:
+                await ensure_public_url(srv.url)
+            except UnsafeMcpUrlError:
+                log.warning("agent.mcp_unsafe_url", server=srv.name)
+                continue
+        transport: Transport = "sse" if srv.transport == "sse" else "streamable_http"
+        conns[srv.name] = McpConnection(name=srv.name, url=srv.url, transport=transport, headers=srv.headers or {})
     return list(conns.values())
 
 

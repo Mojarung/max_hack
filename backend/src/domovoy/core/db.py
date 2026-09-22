@@ -3,8 +3,9 @@
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from functools import lru_cache
+from typing import Any
 
-from sqlalchemy import DateTime, MetaData, text
+from sqlalchemy import DateTime, MetaData, select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -44,6 +45,11 @@ def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
 async def get_session() -> AsyncIterator[AsyncSession]:
     async with get_sessionmaker()() as session:
         yield session
+
+
+async def lock_row(session: AsyncSession, model: type[Any], row_id: int) -> None:
+    """SELECT id ... FOR UPDATE без join-ов: у моделей eager-связи, а Postgres не блокирует внешний join."""
+    await session.execute(select(model.id).where(model.id == row_id).with_for_update())
 
 
 async def init_db() -> None:

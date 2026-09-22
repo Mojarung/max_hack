@@ -6,6 +6,7 @@ from urllib.parse import quote
 
 import pytest
 
+from domovoy.agent.mcp_tools import UnsafeMcpUrlError, ensure_public_url
 from domovoy.agent.stub import pick_intent
 from domovoy.agent.timeparse import TZ, parse_when
 from domovoy.core.embeddings import embed
@@ -136,6 +137,12 @@ class TestAgentStub:
 
     def test_greeting_needs_no_tool(self) -> None:
         assert pick_intent("Привет, Кузя!", self.tools) is None
+
+
+@pytest.mark.parametrize("url", ["http://127.0.0.1:8765/mcp", "http://169.254.169.254/latest", "ftp://example.org"])
+async def test_mcp_registry_blocks_internal_urls(url: str) -> None:
+    with pytest.raises(UnsafeMcpUrlError):
+        await ensure_public_url(url)
 
 
 def test_pulse_mood() -> None:

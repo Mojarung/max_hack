@@ -5,9 +5,12 @@
 с JSON-схемой аргументов из MCP; вызов открывает короткую сессию к серверу.
 """
 
+import asyncio
+import ipaddress
 import json
 from dataclasses import dataclass, field
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 from fastmcp import Client
 from fastmcp.client.transports import SSETransport, StreamableHttpTransport
@@ -29,6 +32,25 @@ class McpConnection:
         if self.transport == "sse":
             return Client(SSETransport(self.url, headers=headers), timeout=timeout)
         return Client(StreamableHttpTransport(self.url, headers=headers), timeout=timeout)
+
+
+class UnsafeMcpUrlError(ValueError):
+    pass
+
+
+async def ensure_public_url(url: str) -> None:
+    """Защита от SSRF: адрес MCP-сервера из реестра не должен вести во внутреннюю сеть."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise UnsafeMcpUrlError("Нужен адрес http(s)://")
+    try:
+        infos = await asyncio.get_running_loop().getaddrinfo(parsed.hostname, parsed.port or 443)
+    except OSError as exc:
+        raise UnsafeMcpUrlError("Адрес MCP-сервера не резолвится") from exc
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            raise UnsafeMcpUrlError("Адреса внутренних сетей запрещены")
 
 
 def _render(result: Any) -> str:

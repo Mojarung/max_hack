@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domovoy.core import bus
+from domovoy.core.db import lock_row
 from domovoy.core.embeddings import embed
 from domovoy.modules.achievements import service as achievements
 from domovoy.modules.common_schemas import UserShort
@@ -181,6 +182,8 @@ async def create_event(session: AsyncSession, *, user: User, house: House, data:
 
 
 async def join(session: AsyncSession, ev: Event, user: User) -> Event:
+    await lock_row(session, Event, ev.id)
+    await session.refresh(ev)
     if ev.starts_at < datetime.now(UTC):
         raise HTTPException(409, "Событие уже прошло")
     if await is_joined(session, ev.id, user.id):
@@ -200,6 +203,8 @@ async def join(session: AsyncSession, ev: Event, user: User) -> Event:
 
 
 async def leave(session: AsyncSession, ev: Event, user: User) -> Event:
+    await lock_row(session, Event, ev.id)
+    await session.refresh(ev)
     row = await session.get(EventParticipant, (ev.id, user.id))
     if row is None:
         raise HTTPException(409, "Вы не были записаны")

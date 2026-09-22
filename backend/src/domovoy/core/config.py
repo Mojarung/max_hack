@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     extra_mcp_servers: str = "[]"
     internal_mcp_url: str = "http://localhost:8765/mcp"
     internal_mcp_enabled: bool = True
+    # Разрешить MCP-серверы из реестра во внутренних сетях (по умолчанию нет: защита от SSRF)
+    mcp_allow_private_urls: bool = False
+    # Житель без членства в доме (открыл приложение из лички) подключается к первому (пилотному) дому
+    pilot_house_fallback: bool = True
 
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
     public_app_url: str = "http://localhost:8080"

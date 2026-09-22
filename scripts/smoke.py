@@ -49,6 +49,8 @@ async def main() -> None:
     async with httpx.AsyncClient(base_url=BASE, timeout=60) as c:
         me = (await c.get("/me", headers=headers(1001))).json()
         check(me["mock"] and me["house"]["id"] == 1, "профиль и дом в мок-режиме")
+        foreign = await c.get("/issues", headers={**headers(1001), "X-House-Id": "999"})
+        check(foreign.status_code == 403, "чужой дом через X-House-Id недоступен")
 
         r = await c.post(
             "/issues",

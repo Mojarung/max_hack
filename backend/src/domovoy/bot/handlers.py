@@ -233,6 +233,7 @@ async def on_callback(update: dict[str, Any], gw: Gateway) -> None:
     payload: str = cb.get("payload") or ""
     callback_id: str = cb.get("callback_id") or ""
     message = update.get("message") or {}
+    source_chat = (message.get("recipient") or {}).get("chat_id")
     mid = (message.get("body") or {}).get("mid")
     original_text = (message.get("body") or {}).get("text")
     action, _, raw_id = payload.partition(":")
@@ -248,7 +249,7 @@ async def on_callback(update: dict[str, Any], gw: Gateway) -> None:
                 issue = await session.get(Issue, int(raw_id))
                 if issue is None:
                     raise HTTPException(404, "Заявка не найдена")
-                await ensure_membership(session, user, issue.house)
+                await _join_from_house_chat(session, user, issue.house, source_chat)
                 issue, reached = await issues.vote(session, issue, user)
                 note = (
                     "Порог набран! Отправляю обращение 📨"
@@ -262,9 +263,10 @@ async def on_callback(update: dict[str, Any], gw: Gateway) -> None:
                 )
             else:
                 ev = await session.get(Event, int(raw_id))
-                if ev is None:
+                house = await session.get(House, ev.house_id) if ev else None
+                if ev is None or house is None:
                     raise HTTPException(404, "Событие не найдено")
-                await ensure_membership(session, user, await session.get(House, ev.house_id))  # type: ignore[arg-type]
+                await _join_from_house_chat(session, user, house, source_chat)
                 ev = await events.join(session, ev, user)
                 note = "Записал! Напомню заранее 🙌"
                 buttons = events.join_buttons(ev)
@@ -274,6 +276,18 @@ async def on_callback(update: dict[str, Any], gw: Gateway) -> None:
     await gw.answer_callback(callback_id=callback_id, notification=note)
     if mid:
         await gw.edit(mid=mid, text=original_text, buttons=buttons)
+
+
+async def _join_from_house_chat(session: AsyncSession, user: User, house: House, source_chat: object) -> None:
+    """Кнопка сработала в чате этого дома: нажавший - его участник. Иначе нужна уже существующая роль."""
+    if source_chat is not None and int(str(source_chat)) == house.max_chat_id:
+        await ensure_membership(session, user, house)
+        return
+    role = await session.scalar(
+        select(Membership.role).where(Membership.user_id == user.id, Membership.house_id == house.id)
+    )
+    if role is None:
+        raise HTTPException(403, "Эта кнопка для жителей другого дома")
 
 
 HANDLERS = {
