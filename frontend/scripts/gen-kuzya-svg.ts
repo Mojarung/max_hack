@@ -6,25 +6,19 @@
 import { writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  PALETTES,
-  defsMarkup,
-  staticFigure,
-  type KuzyaIds,
-} from '../src/components/kuzya/geometry.ts'
+import { defsMarkup, staticFigure, type KuzyaIds } from '../src/components/kuzya/geometry.ts'
 
-const ids: KuzyaIds = { dots: 'kzDots', knit: 'kzKnit', skin: 'kzSkin', glow: 'kzGlow' }
-const defs = `<defs>${defsMarkup(ids, PALETTES.happy, '#FFC94D')}
+const ids: KuzyaIds = { dots: 'kzDots', felt: 'kzFelt', skin: 'kzSkin', glow: 'kzGlow' }
+const defs = `<defs>${defsMarkup(ids, '#90E0EF')}
     <radialGradient id="kzBg" cx="50%" cy="40%" r="70%">
-      <stop offset="0%" stop-color="#FFF4E3"/>
-      <stop offset="100%" stop-color="#FFD9A8"/>
+      <stop offset="0%" stop-color="#CAF0F8"/>
+      <stop offset="100%" stop-color="#90E0EF"/>
     </radialGradient>
   </defs>`
-const figure = staticFigure(ids, 'happy')
 
 const logo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" width="200" height="220">
 <title>Домовой Кузя</title>${defs}
-<g>${figure}
+<g>${staticFigure(ids, 'ok')}
 </g>
 </svg>
 `
@@ -32,7 +26,7 @@ const logo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" widt
 const avatar = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
 <title>Домовой Кузя</title>${defs}
 <circle cx="256" cy="256" r="256" fill="url(#kzBg)"/>
-<g transform="translate(61 30) scale(1.95)">${figure}
+<g transform="translate(66 36) scale(1.9)">${staticFigure(ids, 'proud')}
 </g>
 </svg>
 `

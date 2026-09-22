@@ -135,7 +135,7 @@ async function submit(): Promise<void> {
       class="card-soft relative flex flex-col items-center overflow-hidden px-4 py-8 text-center"
       role="status"
     >
-      <KuzyaMascot mood="happy" :size="150" />
+      <KuzyaMascot mood="proud" :size="150" />
       <h2 class="mt-4 mb-2 text-2xl font-bold">Спасибо! Кузя всё записал</h2>
       <p class="text-muted m-0 max-w-[340px]">
         <template v-if="created.status === 'voting'">

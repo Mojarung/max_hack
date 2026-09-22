@@ -5,18 +5,15 @@ import { prefersReducedMotion } from '@/composables/useMotion'
 import { haptic } from '@/max/bridge'
 import {
   FACES,
-  PALETTES,
-  armLeftMarkup,
-  armRightMarkup,
+  armsMarkup,
   bootsMarkup,
-  chestMarkup,
   defsMarkup,
+  dressMarkup,
   eyesMarkup,
   faceMarkup,
   fringeMarkup,
   hairBackMarkup,
   headMarkup,
-  shirtMarkup,
   type KuzyaIds,
   type KuzyaMood,
 } from './geometry'
@@ -29,7 +26,7 @@ const props = withDefaults(
     /** Без фоновых анимаций (для маленьких иконок в списках). */
     still?: boolean
   }>(),
-  { mood: 'happy', size: 160, interactive: true, still: false },
+  { mood: 'ok', size: 160, interactive: true, still: false },
 )
 
 const emit = defineEmits<{ tap: [] }>()
@@ -37,12 +34,11 @@ const emit = defineEmits<{ tap: [] }>()
 const uid = useId()
 const ids: KuzyaIds = {
   dots: `kz-dots-${uid}`,
-  knit: `kz-knit-${uid}`,
+  felt: `kz-felt-${uid}`,
   skin: `kz-skin-${uid}`,
   glow: `kz-glow-${uid}`,
 }
 
-const palette = computed(() => PALETTES[props.mood])
 const face = computed(() => FACES[props.mood])
 const glowColor = computed(() => (props.mood === 'alarm' ? '#00B4D8' : '#90E0EF'))
 const label = computed(
@@ -50,27 +46,28 @@ const label = computed(
     ({
       happy: 'Домовой Кузя радуется',
       ok: 'Домовой Кузя спокоен',
-      worried: 'Домовой Кузя волнуется',
+      worried: 'Домовой Кузя удивлён',
       sad: 'Домовой Кузя грустит',
       alarm: 'Домовой Кузя бьёт тревогу',
+      proud: 'Домовой Кузя гордится',
     })[props.mood],
 )
 
 // Разметка частей статична (без пользовательских данных), поэтому v-html безопасен.
 const parts = computed(() => {
-  const p = palette.value
+  const arms = armsMarkup(ids, face.value.pose)
   return {
-    defs: defsMarkup(ids, p, glowColor.value),
-    hair: hairBackMarkup(p),
-    chest: chestMarkup(),
+    defs: defsMarkup(ids, glowColor.value),
+    hair: hairBackMarkup(),
     boots: bootsMarkup(ids),
-    shirt: shirtMarkup(ids, p),
-    armLeft: armLeftMarkup(ids, p),
-    armRight: armRightMarkup(ids, p),
-    head: headMarkup(ids, p),
-    fringe: fringeMarkup(p),
+    dress: dressMarkup(ids),
+    armLeft: arms.left,
+    armRight: arms.right,
+    armsFront: arms.front,
+    head: headMarkup(ids),
     eyes: eyesMarkup(face.value),
-    face: faceMarkup(face.value, p, props.mood),
+    face: faceMarkup(face.value),
+    fringe: fringeMarkup(),
   }
 })
 
@@ -86,6 +83,8 @@ let alarmTween: gsap.core.Tween | null = null
 let blinkCall: gsap.core.Tween | null = null
 
 function scheduleBlink(): void {
+  blinkCall?.kill()
+  if (face.value.eyes.some((e) => e !== 'open')) return
   blinkCall = gsap.delayedCall(gsap.utils.random(2.2, 5.5), () => {
     if (!eyes.value) return
     gsap.to(eyes.value, {
@@ -93,7 +92,7 @@ function scheduleBlink(): void {
       duration: 0.08,
       yoyo: true,
       repeat: 1,
-      transformOrigin: '50% 50%',
+      svgOrigin: '100 97',
       ease: 'power1.inOut',
       onComplete: scheduleBlink,
     })
@@ -114,7 +113,7 @@ function startAlarm(): void {
         duration: 0.35,
         repeat: -1,
         yoyo: true,
-        transformOrigin: '50% 50%',
+        svgOrigin: '100 110',
         ease: 'sine.inOut',
       },
     )
@@ -129,16 +128,16 @@ function startIdle(): void {
     y: -3,
     scaleY: 1.02,
     scaleX: 0.99,
-    transformOrigin: '50% 100%',
+    svgOrigin: '100 210',
     duration: 1.6,
     repeat: -1,
     yoyo: true,
     ease: 'sine.inOut',
   })
-  // шевелюра чуть покачивается, как пряжа
+  // копна чуть покачивается, как пряжа
   gsap.to(hair.value, {
-    rotation: 2.5,
-    transformOrigin: '50% 90%',
+    rotation: 2,
+    svgOrigin: '100 95',
     duration: 2.2,
     repeat: -1,
     yoyo: true,
@@ -159,11 +158,12 @@ watch(
   () => {
     ctx?.add(() => {
       startAlarm()
+      if (!props.still && !prefersReducedMotion()) scheduleBlink()
       if (!prefersReducedMotion() && figure.value) {
         gsap.fromTo(
           figure.value,
           { scale: 0.94 },
-          { scale: 1, duration: 0.6, ease: 'elastic.out(1, 0.5)', transformOrigin: '50% 100%' },
+          { scale: 1, duration: 0.6, ease: 'elastic.out(1, 0.5)', svgOrigin: '100 210' },
         )
       }
     })
@@ -187,13 +187,13 @@ function wave(): void {
     gsap
       .timeline()
       .to(armRight.value, {
-        rotation: -115,
+        rotation: -110,
         duration: 0.2,
-        transformOrigin: '8% 6%',
+        svgOrigin: '124 128',
         ease: 'power2.out',
       })
       .to(armRight.value, {
-        keyframes: [{ rotation: -95 }, { rotation: -125 }, { rotation: -95 }, { rotation: -120 }],
+        keyframes: [{ rotation: -90 }, { rotation: -120 }, { rotation: -90 }, { rotation: -115 }],
         duration: reduced ? 0.2 : 0.8,
         ease: 'sine.inOut',
       })
@@ -229,20 +229,25 @@ function wave(): void {
     >
       <!-- eslint-disable vue/no-v-html -- статичная разметка маскота из geometry.ts -->
       <defs v-html="parts.defs" />
-      <circle ref="glow" cx="100" cy="120" r="96" :fill="`url(#${ids.glow})`" opacity="0" />
-      <ellipse cx="100" cy="209" rx="62" ry="7" fill="#03045E" opacity="0.14" />
+      <circle ref="glow" cx="100" cy="110" r="100" :fill="`url(#${ids.glow})`" opacity="0" />
+      <ellipse cx="100" cy="210" rx="52" ry="6" fill="#03045E" opacity="0.14" />
 
       <g ref="figure">
         <g ref="hair" v-html="parts.hair" />
-        <g v-html="parts.chest" />
         <g v-html="parts.boots" />
-        <g v-html="parts.shirt" />
-        <g v-html="parts.armLeft" />
-        <g ref="armRight" v-html="parts.armRight" />
+        <g v-html="parts.dress" />
+        <template v-if="!parts.armsFront">
+          <g v-html="parts.armLeft" />
+          <g ref="armRight" v-html="parts.armRight" />
+        </template>
         <g v-html="parts.head" />
-        <g v-html="parts.fringe" />
         <g ref="eyes" v-html="parts.eyes" />
         <g v-html="parts.face" />
+        <g v-html="parts.fringe" />
+        <template v-if="parts.armsFront">
+          <g v-html="parts.armLeft" />
+          <g ref="armRight" v-html="parts.armRight" />
+        </template>
       </g>
       <!-- eslint-enable vue/no-v-html -->
     </svg>
