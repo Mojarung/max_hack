@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, toRef } from 'vue'
+import { computed, onMounted, ref, toRef, defineAsyncComponent } from 'vue'
 import { ApiError, errorMessage } from '@/api/client'
 import ErrorState from '@/components/common/ErrorState.vue'
-import PhotoGallery from '@/components/common/PhotoGallery.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import IssueStatusControls from '@/components/issues/IssueStatusControls.vue'
 import StatusChip from '@/components/issues/StatusChip.vue'
@@ -16,6 +15,8 @@ import { useIssuesStore } from '@/stores/issues'
 import { useSessionStore } from '@/stores/session'
 import { formatDateTime, formatRelative, fullName, plural } from '@/utils/format'
 import { ISSUE_STATUS_META, issueCategoryIcon } from '@/utils/labels'
+
+const PhotoGallery = defineAsyncComponent(() => import('@/components/common/PhotoGallery.vue'))
 
 const props = defineProps<{ id: number }>()
 
@@ -261,7 +262,7 @@ async function shareAppeal(): Promise<void> {
           <v-timeline-item
             v-for="(step, i) in issue.timeline"
             :key="`${step.status}-${step.created_at}-${i}`"
-            :dot-color="ISSUE_STATUS_META[step.status]?.color ?? 'grey'"
+            :dot-color="ISSUE_STATUS_META[step.status]?.color ?? 'muted'"
             :icon="ISSUE_STATUS_META[step.status]?.icon"
             size="small"
           >

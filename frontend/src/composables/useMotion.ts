@@ -1,5 +1,6 @@
 import { gsap } from 'gsap'
 import { nextTick, onMounted, watch, type Ref, type WatchSource } from 'vue'
+import { autoRevealActive } from './useReveal'
 
 export function prefersReducedMotion(): boolean {
   return (
@@ -17,7 +18,8 @@ export function staggerIn(container: HTMLElement | null, selector = '[data-stagg
   )
   if (fresh.length === 0) return
   fresh.forEach((el) => (el.dataset.shown = '1'))
-  if (prefersReducedMotion()) return
+  // карточки списков проявляет общий механизм при входе в экран (useReveal)
+  if (prefersReducedMotion() || (autoRevealActive && selector === '[data-stagger]')) return
   gsap.fromTo(
     fresh,
     { opacity: 0, y: 18, scale: 0.98 },
@@ -75,7 +77,7 @@ export function pop(el: Element | null | undefined): void {
   gsap.fromTo(el, { scale: 0.92 }, { scale: 1, duration: 0.5, ease: 'elastic.out(1, 0.45)' })
 }
 
-const CONFETTI_COLORS = ['#F2A65A', '#C8561B', '#26A69A', '#FFD54F', '#EF5350', '#7E57C2']
+const CONFETTI_COLORS = ['#023E8A', '#0077B6', '#0096C7', '#00B4D8', '#48CAE4', '#90E0EF']
 
 /** Конфетти из центра контейнера. Элементы удаляются после анимации. */
 export function confetti(container: HTMLElement | null, count = 42): void {

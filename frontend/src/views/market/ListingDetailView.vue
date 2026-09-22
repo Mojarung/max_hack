@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ApiError, errorMessage } from '@/api/client'
 import { listingsApi } from '@/api/endpoints'
 import type { ListingStatus } from '@/api/types'
 import ErrorState from '@/components/common/ErrorState.vue'
-import PhotoGallery from '@/components/common/PhotoGallery.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { Drawer, DrawerContent, DrawerHeader } from '@/components/ui/drawer'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -14,6 +13,8 @@ import { haptic } from '@/max/bridge'
 import { useListingsStore } from '@/stores/listings'
 import { formatPrice, formatRelative, fullName } from '@/utils/format'
 import { LISTING_CATEGORY_ICONS, LISTING_STATUS_META } from '@/utils/labels'
+
+const PhotoGallery = defineAsyncComponent(() => import('@/components/common/PhotoGallery.vue'))
 
 const props = defineProps<{ id: number }>()
 const store = useListingsStore()

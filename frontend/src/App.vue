@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import BootScreen from '@/components/layout/BootScreen.vue'
 import BottomNav from '@/components/layout/BottomNav.vue'
-import DroneAlertOverlay from '@/components/safety/DroneAlertOverlay.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { pageEnter, pageLeave } from '@/composables/useMotion'
+import { installAutoReveal } from '@/composables/useReveal'
 import { backButton, getStartParam } from '@/max/bridge'
 import { deepLinkToPath } from '@/max/deeplink'
 import { goBack } from '@/router'
@@ -20,6 +20,20 @@ const pulse = usePulseStore()
 const route = useRoute()
 const router = useRouter()
 let deepLinkHandled = false
+
+// Оверлей тревоги загружается только во время тревоги
+const DroneAlertOverlay = defineAsyncComponent(
+  () => import('@/components/safety/DroneAlertOverlay.vue'),
+)
+
+// Анимация появления блоков при прокрутке на всех экранах
+const mainEl = ref<HTMLElement | null>(null)
+let stopReveal: (() => void) | null = null
+watch(mainEl, (el) => {
+  stopReveal?.()
+  stopReveal = el ? installAutoReveal(el) : null
+})
+onBeforeUnmount(() => stopReveal?.())
 
 onMounted(() => void session.init())
 
@@ -50,7 +64,7 @@ watch(
     <BootScreen v-if="session.status !== 'ready'" />
     <template v-else>
       <AppHeader />
-      <main>
+      <main ref="mainEl">
         <router-view v-slot="{ Component, route: current }">
           <Transition :css="false" mode="out-in" @enter="pageEnter" @leave="pageLeave">
             <component :is="Component" :key="`${current.path}#${session.userKey}`" />
@@ -59,7 +73,7 @@ watch(
       </main>
       <BottomNav />
     </template>
-    <DroneAlertOverlay />
+    <DroneAlertOverlay v-if="alerts.active" />
     <Toaster />
   </v-app>
 </template>
