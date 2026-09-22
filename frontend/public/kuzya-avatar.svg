@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<title>Домовой Кузя</title>
+  <defs>
+    <radialGradient id="kzBody" cx="38%" cy="32%" r="75%">
+      <stop offset="0%" stop-color="#FFC98A"/>
+      <stop offset="70%" stop-color="#F2A65A"/>
+      <stop offset="100%" stop-color="#D9803F"/>
+    </radialGradient>
+    <radialGradient id="kzGlow">
+      <stop offset="0%" stop-color="#FFC94D" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FFC94D" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="kzBg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#FFF4E3"/>
+      <stop offset="100%" stop-color="#FFD9A8"/>
+    </radialGradient>
+  </defs>
+<circle cx="256" cy="256" r="256" fill="url(#kzBg)"/>
+<g transform="translate(61 34) scale(1.95)">
+  <ellipse cx="100" cy="206" rx="54" ry="8" fill="#000" opacity="0.12"/>
+  <g fill="#CFC8C1">
+    <circle cx="135" cy="22" r="6" opacity="0.8"/>
+    <circle cx="142" cy="9" r="8" opacity="0.55"/>
+  </g>
+  <ellipse cx="80" cy="192" rx="16" ry="9" fill="#D9803F"/>
+  <ellipse cx="120" cy="192" rx="16" ry="9" fill="#D9803F"/>
+  <path d="M31 160 Q39 150 47 160" fill="none" stroke="#6D4C41" stroke-width="3"/>
+  <circle cx="39" cy="178" r="20" fill="url(#kzGlow)" opacity="0.5"/>
+  <rect x="28" y="162" width="22" height="28" rx="6" fill="#6D4C41"/>
+  <rect x="31.5" y="166" width="15" height="19" rx="4" fill="#FFC94D"/>
+  <rect x="30" y="188" width="18" height="5" rx="2.5" fill="#5D4037"/>
+  <path d="M100 80 Q111.8 73 120.5 83.4 Q134 80.6 138.6 93.1 Q152.1 94.9 152 108 Q163.9 114.1 159.1 126.3 Q168 136 159.1 145.7 Q163.9 157.9 152 164 Q152.1 177.1 138.6 178.9 Q134 191.4 120.5 188.6 Q111.8 199 100 192 Q88.2 199 79.5 188.6 Q66 191.4 61.4 178.9 Q47.9 177.1 48 164 Q36.1 157.9 40.9 145.7 Q32 136 40.9 126.3 Q36.1 114.1 48 108 Q47.9 94.9 61.4 93.1 Q66 80.6 79.5 83.4 Q88.2 73 100 80 Z" fill="url(#kzBody)"/>
+  <ellipse cx="100" cy="156" rx="34" ry="28" fill="#FFE3BF"/>
+  <ellipse cx="47" cy="150" rx="11" ry="16" transform="rotate(32 47 150)" fill="#F2A65A"/>
+  <ellipse cx="152" cy="146" rx="11" ry="16" transform="rotate(-28 152 146)" fill="#F2A65A"/>
+  <ellipse cx="68" cy="140" rx="9" ry="6" fill="#FF8A80" opacity="0.55"/>
+  <ellipse cx="132" cy="140" rx="9" ry="6" fill="#FF8A80" opacity="0.55"/>
+  <ellipse cx="80" cy="123" rx="14" ry="16" fill="#fff"/>
+  <ellipse cx="120" cy="123" rx="14" ry="16" fill="#fff"/>
+  <circle cx="82" cy="126" r="8.5" fill="#3B2418"/>
+  <circle cx="122" cy="126" r="8.5" fill="#3B2418"/>
+  <circle cx="85" cy="122" r="3.2" fill="#fff"/>
+  <circle cx="125" cy="122" r="3.2" fill="#fff"/>
+  <g fill="none" stroke="#3B2418" stroke-width="4" stroke-linecap="round">
+    <path d="M69 101 Q79 93 89 100"/>
+    <path d="M111 100 Q121 93 131 101"/>
+  </g>
+  <path d="M86 143 Q100 164 114 143 Q100 149 86 143 Z" fill="#6B2B1C" stroke="#3B2418" stroke-width="3.5" stroke-linejoin="round"/>
+  <rect x="124" y="40" width="13" height="28" rx="2" fill="#96392A"/>
+  <rect x="121" y="36" width="19" height="7" rx="2.5" fill="#96392A"/>
+  <path d="M42 88 L100 36 L158 88 Z" fill="#C8553D" stroke="#C8553D" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M44 90 L100 40 L156 90" fill="none" stroke="#96392A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+  <circle cx="100" cy="66" r="10" fill="#FFE08A" stroke="#96392A" stroke-width="3"/>
+  <path d="M100 57 V75 M91 66 H109" stroke="#96392A" stroke-width="2.5"/>
+</g>
+</svg>

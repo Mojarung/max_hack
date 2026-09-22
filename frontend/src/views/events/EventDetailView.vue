@@ -1,0 +1,303 @@
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { ApiError, errorMessage } from '@/api/client'
+import ErrorState from '@/components/common/ErrorState.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import { Skeleton } from '@/components/ui/skeleton'
+import { pop, staggerIn } from '@/composables/useMotion'
+import { notify } from '@/lib/notify'
+import { haptic } from '@/max/bridge'
+import { useEventsStore } from '@/stores/events'
+import { useSessionStore } from '@/stores/session'
+import { formatDateTime, formatRelative, fullName, pluralize } from '@/utils/format'
+import { eventKindMeta } from '@/utils/labels'
+
+const props = defineProps<{ id: number }>()
+const store = useEventsStore()
+const session = useSessionStore()
+
+const loading = ref(false)
+const error = ref<string | null>(null)
+const notFound = ref(false)
+const joining = ref(false)
+const joinBtn = ref<{ $el: HTMLElement } | null>(null)
+
+const commentsLoading = ref(false)
+const commentsError = ref<string | null>(null)
+const text = ref('')
+const sending = ref(false)
+const rejected = ref<string | null>(null)
+const commentsBox = ref<HTMLElement | null>(null)
+
+const event = computed(() => store.details[props.id] ?? null)
+const comments = computed(() => store.comments[props.id] ?? [])
+const isPast = computed(() =>
+  event.value ? Date.parse(event.value.starts_at) < Date.now() : false,
+)
+const isFull = computed(
+  () =>
+    !!event.value?.max_participants &&
+    !event.value.joined_by_me &&
+    event.value.participants_count >= event.value.max_participants,
+)
+const meId = computed(() => session.me?.user.id)
+
+async function load(): Promise<void> {
+  loading.value = true
+  error.value = null
+  try {
+    await store.fetchDetail(props.id)
+  } catch (e) {
+    notFound.value = e instanceof ApiError && e.status === 404
+    error.value = errorMessage(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadComments(): Promise<void> {
+  commentsLoading.value = true
+  commentsError.value = null
+  try {
+    await store.loadComments(props.id)
+  } catch (e) {
+    commentsError.value = errorMessage(e)
+  } finally {
+    commentsLoading.value = false
+  }
+}
+
+onMounted(() => {
+  void load()
+  void loadComments()
+})
+
+watch(
+  () => comments.value.length,
+  () => nextTick(() => staggerIn(commentsBox.value, '[data-comment]')),
+  { flush: 'post' },
+)
+
+async function toggleJoin(): Promise<void> {
+  if (!event.value || joining.value) return
+  joining.value = true
+  haptic.impact('medium')
+  const willJoin = !event.value.joined_by_me
+  try {
+    await store.toggleJoin(props.id)
+    pop(joinBtn.value?.$el)
+    notify.success(willJoin ? 'Вы идёте! Кузя напомнит заранее' : 'Отметку сняли')
+  } catch (e) {
+    notify.error(e, 'Не удалось сохранить')
+  } finally {
+    joining.value = false
+  }
+}
+
+async function send(): Promise<void> {
+  const value = text.value.trim()
+  if (!value || sending.value) return
+  sending.value = true
+  rejected.value = null
+  try {
+    await store.addComment(props.id, value)
+    text.value = ''
+    haptic.impact('light')
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 422) {
+      rejected.value = e.detail
+      haptic.notify('warning')
+    } else {
+      notify.error(e, 'Комментарий не отправлен')
+    }
+  } finally {
+    sending.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="page">
+    <div v-if="loading && !event" aria-busy="true" aria-label="Загрузка">
+      <Skeleton class="h-[140px] w-full rounded-2xl" />
+      <Skeleton class="mt-4 h-6 w-3/4" />
+      <Skeleton class="mt-2 h-4 w-1/2" />
+    </div>
+
+    <ErrorState
+      v-else-if="error && !event"
+      :title="notFound ? 'Событие не найдено' : 'Не получилось загрузить'"
+      :message="error"
+      :retrying="loading"
+      @retry="load"
+    />
+
+    <article v-else-if="event">
+      <header class="event-hero" :class="`bg-${eventKindMeta(event.kind).color}`">
+        <v-icon :icon="eventKindMeta(event.kind).icon" size="44" />
+        <div class="mt-2 text-sm font-semibold opacity-90">{{ event.kind_title }}</div>
+        <h2 class="m-0 text-[22px] leading-tight font-bold">{{ event.title }}</h2>
+      </header>
+
+      <ul class="card-soft mt-3 mb-0 flex list-none flex-col gap-3 p-4">
+        <li class="flex items-start gap-3">
+          <v-icon icon="mdi-calendar-clock" color="primary" />
+          <div>
+            <div class="font-semibold">{{ formatDateTime(event.starts_at) }}</div>
+            <div v-if="isPast" class="text-muted text-sm">Событие уже прошло</div>
+          </div>
+        </li>
+        <li class="flex items-start gap-3">
+          <v-icon icon="mdi-map-marker-outline" color="primary" />
+          <span class="font-semibold">{{ event.place }}</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <v-icon icon="mdi-account-outline" color="primary" />
+          <span>Организатор: {{ fullName(event.author) }}</span>
+        </li>
+      </ul>
+
+      <p v-if="event.description" class="pre-wrap mt-4 mb-0 leading-relaxed">
+        {{ event.description }}
+      </p>
+
+      <section class="card-soft mt-4 p-4" aria-label="Участники">
+        <div class="flex items-baseline justify-between">
+          <h3 class="m-0 text-base font-bold">
+            {{ pluralize(event.participants_count, ['участник', 'участника', 'участников']) }}
+          </h3>
+          <span v-if="event.max_participants" class="text-muted text-sm"
+            >мест: {{ event.max_participants }}</span
+          >
+        </div>
+        <div v-if="event.participants.length" class="mt-3 flex flex-wrap gap-1.5">
+          <UserAvatar
+            v-for="p in event.participants.slice(0, 16)"
+            :key="p.id"
+            :user="p"
+            :size="38"
+          />
+          <v-avatar v-if="event.participants.length > 16" size="38" color="surface-variant">
+            +{{ event.participants.length - 16 }}
+          </v-avatar>
+        </div>
+        <p v-else class="text-muted mt-2 mb-0 text-sm">Пока никто не отметился. Будьте первым!</p>
+        <v-btn
+          v-if="!isPast"
+          ref="joinBtn"
+          block
+          size="x-large"
+          class="mt-4"
+          :color="event.joined_by_me ? 'success' : 'primary'"
+          :variant="event.joined_by_me ? 'tonal' : 'flat'"
+          :prepend-icon="event.joined_by_me ? 'mdi-check-circle' : 'mdi-hand-wave-outline'"
+          :loading="joining"
+          :disabled="isFull"
+          :aria-pressed="event.joined_by_me"
+          @click="toggleJoin"
+        >
+          {{ isFull ? 'Мест нет' : event.joined_by_me ? 'Иду! Нажмите, если передумали' : 'Иду' }}
+        </v-btn>
+      </section>
+
+      <!-- Комментарии -->
+      <section class="mt-4" aria-label="Обсуждение">
+        <h3 class="section-title !mt-2">Обсуждение</h3>
+        <div v-if="commentsLoading && !comments.length" class="flex flex-col gap-2">
+          <Skeleton v-for="i in 3" :key="i" class="h-14 w-4/5 rounded-2xl" />
+        </div>
+        <div v-else-if="commentsError && !comments.length" class="text-muted text-sm" role="alert">
+          {{ commentsError }}
+          <v-btn variant="text" size="small" color="primary" @click="loadComments">Повторить</v-btn>
+        </div>
+        <p v-else-if="!comments.length" class="text-muted m-0 text-sm">
+          Пока тихо. Спросите, что взять с собой, или договоритесь о деталях.
+        </p>
+        <div ref="commentsBox" class="flex flex-col gap-2" aria-live="polite">
+          <div
+            v-for="c in comments"
+            :key="c.id"
+            data-comment
+            class="flex items-end gap-2"
+            :class="{ 'flex-row-reverse': c.author?.id === meId }"
+          >
+            <UserAvatar :user="c.author" :size="30" />
+            <div class="bubble" :class="{ 'bubble--mine': c.author?.id === meId }">
+              <div v-if="c.author?.id !== meId" class="text-xs font-semibold text-primary">
+                {{ fullName(c.author) }}
+              </div>
+              <div class="pre-wrap">{{ c.text }}</div>
+              <div class="mt-0.5 text-right text-[11px] opacity-60">
+                {{ formatRelative(c.created_at) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <v-alert
+          v-if="rejected"
+          type="warning"
+          variant="tonal"
+          rounded="lg"
+          class="mt-3"
+          icon="mdi-shield-alert-outline"
+          closable
+          @click:close="rejected = null"
+        >
+          Кузя не пропустил: {{ rejected }}
+        </v-alert>
+
+        <form class="composer mt-3" @submit.prevent="send">
+          <v-textarea
+            v-model="text"
+            placeholder="Написать комментарий"
+            rows="1"
+            auto-grow
+            max-rows="5"
+            maxlength="1000"
+            density="comfortable"
+            hide-details
+            aria-label="Текст комментария"
+            @keydown.enter.exact.prevent="send"
+          />
+          <v-btn
+            type="submit"
+            icon="mdi-send"
+            color="primary"
+            size="large"
+            :loading="sending"
+            :disabled="!text.trim()"
+            aria-label="Отправить комментарий"
+          />
+        </form>
+      </section>
+    </article>
+  </div>
+</template>
+
+<style scoped>
+.event-hero {
+  padding: 20px 16px;
+  border-radius: var(--radius-card);
+}
+.bubble {
+  max-width: 78%;
+  padding: 8px 12px;
+  border-radius: 16px 16px 16px 4px;
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(var(--v-border-color), 0.1);
+}
+.bubble--mine {
+  border-radius: 16px 16px 4px 16px;
+  background: rgba(var(--v-theme-primary), 0.12);
+  border-color: transparent;
+}
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.composer > :first-child {
+  flex: 1;
+}
+</style>
