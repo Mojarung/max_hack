@@ -43,14 +43,24 @@ def make_title(text: str) -> str:
 
 
 def classify_rules(text: str) -> Classification:
+    """Газ побеждает всегда (экстренный случай). Остальные: выигрывает категория, упомянутая раньше.
+
+    Житель обычно начинает с сути («Течёт крыша…»), а место и последствия пишет после
+    («…лужа в подъезде»), поэтому первое упоминание надёжнее суммы совпадений.
+    """
     low = _normalize(text)
-    best, best_score = "other", 0
+    hits: list[tuple[int, int, str]] = []
     for cat in CATEGORIES:
-        score = sum(len(k) for k in cat.keywords if k in low)
-        if score > best_score:
-            best, best_score = cat.code, score
-    confidence = min(0.9, 0.4 + best_score / 30) if best_score else 0.3
-    return Classification(best, make_title(text), round(confidence, 2), "rules")
+        positions = [low.find(k) for k in cat.keywords if k in low]
+        if positions:
+            hits.append((min(positions), -len(positions), cat.code))
+    if not hits:
+        return Classification("other", make_title(text), 0.3, "rules")
+    if any(code == "gas" for *_, code in hits):
+        return Classification("gas", make_title(text), 0.9, "rules")
+    hits.sort()
+    confidence = 0.8 if len(hits) == 1 else 0.6
+    return Classification(hits[0][2], make_title(text), confidence, "rules")
 
 
 PROMPT = """Ты классифицируешь обращения жителей многоквартирного дома.

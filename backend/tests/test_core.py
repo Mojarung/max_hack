@@ -110,6 +110,8 @@ class TestClassifierAndSearch:
             ("Лифт застрял между этажами", "elevator"),
             ("Контейнеры переполнены, мусор не вывозят", "garbage"),
             ("Огромная яма на дороге у въезда", "road"),
+            ("Течёт крыша над 9 этажом, после дождя лужа в подъезде", "roof"),
+            ("Не горит свет на лестнице 1 подъезда", "electricity"),
         ],
     )
     def test_rules(self, text: str, category: str) -> None:

@@ -27,6 +27,7 @@ X-Max-Init-Data: <initData>
 | GET | `/me` | `MeOut` |
 | GET | `/house/pulse` | `PulseOut`, состояние маскота Кузи |
 | GET | `/dev/users` | `DevUser[]`, только в мок-режиме |
+| PATCH | `/house` | `MeOut`. Тело: `title`, `address`, `lat`, `lon`, `vote_threshold_pct` (только администратор дома), `apartment` (своя квартира, любой житель) |
 
 ```jsonc
 // MeOut
