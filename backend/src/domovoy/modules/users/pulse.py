@@ -51,10 +51,11 @@ def compute_score(s: PulseStats) -> int:
     return max(0, min(100, score))
 
 
-def mood_for(score: int, alert: bool) -> Mood:
+def mood_for(score: int, alert: bool, overdue: int = 0) -> Mood:
     if alert:
         return "alarm"
-    if score >= 75:
+    # просроченная заявка не даёт Кузе радоваться, даже если остальное в порядке
+    if score >= 75 and overdue == 0:
         return "happy"
     if score >= 55:
         return "ok"
@@ -123,7 +124,7 @@ async def house_pulse(session: AsyncSession, house_id: int) -> PulseOut:
     )
     level = xp // HOUSE_LEVEL_XP + 1
     score = compute_score(stats)
-    mood = mood_for(score, stats.active_alert)
+    mood = mood_for(score, stats.active_alert, stats.overdue_issues)
     return PulseOut(
         mood=mood,
         score=score,

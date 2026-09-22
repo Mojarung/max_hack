@@ -167,3 +167,4 @@ def test_pulse_mood() -> None:
     assert mood_for(compute_score(calm), False) == "happy"
     assert mood_for(compute_score(bad), False) == "sad"
     assert mood_for(90, True) == "alarm"
+    assert mood_for(90, False, overdue=1) == "ok"
