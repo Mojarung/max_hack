@@ -20,11 +20,11 @@ class Settings(BaseSettings):
     seed_demo: bool = True
 
     database_url: str = "postgresql+asyncpg://domovoy:domovoy@localhost:5432/domovoy"
-    rabbit_url: str = "amqp://guest:guest@localhost:5672/"
+    rabbit_url: str = "amqp://domovoy:domovoy@localhost:5672/"
 
     s3_endpoint: str = "localhost:9000"
-    s3_access_key: str = "minioadmin"
-    s3_secret_key: SecretStr = SecretStr("minioadmin")
+    s3_access_key: str = "domovoy"
+    s3_secret_key: SecretStr = SecretStr("domovoy-secret")
     s3_bucket: str = "domovoy"
     s3_secure: bool = False
 

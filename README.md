@@ -116,8 +116,7 @@ docker compose down -v         # удалить и данные; при след
 ### Локально через uv
 
 ```bash
-cp .env.example .env                                   # раскомментировать блок «Для локального запуска через uv»
-docker compose up -d postgres rabbitmq minio           # только инфраструктура
+docker compose up -d postgres rabbitmq minio           # только инфраструктура; значения по умолчанию совпадают с compose
 cd backend && uv sync
 uv run domovoy mcp & uv run domovoy api & uv run domovoy bot & uv run domovoy worker
 cd ../frontend && npm ci && npm run dev                # http://localhost:5173
