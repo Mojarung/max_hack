@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Домовой Кузя</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  :root {
+    --bg: #fffaf3; --ink: #2b2118; --muted: #7a6a5c; --accent: #e8741c; --accent-soft: #fde6d2;
+    --teal: #16857c; --teal-soft: #d8f0ed; --line: #eadfd2; --red: #c8372d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", "Inter", system-ui, sans-serif; color: var(--ink); background: #ddd; }
+  .slide {
+    width: 1280px; height: 720px; padding: 56px 72px; background: var(--bg); position: relative;
+    page-break-after: always; overflow: hidden; display: flex; flex-direction: column;
+  }
+  .slide:last-child { page-break-after: auto; }
+  h1 { font-size: 54px; margin: 0 0 12px; letter-spacing: -1px; }
+  h2 { font-size: 36px; margin: 0 0 28px; letter-spacing: -0.5px; }
+  h3 { font-size: 20px; margin: 0 0 8px; color: var(--accent); }
+  p, li { font-size: 20px; line-height: 1.45; }
+  ul { margin: 0; padding-left: 22px; }
+  li { margin-bottom: 8px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 15px; }
+  .tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); margin-right: 6px; }
+  .tag.teal { background: var(--teal-soft); color: var(--teal); }
+  .tag.red { background: #f9dcd9; color: var(--red); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; }
+  .card p, .card li { font-size: 17px; }
+  table { border-collapse: collapse; width: 100%; font-size: 16px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: .4px; }
+  .footer { position: absolute; bottom: 22px; left: 72px; right: 72px; display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+  .kuzya { position: absolute; right: 60px; bottom: 50px; width: 260px; }
+  .shot { border-radius: 22px; border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(80,40,10,.12); height: 520px; }
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps li { counter-increment: s; position: relative; padding-left: 44px; font-size: 18px; margin-bottom: 11px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 15px; }
+  .big { font-size: 44px; font-weight: 700; color: var(--accent); }
+  .tech td:first-child { width: 290px; color: var(--muted); }
+  code { font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; background: #f4ebe0; padding: 1px 6px; border-radius: 6px; }
+  .arch { width: 100%; height: 470px; }
+</style>
+</head>
+<body>
+
+<!-- 1. Служебный слайд -->
+<section class="slide">
+  <h2>Техническая информация для проверки</h2>
+  <table class="tech">
+    <tr><td>Бот в MAX</td><td><b>TODO:</b> https://max.ru/&lt;ник бота&gt; (ник фиксируется после выдачи токена)</td></tr>
+    <tr><td>Мини-приложение</td><td>кнопка в чате бота и диплинк <code>https://max.ru/&lt;ник&gt;?startapp=home</code></td></tr>
+    <tr><td>Репозиторий и commit hash</td><td><b>TODO:</b> ссылка на репозиторий, hash фиксируется при сдаче</td></tr>
+    <tr><td>Собственный API</td><td>не требуется для проверки; внутренний REST описан в <code>docs/openapi.json</code></td></tr>
+    <tr><td>Тестовые учётные записи</td><td>в MAX: ваш аккаунт (добавьте бота в групповой чат администратором);<br>без MAX: демо-жители 1001-1008 в переключателе мини-приложения, 1001 администратор</td></tr>
+    <tr><td>Переменные окружения</td><td><code>MAX_BOT_TOKEN</code> передаётся отдельно; остальное в <code>.env.example</code>, работает без изменений</td></tr>
+    <tr><td>Запуск</td><td><code>docker compose up -d --build</code> → http://localhost:8080 (мини-приложение), http://localhost:8080/dev/chat (эмулятор чата)</td></tr>
+    <tr><td>Основной сценарий</td><td>«Проблемы» → «Сообщить» → фото и описание → голоса соседей → при пороге Кузя отправляет обращение → статус и срок в карточке</td></tr>
+  </table>
+</section>
+
+<!-- 2. Титул -->
+<section class="slide" style="justify-content:center">
+  <span class="tag" style="align-self:flex-start">Трек «Умный город»</span>
+  <h1 style="font-size:72px;margin-top:18px">Домовой Кузя</h1>
+  <p style="font-size:26px;max-width:720px">Хранитель дома в чате MAX: превращает жалобы соседей в коллективные обращения с правильным адресатом и сроком и следит, чтобы проблему решили.</p>
+  <p class="muted" style="margin-top:40px">Команда: <b>TODO</b> (состав и роли)</p>
+  <img class="kuzya" src="../../frontend/public/kuzya.svg" alt="">
+</section>
+
+<!-- 3. Summary -->
+<section class="slide">
+  <h2>Коротко</h2>
+  <div class="grid3" style="margin-bottom:26px">
+    <div class="card"><h3>Кто</h3><p>Жители МКД на 40-150 квартир с домовым чатом, прежде всего председатель совета дома и активные соседи.</p></div>
+    <div class="card"><h3>Проблема</h3><p>Обсуждение поломки в чате не превращается в заявку: неизвестно, кто отвечает, какой срок положен и подал ли уже кто-то.</p></div>
+    <div class="card"><h3>Решение</h3><p>Фото → ИИ находит ответственного и норматив → соседи голосуют кнопкой → Кузя отправляет обращение и контролирует срок.</p></div>
+  </div>
+  <div class="grid3">
+    <div class="card"><h3>Почему MAX</h3><p>С 01.09.2026 УК обязаны работать с жителями через MAX (ПП РФ № 40). Кузя живёт там, где жители уже общаются.</p></div>
+    <div class="card"><h3>Эффект</h3><p>Обращение за часы вместо недель, ноль ручных звонков у инициатора, дубли объединяются, просрочки эскалируются в ГЖИ.</p></div>
+    <div class="card"><h3>Готовность</h3><p>Работающий MVP: бот, мини-приложение, агент, модерация, события, барахолка, укрытия. Запуск одной командой.</p></div>
+  </div>
+</section>
+
+<!-- 4. Проблема -->
+<section class="slide">
+  <h2>Проблема: разговор в чате не становится действием</h2>
+  <div class="grid2">
+    <div>
+      <p><i>«Председатель совета дома в ситуации протечки кровли хочет, чтобы УК устранила её в срок, но сталкивается с разрозненными жалобами в чате и не знает, кто отвечает и какой срок положен, из-за чего проблема висит неделями».</i></p>
+      <table style="margin-top:18px">
+        <tr><th>Факты</th><th>Источник</th></tr>
+        <tr><td>Жилфонд РФ около 4,2 млрд м²</td><td>Росстат, 2024</td></tr>
+        <tr><td>С 01.09.2026 УК принимают обращения через MAX</td><td>ПП РФ № 40 от 26.01.2026</td></tr>
+        <tr><td>Протечка кровли и лифт: устранение за 1 сутки</td><td>ПП Госстроя № 170</td></tr>
+        <tr><td>Ответственность делят УК, регоператор ТКО, администрация, аварийные службы</td><td>ЖК РФ, ПП № 491, 131-ФЗ</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Гипотезы, проверяем в пилоте</h3>
+      <ul>
+        <li>Жители не знают ответственного и норматив.</li>
+        <li>Каждый думает, что заявку уже подал кто-то другой.</li>
+        <li>Коллективное обращение с фото и ссылкой на норматив закрывают быстрее, чем звонки.</li>
+      </ul>
+      <p class="small muted" style="margin-top:16px">Проверка: опрос 30+ жителей, сравнение числа жалоб в чате и заявок в УК за 4 недели до запуска.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. As is / To be -->
+<section class="slide">
+  <h2>Как сейчас и как с Кузей</h2>
+  <table>
+    <tr><th>Шаг</th><th>Сейчас</th><th>С Кузей</th></tr>
+    <tr><td>Заметил</td><td>«у нас течёт» и 20 ответов «у нас тоже»</td><td>фото + описание, дубль найден автоматически</td></tr>
+    <tr><td>Кому писать</td><td>ищет в интернете, путает УК и регоператора</td><td>ответственный из справочника виден сразу</td></tr>
+    <tr><td>Оформление</td><td>один активист пишет заявление</td><td>соседи голосуют кнопкой, обращение собирается само</td></tr>
+    <tr><td>Основание и срок</td><td>неизвестны</td><td>в обращении со ссылкой на норматив</td></tr>
+    <tr><td>Контроль</td><td>никто не помнит, когда подавали</td><td>таймер в карточке, жалоба в ГЖИ при просрочке</td></tr>
+  </table>
+  <p style="margin-top:22px"><span class="tag teal">исчезает</span> поиск ответственного, ручное заявление, звонки «подавали ли уже» &nbsp; <span class="tag">автоматизируется</span> адресация, текст, контроль срока, эскалация</p>
+</section>
+
+<!-- 6. Сценарий -->
+<section class="slide">
+  <h2>Основной сценарий</h2>
+  <div class="grid2" style="grid-template-columns: 1.15fr .85fr">
+    <ol class="steps">
+      <li>В чате дома житель жмёт «Сообщить о проблеме» под сообщением Кузи.</li>
+      <li>Фото и «течёт крыша над 9 этажом». Пока печатает: «Кровля → УК, срок 24 ч», проверка дублей.</li>
+      <li>В чате появляется карточка с кнопкой «👍 Поддерживаю (1/6)». Порог 6 = 15% от 40 участников чата.</li>
+      <li>Соседи голосуют в чате или приложении, счётчик обновляется у всех без перезагрузки.</li>
+      <li>На пороге Кузя формирует официальное обращение и пишет в чат срок исполнения.</li>
+      <li>В карточке таймер срока; при просрочке готова жалоба в Госжилинспекцию.</li>
+      <li>«Решено»: жители получают очки, Кузя радуется.</li>
+    </ol>
+    <div style="display:flex;gap:14px;justify-content:center">
+      <img class="shot" src="shots/issue.png" alt="Карточка заявки">
+    </div>
+  </div>
+</section>
+
+<!-- 7. Фишки -->
+<section class="slide">
+  <h2>Чем Кузя отличается</h2>
+  <div class="grid2" style="grid-template-columns: .9fr 1.1fr">
+    <div style="display:flex;gap:14px;justify-content:center"><img class="shot" src="shots/home.png" alt="Главный экран"></div>
+    <div>
+      <div class="card" style="margin-bottom:14px"><h3>Тамагочи дома</h3><p>Настроение маскота считается из данных: просрочки огорчают, решённые проблемы и субботники радуют. Состояние дома понятно без отчётов.</p></div>
+      <div class="card" style="margin-bottom:14px"><h3>Закон не выдумывается</h3><p>LLM только выбирает категорию. Адресат, основание и срок из справочника со ссылками на ПП № 290, 354, 491, Госстрой № 170.</p></div>
+      <div class="card"><h3>Доводит до результата</h3><p>Порог голосов от размера чата, дубли через RAG, автообращение, контроль срока, эскалация в ГЖИ. Газ уходит в аварийку сразу, без голосования.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Вокруг сценария -->
+<section class="slide">
+  <h2>Зачем жителю открывать Кузю каждую неделю</h2>
+  <div class="grid3" style="margin-bottom:22px">
+    <div class="card"><h3>События двора</h3><p>«Кузя, создай субботник в субботу в 11». Анонс в чате, кнопка «Иду», живой чат события, напоминание записавшимся.</p></div>
+    <div class="card"><h3>Барахолка</h3><p>Отдать коляску даром или продать шкаф соседу. Кузя передаёт сообщение продавцу в личку.</p></div>
+    <div class="card"><h3>Ачивки и уровни</h3><p>Очки за заявки, голоса, субботники и подарки соседям. Рейтинг соседей и уровень дома.</p></div>
+  </div>
+  <div class="grid3">
+    <div class="card"><h3>Безопасность</h3><p>Карта укрытий на OpenStreetMap, маршрут в Яндекс Картах, полноэкранное оповещение о беспилотной опасности.</p></div>
+    <div class="card"><h3>Модерация</h3><p>Мат, оскорбления, реклама и спам удаляются. Три предупреждения → сообщение администраторам.</p></div>
+    <div class="card"><h3>Кузя-агент</h3><p>Понимает, кто пишет, помнит контекст чата, берёт данные о доме из MCP «Жилищный навигатор».</p></div>
+  </div>
+  <p class="small muted" style="margin-top:18px">Эти функции дают регулярный повод заходить, поэтому в момент поломки канал уже установлен и соседи голосуют.</p>
+</section>
+
+<!-- 8b. Экраны -->
+<section class="slide">
+  <h2>Как это выглядит</h2>
+  <div style="display:flex;gap:22px;justify-content:space-between">
+    <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/new_issue.png" alt=""><figcaption class="small muted">Кузя сразу видит категорию и дубль</figcaption></figure>
+    <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/chat_reply.png" alt=""><figcaption class="small muted">Ответ агента в чате дома</figcaption></figure>
+    <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/safety.png" alt=""><figcaption class="small muted">Укрытия и маршрут</figcaption></figure>
+    <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/alert.png" alt=""><figcaption class="small muted">Оповещение о БПЛА</figcaption></figure>
+  </div>
+</section>
+
+<!-- 9. Эффект -->
+<section class="slide">
+  <h2>Ожидаемый эффект и метрики пилота</h2>
+  <p>Если помочь жителям превращать жалобы из чата в коллективные обращения с правильным адресатом и сроком через голосование в MAX, доля устранённых в срок проблем вырастет: УК получает одно оформленное обращение с фото и основанием, а жители видят срок и могут эскалировать.</p>
+  <table style="margin-top:12px">
+    <tr><th>Метрика</th><th>Как считаем</th><th>Цель (гипотеза)</th></tr>
+    <tr><td>Время до обращения в УК</td><td>sent_at − created_at</td><td>медиана &lt; 24 ч</td></tr>
+    <tr><td>Устранено в нормативный срок</td><td>resolved_at ≤ deadline_at</td><td>+30% к базовой линии</td></tr>
+    <tr><td>Объединённые дубли</td><td>«поддержать существующую» вместо новой</td><td>&gt; 50% похожих жалоб</td></tr>
+    <tr><td>Вовлечённость</td><td>доля участников чата с голосом за месяц</td><td>&gt; 25%</td></tr>
+    <tr><td>Ручные действия инициатора</td><td>звонки и письма в УК на одну проблему</td><td>с 5-10 до 0-1</td></tr>
+  </table>
+</section>
+
+<!-- 10. Архитектура -->
+<section class="slide">
+  <h2>Архитектура</h2>
+  <svg class="arch" viewBox="0 0 1136 470" font-family="Segoe UI, sans-serif" font-size="15">
+    <defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7a6a5c"/></marker></defs>
+    <g fill="#fff" stroke="#eadfd2" stroke-width="2">
+      <rect x="10" y="40" width="220" height="80" rx="14"/><rect x="10" y="190" width="220" height="80" rx="14"/>
+      <rect x="330" y="40" width="200" height="80" rx="14"/><rect x="330" y="190" width="200" height="80" rx="14"/>
+      <rect x="330" y="340" width="200" height="80" rx="14"/>
+      <rect x="630" y="190" width="190" height="80" rx="14"/><rect x="630" y="40" width="190" height="80" rx="14"/>
+      <rect x="630" y="340" width="190" height="80" rx="14"/>
+      <rect x="920" y="40" width="200" height="80" rx="14"/><rect x="920" y="190" width="200" height="80" rx="14"/>
+      <rect x="920" y="340" width="200" height="80" rx="14"/>
+    </g>
+    <g fill="#2b2118" font-weight="600" text-anchor="middle">
+      <text x="120" y="75">Домовой чат MAX</text><text x="120" y="225">Мини-приложение</text>
+      <text x="430" y="75">bot</text><text x="430" y="225">api (FastAPI)</text><text x="430" y="375">worker</text>
+      <text x="725" y="225">RabbitMQ</text><text x="725" y="75">ReAct-агент</text><text x="725" y="375">Postgres + pgvector</text>
+      <text x="1020" y="75">Ollama / stub</text><text x="1020" y="225">MCP-серверы</text><text x="1020" y="375">MinIO (фото)</text>
+    </g>
+    <g fill="#7a6a5c" text-anchor="middle" font-size="13">
+      <text x="120" y="98">Bot API, long polling</text><text x="120" y="248">Vue 3 + MAX Bridge</text>
+      <text x="430" y="98">модерация, агент, отправка</text><text x="430" y="248">REST + SSE</text><text x="430" y="398">обращения, напоминания, ГЖИ</text>
+      <text x="725" y="248">topic exchange</text><text x="725" y="98">LangGraph, память в Postgres</text><text x="725" y="398">гибридный RAG-поиск</text>
+      <text x="1020" y="98">fallback на stub</text><text x="1020" y="248">Жилищный навигатор + внешние</text><text x="1020" y="398">без EXIF</text>
+    </g>
+    <g stroke="#7a6a5c" stroke-width="2" fill="none" marker-end="url(#a)">
+      <path d="M230,80 H328"/><path d="M230,230 H328"/><path d="M530,230 H628"/><path d="M530,80 C580,80 580,210 628,215"/>
+      <path d="M530,380 C580,380 580,250 628,245"/><path d="M530,70 H628"/><path d="M820,80 H918"/><path d="M820,95 C870,95 870,215 918,220"/>
+      <path d="M530,245 C600,300 600,360 628,370"/><path d="M530,260 C700,330 850,380 918,380"/>
+    </g>
+  </svg>
+  <p class="small muted">Модульный монолит: один пакет, четыре процесса из одного образа, связь через RabbitMQ. REST + SSE вместо gRPC/GraphQL: мини-приложение живёт в WebView, так быстрее и проще отлаживать.</p>
+</section>
+
+<!-- 11. Данные -->
+<section class="slide">
+  <h2>Данные и интеграции</h2>
+  <table>
+    <tr><th>Интеграция</th><th>Статус в MVP</th><th>Для внедрения</th></tr>
+    <tr><td>MAX Bot API и MAX Bridge</td><td><span class="tag teal">реальная</span> подпись initData проверяется на сервере</td><td>токен бота, HTTPS-адрес мини-приложения</td></tr>
+    <tr><td>Справочник ответственных и нормативов</td><td><span class="tag teal">реальные нормы</span> справочно</td><td>подтверждение юристом УК, региональные нормы</td></tr>
+    <tr><td>Отправка обращения в УК</td><td><span class="tag">модельная</span> текст в карточке</td><td>e-mail диспетчерской или ГИС ЖКХ</td></tr>
+    <tr><td>Паспорт дома, тарифы, капремонт</td><td><span class="tag">модельные данные</span> в MCP</td><td>ГИС ЖКХ, региональный фонд капремонта</td></tr>
+    <tr><td>Укрытия</td><td><span class="tag">демо-точки</span></td><td>реестр МЧС или муниципалитета</td></tr>
+    <tr><td>Оповещение о БПЛА</td><td><span class="tag">запуск администратором</span></td><td>региональная система оповещения</td></tr>
+    <tr><td>LLM</td><td><span class="tag teal">Ollama Cloud</span> или stub без сети</td><td>выбор модели, при необходимости локальная Ollama</td></tr>
+  </table>
+  <p class="small muted" style="margin-top:14px">Персональные данные по минимуму: имя из MAX и номер квартиры по желанию. Фото без EXIF, переписка чата не хранится, только срабатывания модерации.</p>
+</section>
+
+<!-- 12. Пилот -->
+<section class="slide">
+  <h2>Пилот: один дом в Казани, 4 недели</h2>
+  <div class="grid2">
+    <div>
+      <div class="card" style="margin-bottom:14px"><h3>Где и с кем</h3><p>Дом на 40-150 квартир, УК, готовая принимать обращения по e-mail или в MAX, председатель совета дома как амбассадор.</p></div>
+      <div class="card"><h3>Как встраивается</h3><p>Кузю добавляют в существующий домовой чат. УК указывает канал приёма, юрист подтверждает сроки. Жителям ничего не нужно устанавливать.</p></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px"><h3>Привлечение</h3><p>Закреп Кузи в чате, QR-код в подъезде на диплинк мини-приложения, первый субботник через Кузю.</p></div>
+      <div class="card"><h3>Дальше</h3><p>Базовая линия: 4 недели истории чата до запуска. После успеха: все дома этой УК и кабинет диспетчера для смены статусов прямо в MAX.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 13. Масштабирование -->
+<section class="slide">
+  <h2>Масштабирование</h2>
+  <div class="grid2">
+    <div class="card"><h3>Не меняется</h3><ul><li>сценарий «фото → голоса → обращение → контроль»</li><li>модель данных, бот, мини-приложение, агент</li><li>механика голосования и эскалации</li><li>модерация, события, ачивки</li></ul></div>
+    <div class="card"><h3>Адаптируется</h3><ul><li>справочник исполнителей и нормативов региона</li><li>канал отправки обращения конкретной УК</li><li>тарифы и капремонт (новый MCP-источник)</li><li>реестр укрытий и оповещения</li></ul></div>
+  </div>
+  <p style="margin-top:24px"><b>Дом</b> → <b>все дома УК</b> (один справочник и канал) → <b>УК Казани</b> через ассоциацию ТСЖ/УК → <b>регионы</b> с новым справочником норм. Также ТСЖ, ЖСК, коттеджные посёлки, общежития.</p>
+</section>
+
+<!-- 14. Риски -->
+<section class="slide">
+  <h2>Риски, допущения, ограничения MVP</h2>
+  <table>
+    <tr><th>Риск</th><th>Что делаем</th></tr>
+    <tr><td>УК игнорирует обращения из бота</td><td>основание и срок в обращении, жалоба в ГЖИ при просрочке, договорённость с УК до пилота</td></tr>
+    <tr><td>Ошибка категории у LLM</td><td>правовая часть из справочника, газ определяется правилами, житель видит категорию до отправки</td></tr>
+    <tr><td>Накрутка голосов</td><td>один голос на жителя, порог от размера чата, блокировка строки при подсчёте</td></tr>
+    <tr><td>Спам и токсичность</td><td>двухслойная модерация, журнал срабатываний, уведомление администраторов</td></tr>
+    <tr><td>Недоступна LLM</td><td>stub и правила: основной сценарий работает без LLM</td></tr>
+  </table>
+  <p class="small muted" style="margin-top:14px">Ограничения MVP: отправка обращения и данные ГИС ЖКХ модельные, укрытия демонстрационные, long polling вместо webhook. Подробно в README.</p>
+</section>
+
+<!-- 15. Источники -->
+<section class="slide">
+  <h2>Источники</h2>
+  <ul class="small" style="columns:2;column-gap:40px">
+    <li>ТЗ трека «Умный город», 2026</li>
+    <li>Росстат: жилищный фонд РФ, 2024</li>
+    <li>ПП РФ от 26.01.2026 № 40 (взаимодействие через MAX)</li>
+    <li>Жилищный кодекс РФ</li>
+    <li>ПП РФ от 13.08.2006 № 491 (содержание общего имущества)</li>
+    <li>ПП РФ от 03.04.2013 № 290 (минимальный перечень работ)</li>
+    <li>ПП РФ от 06.05.2011 № 354 (коммунальные услуги)</li>
+    <li>ПП РФ от 15.05.2013 № 416 (управление МКД)</li>
+    <li>Постановление Госстроя от 27.09.2003 № 170</li>
+    <li>ПП РФ от 14.05.2013 № 410 (газовое оборудование)</li>
+    <li>ПП РФ от 12.11.2016 № 1156 (обращение с ТКО)</li>
+    <li>Федеральный закон № 59-ФЗ (обращения граждан)</li>
+    <li>Федеральный закон № 131-ФЗ (местное самоуправление)</li>
+    <li>Документация MAX: dev.max.ru/docs, dev.max.ru/docs-api</li>
+  </ul>
+  <img class="kuzya" style="width:200px" src="../../frontend/public/kuzya.svg" alt="">
+</section>
+
+</body>
+</html>

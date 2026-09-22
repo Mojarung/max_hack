@@ -257,6 +257,8 @@ cd frontend && npm run lint && npm run typecheck && npm test && npm run build
 
 Порядок тиражирования: один дом в Казани → все дома одной УК (один справочник, один канал отправки) → УК Казани через ассоциацию ТСЖ → другие регионы с новым справочником норм. Подробнее: [docs/PRODUCT.md](docs/PRODUCT.md).
 
+Презентация: [docs/presentation/Домовой_Кузя.pdf](docs/presentation/Домовой_Кузя.pdf) (исходник `docs/presentation/slides.html`, пересобрать: печать в PDF из Chrome, формат 1280×720).
+
 ## Структура репозитория
 
 ```
@@ -268,7 +270,7 @@ backend/            Python-пакет domovoy (api, bot, worker, mcp), тест�
   src/domovoy/worker    обращения, напоминания, эскалации
   src/domovoy/mcp_server  MCP-сервер «Жилищный навигатор»
 frontend/           мини-приложение Vue 3, Dockerfile, nginx.conf
-docs/               контракт API, продуктовое обоснование
+docs/               контракт API, OpenAPI, продуктовое обоснование, презентация
 scripts/smoke.py    сквозная проверка стенда
 compose.yaml        запуск всех компонентов одной командой
 ```
