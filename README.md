@@ -98,7 +98,7 @@ docker compose up -d --build
 | Адрес | Что там |
 |---|---|
 | http://localhost:8080 | мини-приложение (в браузере открывается в мок-режиме) |
-| http://localhost:8080/#/dev/chat | эмулятор чата MAX с ботом |
+| http://localhost:8080/dev/chat | эмулятор чата MAX с ботом |
 | http://localhost:8000/docs | Swagger API |
 | http://localhost:8765/mcp | MCP-сервер «Жилищный навигатор» |
 | http://localhost:15672 | RabbitMQ (domovoy / domovoy) |
