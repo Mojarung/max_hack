@@ -42,7 +42,7 @@ function render(): void {
 
   lib
     .marker([props.house.lat, props.house.lon], {
-      icon: pin(lib, 'mdi-home-heart', '#B8501A'),
+      icon: pin(lib, 'mdi-home-heart', '#03045E'),
       title: props.house.title,
     })
     .bindTooltip(escapeHtml(props.house.title))
@@ -53,9 +53,9 @@ function render(): void {
     lib
       .circleMarker([props.me.lat, props.me.lon], {
         radius: 9,
-        color: '#fff',
+        color: '#CAF0F8',
         weight: 3,
-        fillColor: '#1E88E5',
+        fillColor: '#00B4D8',
         fillOpacity: 1,
       })
       .bindTooltip('Вы здесь')
@@ -67,7 +67,7 @@ function render(): void {
     const selected = s.id === props.selectedId
     const marker = lib
       .marker([s.lat, s.lon], {
-        icon: pin(lib, 'mdi-shield-home', selected ? '#C62828' : '#00796B', selected ? 42 : 34),
+        icon: pin(lib, 'mdi-shield-home', selected ? '#023E8A' : '#0096C7', selected ? 42 : 34),
         title: s.name,
         zIndexOffset: selected ? 1000 : 0,
       })
@@ -141,9 +141,9 @@ defineExpose({ focus })
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 3px solid #fff;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
-  color: #fff;
+  border: 3px solid #caf0f8;
+  box-shadow: 0 3px 10px rgba(3, 4, 94, 0.35);
+  color: #caf0f8;
   font-size: 18px;
 }
 .leaflet-container {

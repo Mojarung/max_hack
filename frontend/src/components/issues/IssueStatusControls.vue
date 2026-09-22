@@ -31,7 +31,7 @@ const OPTIONS: Record<NextStatus, { title: string; icon: string; color: string; 
   rejected: {
     title: 'Отклонить',
     icon: 'mdi-close-circle-outline',
-    color: 'grey',
+    color: 'muted',
     hint: 'Коротко объясните причину',
   },
 }

@@ -7,7 +7,7 @@ const props = withDefaults(defineProps<{ user: UserShort | null | undefined; siz
   size: 40,
 })
 
-const COLORS = ['#E07A3F', '#2A9D8F', '#8E6BBF', '#D1495B', '#3D7EAA', '#6A994E', '#B5838D']
+const COLORS = ['#03045E', '#023E8A', '#0077B6', '#0096C7', '#00B4D8', '#48CAE4']
 const color = computed(() => COLORS[(props.user?.id ?? 0) % COLORS.length])
 </script>
 

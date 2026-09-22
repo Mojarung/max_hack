@@ -33,18 +33,18 @@ defineProps<{ issue: IssueOut }>()
           :title="issue.status_title"
           :overdue="issue.is_overdue"
         />
-        <span class="text-muted text-xs">{{ issue.category_title }}</span>
+        <span class="text-muted text-sm">{{ issue.category_title }}</span>
       </div>
       <h3 class="line-clamp-2 m-0 text-base leading-snug font-semibold">{{ issue.title }}</h3>
       <div v-if="issue.status === 'voting'" class="mt-2">
         <VoteProgress :count="issue.votes_count" :needed="issue.votes_needed" compact />
-        <div class="text-muted mt-1 text-xs">
+        <div class="text-muted mt-1 text-sm">
           {{ issue.votes_count }} из {{ issue.votes_needed }}
           {{ plural(issue.votes_needed, ['голоса', 'голосов', 'голосов']) }}
           <span v-if="issue.voted_by_me" class="font-semibold text-success"> · вы поддержали</span>
         </div>
       </div>
-      <div v-else class="text-muted mt-1 text-xs">
+      <div v-else class="text-muted mt-1 text-sm">
         <span v-if="issue.responsible_org">{{ issue.responsible_org.name }} · </span>
         {{ formatRelative(issue.created_at) }}
       </div>

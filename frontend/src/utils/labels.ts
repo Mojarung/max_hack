@@ -67,7 +67,7 @@ export const LISTING_CATEGORY_ICONS: Record<string, string> = {
 export const LISTING_STATUS_META: Record<ListingStatus, { title: string; color: string }> = {
   active: { title: 'Активно', color: 'success' },
   reserved: { title: 'Забронировано', color: 'warning' },
-  closed: { title: 'Закрыто', color: 'grey' },
+  closed: { title: 'Закрыто', color: 'muted' },
 }
 
 export const EVENT_KINDS: { value: EventKind; title: string; icon: string; color: string }[] = [
@@ -75,8 +75,8 @@ export const EVENT_KINDS: { value: EventKind; title: string; icon: string; color
   { value: 'meeting', title: 'Собрание', icon: 'mdi-account-group', color: 'info' },
   { value: 'holiday', title: 'Праздник', icon: 'mdi-party-popper', color: 'primary' },
   { value: 'sport', title: 'Спорт', icon: 'mdi-soccer', color: 'secondary' },
-  { value: 'kids', title: 'Для детей', icon: 'mdi-teddy-bear', color: 'pink' },
-  { value: 'other', title: 'Другое', icon: 'mdi-calendar-star', color: 'grey-darken-1' },
+  { value: 'kids', title: 'Для детей', icon: 'mdi-teddy-bear', color: 'tertiary' },
+  { value: 'other', title: 'Другое', icon: 'mdi-calendar-star', color: 'muted' },
 ]
 
 export function eventKindMeta(kind: string): { title: string; icon: string; color: string } {

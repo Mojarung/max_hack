@@ -41,7 +41,7 @@ async function toggle(): Promise<void> {
         class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
         :class="`bg-${eventKindMeta(event.kind).color}`"
       >
-        <v-icon :icon="eventKindMeta(event.kind).icon" size="30" color="white" />
+        <v-icon :icon="eventKindMeta(event.kind).icon" size="30" color="light" />
       </div>
       <div class="min-w-0 flex-1">
         <div class="text-sm font-semibold text-primary">{{ formatDateTime(event.starts_at) }}</div>

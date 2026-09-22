@@ -169,6 +169,7 @@ async function submit(): Promise<void> {
       <v-btn
         type="submit"
         block
+        class="sticky-cta"
         size="x-large"
         color="primary"
         prepend-icon="mdi-calendar-check"
@@ -194,7 +195,7 @@ async function submit(): Promise<void> {
   background: rgb(var(--v-theme-surface));
   color: inherit;
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition:

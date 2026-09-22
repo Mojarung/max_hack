@@ -132,6 +132,7 @@ async function submit(): Promise<void> {
       <v-btn
         type="submit"
         block
+        class="sticky-cta"
         size="x-large"
         color="primary"
         prepend-icon="mdi-check"

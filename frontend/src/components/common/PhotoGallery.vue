@@ -40,7 +40,7 @@ function show(i: number): void {
         <v-btn
           icon="mdi-close"
           variant="text"
-          color="white"
+          color="light"
           class="!absolute top-3 right-3 z-10"
           aria-label="Закрыть фото"
           @click="open = false"

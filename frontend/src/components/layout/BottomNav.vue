@@ -73,7 +73,7 @@ const openIssues = computed(() => pulse.pulse?.stats.open_issues ?? 0)
   gap: 2px;
   color: rgba(var(--v-theme-on-surface), 0.62);
   text-decoration: none;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   -webkit-tap-highlight-color: transparent;
 }

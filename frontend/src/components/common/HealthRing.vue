@@ -60,7 +60,7 @@ onBeforeUnmount(() => tween?.kill())
     </svg>
     <div class="absolute inset-0 flex flex-col items-center justify-center leading-none">
       <strong class="text-[28px]"><AnimatedNumber :value="clamped" /></strong>
-      <span class="text-muted mt-1 text-[11px]">из 100</span>
+      <span class="text-muted mt-1 text-sm">из 100</span>
     </div>
   </div>
 </template>

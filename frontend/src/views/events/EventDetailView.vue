@@ -223,11 +223,11 @@ async function send(): Promise<void> {
           >
             <UserAvatar :user="c.author" :size="30" />
             <div class="bubble" :class="{ 'bubble--mine': c.author?.id === meId }">
-              <div v-if="c.author?.id !== meId" class="text-xs font-semibold text-primary">
+              <div v-if="c.author?.id !== meId" class="text-sm font-semibold text-primary">
                 {{ fullName(c.author) }}
               </div>
               <div class="pre-wrap">{{ c.text }}</div>
-              <div class="mt-0.5 text-right text-[11px] opacity-60">
+              <div class="mt-0.5 text-right text-sm opacity-60">
                 {{ formatRelative(c.created_at) }}
               </div>
             </div>

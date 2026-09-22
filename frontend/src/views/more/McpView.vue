@@ -177,11 +177,11 @@ async function remove(): Promise<void> {
           <div class="flex min-w-0 flex-1 items-center gap-3">
             <v-icon
               :icon="s.enabled ? 'mdi-power-plug' : 'mdi-power-plug-off'"
-              :color="s.enabled ? 'success' : 'grey'"
+              :color="s.enabled ? 'success' : 'muted'"
             />
             <div class="min-w-0">
               <div class="font-semibold">{{ s.name }}</div>
-              <div class="text-muted truncate text-xs">{{ s.transport }} · {{ s.url }}</div>
+              <div class="text-muted truncate text-sm">{{ s.transport }} · {{ s.url }}</div>
             </div>
           </div>
         </v-expansion-panel-title>
@@ -205,7 +205,7 @@ async function remove(): Promise<void> {
                 class="rounded-lg bg-surface-variant px-3 py-2"
               >
                 <code class="text-sm font-semibold">{{ t.name }}</code>
-                <div v-if="t.description" class="text-muted text-xs">{{ t.description }}</div>
+                <div v-if="t.description" class="text-muted text-sm">{{ t.description }}</div>
               </li>
             </ul>
           </template>

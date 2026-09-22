@@ -52,7 +52,7 @@ onBeforeUnmount(off)
 function isMe(row: { is_me?: boolean; user: { id: number } }): boolean {
   return row.is_me ?? row.user.id === user.value?.id
 }
-const MEDALS = ['#F5B301', '#A7B1BA', '#C77B30']
+const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
 </script>
 
 <template>
@@ -70,7 +70,7 @@ const MEDALS = ['#F5B301', '#A7B1BA', '#C77B30']
           <div class="text-2xl font-extrabold text-primary">
             <AnimatedNumber :value="user.points" />
           </div>
-          <div class="text-muted text-xs">очков</div>
+          <div class="text-muted text-sm">очков</div>
         </div>
       </div>
       <v-progress-linear :model-value="levelProgress" color="primary" height="10" class="mt-3" />
@@ -111,7 +111,7 @@ const MEDALS = ['#F5B301', '#A7B1BA', '#C77B30']
             <v-icon :icon="a.earned ? a.icon : 'mdi-lock-outline'" size="30" />
           </span>
           <span class="badge__title">{{ a.title }}</span>
-          <span class="text-muted text-[11px]">+{{ a.points }}</span>
+          <span class="text-muted text-sm">+{{ a.points }}</span>
         </button>
       </div>
 
@@ -132,7 +132,7 @@ const MEDALS = ['#F5B301', '#A7B1BA', '#C77B30']
             <div class="truncate font-semibold">
               {{ fullName(row.user) }}<span v-if="isMe(row)" class="text-primary"> (вы)</span>
             </div>
-            <div class="text-muted text-xs">{{ row.level_title }}</div>
+            <div class="text-muted text-sm">{{ row.level_title }}</div>
           </div>
           <strong class="tabular-nums">{{ row.points }}</strong>
         </li>
@@ -185,8 +185,8 @@ const MEDALS = ['#F5B301', '#A7B1BA', '#C77B30']
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  color: #fff;
-  background: linear-gradient(135deg, #ffb74d, rgb(var(--v-theme-primary)));
+  color: #caf0f8;
+  background: linear-gradient(135deg, #48cae4, rgb(var(--v-theme-primary)));
   box-shadow: 0 6px 14px -6px rgba(var(--v-theme-primary), 0.8);
 }
 .badge__title {

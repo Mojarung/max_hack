@@ -106,11 +106,16 @@ function remove(file: File): void {
         :key="p.url"
         class="relative h-[88px] w-[88px] overflow-hidden rounded-xl"
       >
-        <img :src="p.url" :alt="`Фото ${i + 1}`" class="h-full w-full object-cover" />
+        <img
+          :src="p.url"
+          :alt="`Фото ${i + 1}`"
+          decoding="async"
+          class="h-full w-full object-cover"
+        />
         <v-btn
           icon="mdi-close"
-          size="x-small"
-          color="black"
+          size="small"
+          color="deep"
           class="!absolute top-1 right-1 opacity-80"
           :aria-label="`Убрать фото ${i + 1}`"
           @click="remove(p.file)"

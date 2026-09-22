@@ -64,7 +64,7 @@ const entries = computed<Entry[]>(() => {
       title: 'Настройки MCP',
       subtitle: 'Инструменты для ИИ-помощника',
       icon: 'mdi-puzzle-outline',
-      color: 'grey-darken-1',
+      color: 'muted',
     })
   }
   return list
@@ -128,7 +128,7 @@ function openBot(): void {
       Написать Кузе в MAX
     </v-btn>
 
-    <p class="text-muted mt-6 text-center text-xs">
+    <p class="text-muted mt-6 text-center text-sm">
       Домовой Кузя · {{ session.inMax ? 'MAX' : 'демо-режим в браузере' }}
     </p>
   </div>

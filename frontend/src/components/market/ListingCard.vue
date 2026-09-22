@@ -54,7 +54,7 @@ defineProps<{ listing: ListingOut }>()
       <h3 class="line-clamp-2 mt-1 mb-0 text-[15px] leading-snug font-medium">
         {{ listing.title }}
       </h3>
-      <div class="text-muted mt-auto pt-1 text-xs">
+      <div class="text-muted mt-auto pt-1 text-sm">
         {{ listing.category_title
         }}<span v-if="listing.author?.apartment"> · кв. {{ listing.author.apartment }}</span>
       </div>

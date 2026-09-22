@@ -30,7 +30,7 @@ const routes: RouteRecordRaw[] = [
     path: '/issues/new',
     name: 'issue-new',
     component: () => import('@/views/issues/IssueNewView.vue'),
-    meta: { tab: 'issues', title: 'Сообщить о проблеме', inner: true, parent: '/issues' },
+    meta: { tab: 'issues', title: 'Новая проблема', inner: true, parent: '/issues' },
   },
   {
     path: '/issues/:id(\\d+)',

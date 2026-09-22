@@ -134,7 +134,7 @@ async function endAlert(): Promise<void> {
         </template>
         <div v-else class="mt-1">
           Не удалось найти укрытие. Спуститесь в подвал или коридор без окон.
-          <v-btn variant="text" color="white" size="small" @click="alerts.findNearest()">
+          <v-btn variant="text" color="light" size="small" @click="alerts.findNearest()">
             Повторить
           </v-btn>
         </div>
@@ -143,7 +143,7 @@ async function endAlert(): Promise<void> {
       <v-btn
         block
         size="x-large"
-        color="white"
+        color="light"
         class="alert-route mt-4"
         prepend-icon="mdi-walk"
         :disabled="!alerts.nearest"
@@ -155,7 +155,7 @@ async function endAlert(): Promise<void> {
         <v-btn
           class="flex-1"
           variant="outlined"
-          color="white"
+          color="light"
           size="large"
           prepend-icon="mdi-arrow-collapse-up"
           @click="alerts.minimized = true"
@@ -166,7 +166,7 @@ async function endAlert(): Promise<void> {
           v-if="session.canUseDevTools || session.isAdmin"
           class="flex-1"
           variant="outlined"
-          color="white"
+          color="light"
           size="large"
           prepend-icon="mdi-check"
           :loading="ending"
@@ -185,13 +185,13 @@ async function endAlert(): Promise<void> {
   inset: 0;
   z-index: 3000;
   overflow-y: auto;
-  color: #fff;
-  background: #8e0000;
+  color: #caf0f8;
+  background: #03045e;
 }
 .alert-overlay__pulse {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 20%, #ff3b30 0%, #c62828 45%, #7f0000 100%);
+  background: radial-gradient(circle at 50% 20%, #0096c7 0%, #023e8a 45%, #03045e 100%);
   pointer-events: none;
 }
 .alert-overlay__content {
@@ -206,7 +206,7 @@ async function endAlert(): Promise<void> {
   gap: 12px;
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(3, 4, 94, 0.35);
   font-size: 17px;
   font-weight: 600;
   line-height: 1.3;
@@ -215,11 +215,11 @@ async function endAlert(): Promise<void> {
   margin-top: 16px;
   padding: 14px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(202, 240, 248, 0.14);
+  border: 1px solid rgba(202, 240, 248, 0.3);
 }
 .alert-route {
-  color: #b71c1c !important;
+  color: #023e8a !important;
   font-weight: 800;
 }
 .alert-bar {
@@ -235,22 +235,22 @@ async function endAlert(): Promise<void> {
   min-height: 52px;
   padding: 8px 16px;
   border: 0;
-  color: #fff;
+  color: #caf0f8;
   font-size: 16px;
   font-weight: 700;
-  background: #c62828;
+  background: #023e8a;
   animation: alert-bar-blink 1.6s ease-in-out infinite;
   cursor: pointer;
 }
 .alert-bar__open {
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(202, 240, 248, 0.2);
   font-size: 14px;
 }
 @keyframes alert-bar-blink {
   50% {
-    background: #e53935;
+    background: #0077b6;
   }
 }
 </style>

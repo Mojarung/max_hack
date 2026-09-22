@@ -42,7 +42,7 @@ const messages = computed<ChatMessage[]>(() =>
 const me = computed(() => session.devUserId ?? session.me?.user.max_user_id ?? null)
 const currentChat = computed(() => store.chats.find((c) => c.chat_id === chatId.value) ?? null)
 
-const COLORS = ['#E07A3F', '#2A9D8F', '#8E6BBF', '#D1495B', '#3D7EAA', '#6A994E']
+const COLORS = ['#03045E', '#023E8A', '#0077B6', '#0096C7', '#00B4D8', '#48CAE4']
 function nameColor(userId: number): string {
   return COLORS[Math.abs(userId) % COLORS.length]!
 }
@@ -174,6 +174,8 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
             <img
               v-if="!m.from"
               src="/kuzya-avatar.svg"
+              loading="lazy"
+              decoding="async"
               alt=""
               width="30"
               height="30"
@@ -198,7 +200,7 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
               >
                 <div
                   v-if="!m.deleted && m.from?.user_id !== me"
-                  class="mb-0.5 text-xs font-bold"
+                  class="mb-0.5 text-sm font-bold"
                   :style="{
                     color: m.from ? nameColor(m.from.user_id) : 'rgb(var(--v-theme-primary))',
                   }"
@@ -209,11 +211,11 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
                   <v-icon icon="mdi-cancel" size="16" /> Сообщение удалено модератором Кузей
                 </div>
                 <div v-else class="pre-wrap">{{ m.text }}</div>
-                <div class="mt-0.5 text-right text-[11px] opacity-60">
+                <div class="mt-0.5 text-right text-sm opacity-60">
                   {{ formatTime(m.created_at) }}
                 </div>
               </div>
-              <div v-if="m.notice" class="text-muted mt-1 flex items-center gap-1 px-1 text-xs">
+              <div v-if="m.notice" class="text-muted mt-1 flex items-center gap-1 px-1 text-sm">
                 <v-icon icon="mdi-shield-check-outline" size="14" /> {{ m.notice }}
               </div>
               <div v-if="m.buttons?.length && !m.deleted" class="mt-1 flex flex-col gap-1">
@@ -300,7 +302,7 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
   height: 30px;
   flex-shrink: 0;
   border-radius: 50%;
-  color: #fff;
+  color: #caf0f8;
   font-weight: 700;
   font-size: 14px;
 }
@@ -310,7 +312,7 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
   font-size: 15.5px;
   line-height: 1.38;
   background: rgb(var(--v-theme-surface));
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 1px rgba(3, 4, 94, 0.08);
 }
 .msg--bot {
   background: rgba(var(--v-theme-primary), 0.1);

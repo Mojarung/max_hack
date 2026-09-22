@@ -19,7 +19,7 @@ const props = defineProps<{ class?: HTMLAttributes['class'] }>()
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  background: linear-gradient(90deg, transparent, rgba(202, 240, 248, 0.45), transparent);
   animation: skeleton-shimmer 1.4s infinite;
 }
 @keyframes skeleton-shimmer {

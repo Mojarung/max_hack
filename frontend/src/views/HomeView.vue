@@ -149,10 +149,6 @@ watch(
             </Transition>
           </div>
         </div>
-        <p class="text-muted mt-3 mb-0 flex items-start gap-1.5 text-sm">
-          <v-icon icon="mdi-information-outline" size="18" class="mt-px" />
-          Кузя - тамагочи дома: его настроение зависит от того, как у дома дела.
-        </p>
       </section>
 
       <!-- Житель -->
@@ -174,7 +170,7 @@ watch(
             height="8"
             class="my-1.5"
           />
-          <div class="text-muted text-xs">
+          <div class="text-muted text-sm">
             <AnimatedNumber :value="user.points" /> очков
             <template v-if="user.next_level_points">
               · до нового уровня {{ user.next_level_points - user.points }}</template

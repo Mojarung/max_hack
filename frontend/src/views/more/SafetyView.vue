@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, defineAsyncComponent } from 'vue'
 import { errorMessage } from '@/api/client'
 import { safetyApi } from '@/api/endpoints'
 import type { ShelterOut } from '@/api/types'
 import ErrorState from '@/components/common/ErrorState.vue'
 import ListSkeleton from '@/components/common/ListSkeleton.vue'
-import ShelterMap from '@/components/safety/ShelterMap.vue'
 import { useStagger } from '@/composables/useMotion'
 import { notify } from '@/lib/notify'
 import { haptic, openLink } from '@/max/bridge'
@@ -13,6 +12,8 @@ import { useAlertsStore } from '@/stores/alerts'
 import { useSessionStore } from '@/stores/session'
 import { formatDistance } from '@/utils/format'
 import { locate, type Position } from '@/utils/geo'
+
+const ShelterMap = defineAsyncComponent(() => import('@/components/safety/ShelterMap.vue'))
 
 const session = useSessionStore()
 const alerts = useAlertsStore()
@@ -112,7 +113,7 @@ async function endAlert(): Promise<void> {
     >
       Идёт тревога. Следуйте инструкции и идите в укрытие.
       <template #append>
-        <v-btn variant="outlined" color="white" size="small" @click="alerts.minimized = false"
+        <v-btn variant="outlined" color="light" size="small" @click="alerts.minimized = false"
           >Открыть</v-btn
         >
       </template>
@@ -251,7 +252,7 @@ async function endAlert(): Promise<void> {
   flex-shrink: 0;
   border-radius: 50%;
   font-weight: 700;
-  color: #fff;
+  color: #caf0f8;
   background: rgb(var(--v-theme-secondary));
 }
 .shelter--selected {

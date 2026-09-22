@@ -58,6 +58,8 @@ async function send(value?: string): Promise<void> {
         <img
           v-if="m.role === 'bot'"
           src="/kuzya-avatar.svg"
+          loading="lazy"
+          decoding="async"
           alt=""
           width="32"
           height="32"
@@ -72,7 +74,7 @@ async function send(value?: string): Promise<void> {
             <v-chip
               v-for="t in m.tools"
               :key="t"
-              size="x-small"
+              size="small"
               variant="tonal"
               prepend-icon="mdi-magnify"
             >
@@ -82,7 +84,15 @@ async function send(value?: string): Promise<void> {
         </div>
       </div>
       <div v-if="store.typing" class="flex items-end gap-2" role="status">
-        <img src="/kuzya-avatar.svg" alt="" width="32" height="32" class="shrink-0 rounded-full" />
+        <img
+          src="/kuzya-avatar.svg"
+          loading="lazy"
+          decoding="async"
+          alt=""
+          width="32"
+          height="32"
+          class="shrink-0 rounded-full"
+        />
         <div class="msg msg--bot">
           <span class="typing" aria-hidden="true"><i /><i /><i /></span>
           <span class="sr-only">Кузя печатает</span>

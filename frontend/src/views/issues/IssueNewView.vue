@@ -231,7 +231,7 @@ async function submit(): Promise<void> {
             <router-link :to="`/issues/${item.id}`" class="text-inherit font-semibold">{{
               item.title
             }}</router-link>
-            <div class="text-muted text-xs">
+            <div class="text-muted text-sm">
               {{ item.status_title }} · {{ item.votes_count }} из {{ item.votes_needed }}
               {{ plural(item.votes_needed, ['голоса', 'голосов', 'голосов']) }}
             </div>
@@ -258,7 +258,7 @@ async function submit(): Promise<void> {
           block
           size="x-large"
           color="primary"
-          class="mt-6"
+          class="sticky-cta mt-6"
           :disabled="!textOk"
           append-icon="mdi-arrow-right"
           @click="next"
@@ -314,7 +314,7 @@ async function submit(): Promise<void> {
           block
           size="x-large"
           color="primary"
-          class="mt-5"
+          class="sticky-cta mt-5"
           prepend-icon="mdi-send"
           :loading="submitting"
           @click="submit"
