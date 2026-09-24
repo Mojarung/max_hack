@@ -43,7 +43,7 @@ const routes: RouteRecordRaw[] = [
     path: '/market',
     name: 'market',
     component: () => import('@/views/market/MarketView.vue'),
-    meta: { tab: 'market', title: 'Барахолка' },
+    meta: { tab: 'market', title: 'Вещи соседей' },
   },
   {
     path: '/market/new',
@@ -87,7 +87,7 @@ const routes: RouteRecordRaw[] = [
     path: '/more/achievements',
     name: 'achievements',
     component: () => import('@/views/more/AchievementsView.vue'),
-    meta: { tab: 'more', title: 'Ачивки и рейтинг', inner: true, parent: '/more' },
+    meta: { tab: 'more', title: 'Награды и рейтинг', inner: true, parent: '/more' },
   },
   {
     path: '/more/safety',
@@ -105,7 +105,7 @@ const routes: RouteRecordRaw[] = [
     path: '/more/assistant',
     name: 'assistant',
     component: () => import('@/views/more/AssistantView.vue'),
-    meta: { tab: 'more', title: 'Чат с Кузей', inner: true, parent: '/more' },
+    meta: { tab: 'more', title: 'Спросить Кузю', inner: true, parent: '/more' },
   },
   {
     path: '/more/mcp',

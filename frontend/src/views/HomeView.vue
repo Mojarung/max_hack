@@ -14,6 +14,7 @@ import { hasNumericId, onRealtime } from '@/realtime/sse'
 import { useEventsStore } from '@/stores/events'
 import { usePulseStore } from '@/stores/pulse'
 import { useSessionStore } from '@/stores/session'
+import { plural } from '@/utils/format'
 import { MOOD_TITLES } from '@/utils/labels'
 
 const session = useSessionStore()
@@ -55,37 +56,59 @@ const tiles = computed(() => {
   return [
     {
       key: 'issues',
-      title: 'Открытых проблем',
+      title: plural(s?.open_issues ?? 0, [
+        'открытая проблема',
+        'открытые проблемы',
+        'открытых проблем',
+      ]),
       value: s?.open_issues ?? 0,
       icon: 'mdi-alert-circle-outline',
       to: '/issues',
-      color: 'warning',
+      color: 'primary',
+      alert: false,
     },
     {
       key: 'events',
-      title: 'Ближайших событий',
+      title: plural(s?.upcoming_events ?? 0, ['событие скоро', 'события скоро', 'событий скоро']),
       value: s?.upcoming_events ?? 0,
       icon: 'mdi-calendar-star',
       to: '/events',
-      color: 'secondary',
+      color: 'primary',
+      alert: false,
     },
     {
       key: 'market',
-      title: 'Объявлений',
+      title: plural(s?.active_listings ?? 0, [
+        'вещь у соседей',
+        'вещи у соседей',
+        'вещей у соседей',
+      ]),
       value: s?.active_listings ?? 0,
       icon: 'mdi-storefront-outline',
       to: '/market',
       color: 'primary',
+      alert: false,
     },
     {
       key: 'overdue',
       title: 'Просрочено',
       value: s?.overdue_issues ?? 0,
       icon: 'mdi-clock-alert-outline',
-      to: '/issues',
-      color: (s?.overdue_issues ?? 0) > 0 ? 'error' : 'success',
+      to: '/issues?overdue=1',
+      color: 'primary',
+      alert: (s?.overdue_issues ?? 0) > 0,
     },
   ]
+})
+
+const alertActive = computed(() => !!pulse.value?.stats.active_alert)
+/** Куда ведёт фраза Кузи: к тому, о чём он говорит. */
+const phraseLink = computed(() => {
+  const stats = pulse.value?.stats
+  if (!stats) return null
+  if (stats.active_alert) return { to: '/more/safety', label: 'Где укрыться' }
+  if (stats.overdue_issues > 0) return { to: '/issues?overdue=1', label: 'Что просрочено' }
+  return null
 })
 
 async function loadVoting(): Promise<void> {
@@ -139,7 +162,7 @@ watch(
       <!-- Кузя и его фраза -->
       <section class="hero card-soft" data-stagger>
         <div class="flex items-end gap-2">
-          <KuzyaMascot :mood="pulse?.mood ?? 'ok'" :size="128" class="shrink-0" />
+          <KuzyaMascot :mood="pulse?.mood ?? 'ok'" :size="104" class="shrink-0" />
           <div class="bubble" aria-live="polite">
             <Transition :css="false" mode="out-in" @enter="pageEnter" @leave="pageLeave">
               <p :key="phraseKey" class="m-0">
@@ -147,81 +170,33 @@ watch(
                 <template v-else>Сейчас посмотрю, как дела у дома...</template>
               </p>
             </Transition>
+            <router-link v-if="phraseLink" :to="phraseLink.to" class="bubble__link">
+              {{ phraseLink.label }} <v-icon icon="mdi-chevron-right" size="20" />
+            </router-link>
           </div>
         </div>
       </section>
 
-      <!-- Житель -->
-      <router-link
-        v-if="user"
-        to="/more/achievements"
-        class="card-soft tap-card mt-3 flex items-center gap-3 p-3 text-inherit no-underline"
-        data-stagger
-        aria-label="Мой уровень и ачивки"
-      >
-        <v-avatar color="primary" size="44">
-          <span class="text-lg font-bold">{{ user.level }}</span>
-        </v-avatar>
-        <div class="min-w-0 flex-1">
-          <div class="font-semibold">{{ user.first_name }}, вы «{{ user.level_title }}»</div>
-          <v-progress-linear
-            :model-value="userProgress"
-            color="primary"
-            height="8"
-            class="my-1.5"
-          />
-          <div class="text-muted text-sm">
-            <AnimatedNumber :value="user.points" /> очков
-            <template v-if="user.next_level_points">
-              · до нового уровня {{ user.next_level_points - user.points }}</template
-            >
-          </div>
-        </div>
-        <v-icon icon="mdi-chevron-right" />
-      </router-link>
-
-      <!-- Здоровье дома -->
-      <section
-        class="card-soft mt-3 flex items-center gap-4 p-4"
-        data-stagger
-        aria-label="Здоровье дома"
-      >
-        <HealthRing v-if="pulse" :score="pulse.score" :size="104" />
-        <Skeleton v-else class="h-[104px] w-[104px] rounded-full" />
-        <div class="min-w-0 flex-1">
-          <h2 class="m-0 text-lg font-bold">Здоровье дома</h2>
-          <div class="text-muted text-sm">{{ pulse ? MOOD_TITLES[pulse.mood] : 'Считаем...' }}</div>
-          <div class="mt-3 flex items-baseline justify-between text-sm">
-            <span class="font-semibold">Дом: уровень {{ pulse?.level ?? '...' }}</span>
-            <span class="text-muted tabular-nums"
-              >{{ pulse?.xp ?? 0 }} / {{ pulse?.xp_next ?? 0 }} XP</span
-            >
-          </div>
-          <v-progress-linear :model-value="xpPercent" color="secondary" height="10" class="mt-1" />
-        </div>
-      </section>
-
-      <!-- Показатели -->
-      <section class="mt-3 grid grid-cols-2 gap-3" aria-label="Коротко о доме">
-        <router-link
-          v-for="tile in tiles"
-          :key="tile.key"
-          :to="tile.to"
-          class="card-soft tap-card flex flex-col gap-1 p-3 text-inherit no-underline"
-          data-stagger
-        >
-          <v-icon :icon="tile.icon" :color="tile.color" size="26" />
-          <strong class="text-[28px] leading-none"><AnimatedNumber :value="tile.value" /></strong>
-          <span class="text-muted text-sm leading-tight">{{ tile.title }}</span>
-        </router-link>
-      </section>
-
+      <!-- Главное действие: при тревоге - укрытие, иначе - сообщить о проблеме -->
       <v-btn
+        v-if="alertActive"
+        to="/more/safety"
+        block
+        size="x-large"
+        color="deep"
+        class="mt-3"
+        prepend-icon="mdi-shield-home-outline"
+        data-stagger
+      >
+        Идти в укрытие
+      </v-btn>
+      <v-btn
+        v-else
         to="/issues/new"
         block
         size="x-large"
         color="primary"
-        class="mt-4"
+        class="mt-3"
         prepend-icon="mdi-bullhorn-outline"
         data-stagger
       >
@@ -235,12 +210,86 @@ watch(
         </div>
       </template>
 
+      <!-- Показатели -->
+      <h2 class="section-title">Коротко о доме</h2>
+      <section class="grid grid-cols-2 gap-3" aria-label="Коротко о доме">
+        <router-link
+          v-for="tile in tiles"
+          :key="tile.key"
+          :to="tile.to"
+          class="card-soft tap-card flex flex-col gap-1 p-3 no-underline"
+          :class="tile.alert ? 'tile--alert' : 'text-inherit'"
+          data-stagger
+        >
+          <v-icon :icon="tile.icon" :color="tile.alert ? undefined : tile.color" size="26" />
+          <strong class="text-[28px] leading-none"><AnimatedNumber :value="tile.value" /></strong>
+          <span class="text-sm leading-tight" :class="{ 'text-muted': !tile.alert }">{{
+            tile.title
+          }}</span>
+        </router-link>
+      </section>
+
       <template v-if="nextEvent">
         <h2 class="section-title">Ближайшее событие</h2>
         <div data-stagger>
           <EventCard :event="nextEvent" />
         </div>
       </template>
+
+      <!-- Игровая часть: полезна, но не мешает главному -->
+      <h2 class="section-title">Дом и вы</h2>
+      <section
+        class="card-soft flex items-center gap-4 p-4"
+        data-stagger
+        aria-label="Здоровье дома"
+      >
+        <HealthRing v-if="pulse" :score="pulse.score" :size="96" />
+        <Skeleton v-else class="h-[96px] w-[96px] rounded-full" />
+        <div class="min-w-0 flex-1">
+          <h3 class="m-0 text-lg font-bold">Здоровье дома</h3>
+          <div class="text-muted text-sm">{{ pulse ? MOOD_TITLES[pulse.mood] : 'Считаем...' }}</div>
+          <div class="mt-3 text-sm font-semibold">Уровень дома: {{ pulse?.level ?? '...' }}</div>
+          <v-progress-linear
+            :model-value="xpPercent"
+            color="primary"
+            height="10"
+            class="mt-1"
+            aria-label="Прогресс уровня дома"
+          />
+          <div class="text-muted mt-1 text-sm tabular-nums">
+            {{ pulse?.xp ?? 0 }} из {{ pulse?.xp_next ?? 0 }} очков
+          </div>
+        </div>
+      </section>
+
+      <router-link
+        v-if="user"
+        to="/more/achievements"
+        class="card-soft tap-card mt-3 flex items-center gap-3 p-3 text-inherit no-underline"
+        data-stagger
+        aria-label="Мой уровень и награды"
+      >
+        <v-avatar color="primary" size="44">
+          <span class="text-lg font-bold">{{ user.level }}</span>
+        </v-avatar>
+        <div class="min-w-0 flex-1">
+          <div class="font-semibold">{{ user.first_name }}, вы «{{ user.level_title }}»</div>
+          <v-progress-linear
+            :model-value="userProgress"
+            color="primary"
+            height="8"
+            class="my-1.5"
+            aria-label="Прогресс вашего уровня"
+          />
+          <div class="text-muted text-sm">
+            <AnimatedNumber :value="user.points" /> очков
+            <template v-if="user.next_level_points">
+              · ещё {{ user.next_level_points - user.points }} до уровня {{ user.level + 1 }}
+            </template>
+          </div>
+        </div>
+        <v-icon icon="mdi-chevron-right" />
+      </router-link>
     </template>
   </div>
 </template>
@@ -255,7 +304,7 @@ watch(
 .bubble {
   position: relative;
   flex: 1;
-  margin-bottom: 44px;
+  margin-bottom: 36px;
   padding: 12px 14px;
   border-radius: 18px 18px 18px 6px;
   background: rgba(var(--v-theme-primary), 0.1);
@@ -271,5 +320,20 @@ watch(
   border: 8px solid transparent;
   border-right-color: rgba(var(--v-theme-primary), 0.1);
   border-left: 0;
+}
+/* Есть просрочка: плитка заливная, чтобы её было видно сразу в обеих темах */
+.tile--alert {
+  color: rgb(var(--v-theme-on-primary));
+  background: rgb(var(--v-theme-primary));
+  border-color: transparent;
+}
+.bubble__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: -10px;
+  font-weight: 700;
+  color: rgb(var(--v-theme-primary));
+  text-decoration: none;
 }
 </style>

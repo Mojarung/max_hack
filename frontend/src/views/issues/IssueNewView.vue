@@ -11,7 +11,8 @@ import { confetti, pageEnter } from '@/composables/useMotion'
 import { notify } from '@/lib/notify'
 import { haptic } from '@/max/bridge'
 import { useIssuesStore } from '@/stores/issues'
-import { plural } from '@/utils/format'
+import { formatHours, plural } from '@/utils/format'
+import { ISSUE_STATUS_TITLES } from '@/utils/labels'
 
 const MIN_TEXT = 10
 const router = useRouter()
@@ -32,6 +33,11 @@ const submitting = ref(false)
 const progress = ref(0)
 const created = ref<IssueDetail | null>(null)
 const successBox = ref<HTMLElement | null>(null)
+
+/** «УК «Уютный дом»» → «управляющая компания «Уютный дом»»: без сокращений при первом упоминании. */
+function orgTitle(name: string): string {
+  return name.replace(/^УК\s/, 'управляющая компания ')
+}
 
 const textOk = computed(() => description.value.trim().length >= MIN_TEXT)
 const dirty = computed(
@@ -188,7 +194,7 @@ async function submit(): Promise<void> {
           maxlength="2000"
           :hint="
             description.trim().length && !textOk
-              ? `Ещё хотя бы ${MIN_TEXT - description.trim().length} симв.`
+              ? `Напишите чуть подробнее: ещё ${MIN_TEXT - description.trim().length} ${plural(MIN_TEXT - description.trim().length, ['буква', 'буквы', 'букв'])}`
               : ''
           "
           persistent-hint
@@ -210,51 +216,83 @@ async function submit(): Promise<void> {
             prepend-icon="mdi-lightbulb-on-outline"
             class="h-auto! py-1.5! whitespace-normal!"
           >
-            Кузя думает: {{ classification.category_title }} → {{ classification.org_name }}, срок
-            {{ classification.deadline_hours }} ч
+            Кузя думает, что это: {{ classification.category_title }}. Отвечает
+            {{ orgTitle(classification.org_name) }}, срок
+            {{ formatHours(classification.deadline_hours) }}
           </v-chip>
         </div>
 
-        <v-alert
-          v-if="similar.length"
-          type="info"
-          variant="tonal"
-          class="mt-3"
-          rounded="xl"
-          icon="mdi-account-group-outline"
-          title="Похоже, об этом уже сообщили"
-        >
-          <p class="mt-1 mb-2 text-sm">
-            Поддержите существующую заявку: так обращение уйдёт быстрее.
+        <section v-if="similar.length" class="card-soft mt-3 p-4" aria-labelledby="similar-title">
+          <h3 id="similar-title" class="m-0 flex items-center gap-2 text-lg font-bold">
+            <v-icon icon="mdi-account-group-outline" color="primary" />
+            Похоже, об этом уже сообщили
+          </h3>
+          <p class="mt-1 mb-1">
+            {{
+              similar.every((i) => i.voted_by_me)
+                ? 'Вы уже поддержали эту заявку, новую создавать не нужно. Кузя сообщит, когда её отправят.'
+                : 'Поддержите эту заявку: так обращение уйдёт быстрее.'
+            }}
           </p>
           <div v-for="item in similar" :key="item.id" class="similar">
-            <router-link :to="`/issues/${item.id}`" class="text-inherit font-semibold">{{
-              item.title
-            }}</router-link>
-            <div class="text-muted text-sm">
-              {{ item.status_title }} · {{ item.votes_count }} из {{ item.votes_needed }}
-              {{ plural(item.votes_needed, ['голоса', 'голосов', 'голосов']) }}
-            </div>
+            <router-link :to="`/issues/${item.id}`" class="similar__link">
+              <span class="font-semibold">{{ item.title }}</span>
+              <span class="text-muted text-sm">
+                {{ ISSUE_STATUS_TITLES[item.status] }} · {{ item.votes_count }} из
+                {{ item.votes_needed }}
+                {{ plural(item.votes_needed, ['голоса', 'голосов', 'голосов']) }}
+              </span>
+            </router-link>
+            <template v-if="item.status !== 'voting' || item.voted_by_me">
+              <div v-if="item.voted_by_me" class="voted mt-2" role="status">
+                <v-icon icon="mdi-check-circle" size="22" /> Вы уже поддержали эту заявку
+              </div>
+              <v-btn
+                class="mt-2"
+                color="primary"
+                variant="tonal"
+                size="large"
+                block
+                prepend-icon="mdi-eye-outline"
+                :to="`/issues/${item.id}`"
+              >
+                {{ item.status === 'voting' ? 'Открыть заявку' : 'Уже отправлено, посмотреть' }}
+              </v-btn>
+            </template>
             <v-btn
+              v-else
               class="mt-2"
               color="primary"
-              variant="flat"
+              size="x-large"
               block
               :loading="supporting === item.id"
-              :prepend-icon="item.voted_by_me ? 'mdi-check' : 'mdi-hand-back-right-outline'"
+              prepend-icon="mdi-hand-back-right-outline"
               @click="support(item)"
             >
-              {{ item.voted_by_me ? 'Вы уже поддержали, открыть' : 'Поддержать голосом' }}
+              Поддержать эту заявку
             </v-btn>
           </div>
-        </v-alert>
+        </section>
 
         <h3 class="mt-5 mb-2 text-base font-bold">
           Фото <span class="text-muted font-normal">(необязательно)</span>
         </h3>
         <PhotoPicker v-model="photos" />
 
+        <!-- Если нашлась похожая заявка, главное действие - поддержать её, а не создать дубль -->
         <v-btn
+          v-if="similar.length"
+          block
+          size="large"
+          variant="text"
+          class="mt-6"
+          :disabled="!textOk"
+          @click="next"
+        >
+          Нет, у меня другая проблема
+        </v-btn>
+        <v-btn
+          v-else
           block
           size="x-large"
           color="primary"
@@ -355,5 +393,23 @@ async function submit(): Promise<void> {
 .similar {
   padding: 10px 0;
   border-top: 1px solid rgba(var(--v-border-color), 0.12);
+}
+.voted {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  background: rgba(var(--v-theme-primary), 0.14);
+}
+.similar__link {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: none;
 }
 </style>

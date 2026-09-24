@@ -19,7 +19,7 @@
   --color-error: rgb(var(--v-theme-error));
   --color-success: rgb(var(--v-theme-success));
   --color-warning: rgb(var(--v-theme-warning));
-  --color-muted: rgba(var(--v-theme-on-surface), 0.64);
+  --color-muted: rgba(var(--v-theme-on-surface), var(--muted-alpha));
   --color-border: rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
@@ -29,6 +29,8 @@
   --app-max-width: 640px;
   --app-nav-height: 72px;
   --radius-card: 20px;
+  /* Второстепенный текст: в тёмной теме плотнее, иначе контраст ниже WCAG AA */
+  --muted-alpha: 0.7;
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-text-size-adjust: 100%;
 }
@@ -63,8 +65,8 @@
     letter-spacing: -0.01em;
   }
 
-  .text-muted {
-    color: rgba(var(--v-theme-on-surface), 0.66);
+  .v-theme--dark {
+    --muted-alpha: 0.86;
   }
 
   .card-soft {
@@ -156,6 +158,30 @@
   letter-spacing: 0;
 }
 
+/* Текст не мельче 14px нигде, включая маленькие чипы и значки (DESIGN.md) */
+.v-chip.v-chip--size-small {
+  font-size: 0.875rem;
+  --v-chip-height: 28px;
+}
+.v-badge__badge {
+  font-size: 0.875rem;
+  min-width: 22px;
+  height: 22px;
+}
+
+/* Подпись и счётчик полей тоже не мельче 14px */
+.v-field-label--floating,
+.v-counter,
+.v-messages {
+  font-size: 0.875rem !important;
+}
+
+/* Фильтры-чипы - это кнопки: тач-зона не меньше 44px */
+.filter-chip.v-chip {
+  --v-chip-height: 44px;
+  font-size: 1rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -163,6 +189,12 @@
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+[data-motion='off'] *,
+[data-motion='off'] *::before,
+[data-motion='off'] *::after {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
 }
 
 /* Главная кнопка формы закреплена над нижней навигацией: не нужно искать её прокруткой */

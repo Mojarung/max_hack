@@ -25,7 +25,12 @@ const title = computed(() =>
         aria-label="Назад"
         @click="goBack"
       />
-      <router-link v-else to="/" class="ml-1 flex shrink-0" aria-label="На главную">
+      <router-link
+        v-else
+        to="/"
+        class="flex h-12 w-12 shrink-0 items-center justify-center"
+        aria-label="На главную"
+      >
         <img src="/kuzya.svg" alt="" width="36" height="40" />
       </router-link>
       <h1 class="app-header__title">{{ title }}</h1>

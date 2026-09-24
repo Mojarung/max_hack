@@ -86,7 +86,9 @@ async function toggleJoin(): Promise<void> {
   try {
     await store.toggleJoin(props.id)
     pop(joinBtn.value?.$el)
-    notify.success(willJoin ? 'Вы идёте! Кузя напомнит заранее' : 'Отметку сняли')
+    notify.success(
+      willJoin ? 'Вы идёте! Кузя напомнит заранее' : 'Запись отменена. Передумаете - нажмите «Иду»',
+    )
   } catch (e) {
     notify.error(e, 'Не удалось сохранить')
   } finally {
@@ -133,7 +135,7 @@ async function send(): Promise<void> {
     />
 
     <article v-else-if="event">
-      <header class="event-hero" :class="`bg-${eventKindMeta(event.kind).color}`">
+      <header class="event-hero">
         <v-icon :icon="eventKindMeta(event.kind).icon" size="44" />
         <div class="mt-2 text-sm font-semibold opacity-90">{{ event.kind_title }}</div>
         <h2 class="m-0 text-[22px] leading-tight font-bold">{{ event.title }}</h2>
@@ -166,9 +168,10 @@ async function send(): Promise<void> {
           <h3 class="m-0 text-base font-bold">
             {{ pluralize(event.participants_count, ['участник', 'участника', 'участников']) }}
           </h3>
-          <span v-if="event.max_participants" class="text-muted text-sm"
-            >мест: {{ event.max_participants }}</span
-          >
+          <span v-if="event.max_participants" class="text-muted text-sm">
+            свободно {{ Math.max(0, event.max_participants - event.participants_count) }} из
+            {{ event.max_participants }}
+          </span>
         </div>
         <div v-if="event.participants.length" class="mt-3 flex flex-wrap gap-1.5">
           <UserAvatar
@@ -182,22 +185,38 @@ async function send(): Promise<void> {
           </v-avatar>
         </div>
         <p v-else class="text-muted mt-2 mb-0 text-sm">Пока никто не отметился. Будьте первым!</p>
-        <v-btn
-          v-if="!isPast"
-          ref="joinBtn"
-          block
-          size="x-large"
-          class="mt-4"
-          :color="event.joined_by_me ? 'success' : 'primary'"
-          :variant="event.joined_by_me ? 'tonal' : 'flat'"
-          :prepend-icon="event.joined_by_me ? 'mdi-check-circle' : 'mdi-hand-wave-outline'"
-          :loading="joining"
-          :disabled="isFull"
-          :aria-pressed="event.joined_by_me"
-          @click="toggleJoin"
-        >
-          {{ isFull ? 'Мест нет' : event.joined_by_me ? 'Иду! Нажмите, если передумали' : 'Иду' }}
-        </v-btn>
+        <template v-if="!isPast">
+          <template v-if="event.joined_by_me">
+            <div class="joined mt-4" role="status">
+              <v-icon icon="mdi-check-circle" size="26" />
+              Вы идёте. Кузя напомнит за пару часов
+            </div>
+            <v-btn
+              block
+              variant="text"
+              size="large"
+              class="mt-1"
+              :loading="joining"
+              @click="toggleJoin"
+            >
+              Не смогу прийти
+            </v-btn>
+          </template>
+          <v-btn
+            v-else
+            ref="joinBtn"
+            block
+            size="x-large"
+            class="mt-4"
+            color="primary"
+            prepend-icon="mdi-hand-wave-outline"
+            :loading="joining"
+            :disabled="isFull"
+            @click="toggleJoin"
+          >
+            {{ isFull ? 'Мест нет' : 'Иду' }}
+          </v-btn>
+        </template>
       </section>
 
       <!-- Комментарии -->
@@ -227,7 +246,7 @@ async function send(): Promise<void> {
                 {{ fullName(c.author) }}
               </div>
               <div class="pre-wrap">{{ c.text }}</div>
-              <div class="mt-0.5 text-right text-sm opacity-60">
+              <div class="text-muted mt-0.5 text-right text-sm">
                 {{ formatRelative(c.created_at) }}
               </div>
             </div>
@@ -279,6 +298,8 @@ async function send(): Promise<void> {
 .event-hero {
   padding: 20px 16px;
   border-radius: var(--radius-card);
+  color: rgb(var(--v-theme-on-primary));
+  background: rgb(var(--v-theme-primary));
 }
 .bubble {
   max-width: 78%;
@@ -291,6 +312,17 @@ async function send(): Promise<void> {
   border-radius: 16px 16px 4px 16px;
   background: rgba(var(--v-theme-primary), 0.12);
   border-color: transparent;
+}
+.joined {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+  background: rgba(var(--v-theme-primary), 0.12);
 }
 .composer {
   display: flex;

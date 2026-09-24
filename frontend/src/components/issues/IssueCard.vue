@@ -3,7 +3,7 @@ import type { IssueOut } from '@/api/types'
 import StatusChip from './StatusChip.vue'
 import VoteProgress from './VoteProgress.vue'
 import { formatRelative, plural } from '@/utils/format'
-import { issueCategoryIcon } from '@/utils/labels'
+import { ISSUE_STATUS_TITLES, issueCategoryIcon } from '@/utils/labels'
 
 defineProps<{ issue: IssueOut }>()
 </script>
@@ -12,7 +12,7 @@ defineProps<{ issue: IssueOut }>()
   <router-link
     :to="`/issues/${issue.id}`"
     class="card-soft tap-card flex gap-3 p-3 text-inherit no-underline"
-    :aria-label="`${issue.title}. ${issue.status_title}`"
+    :aria-label="`${issue.title}. ${issue.is_overdue ? 'Просрочено' : ISSUE_STATUS_TITLES[issue.status]}`"
   >
     <div
       class="flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface-variant"
@@ -28,11 +28,7 @@ defineProps<{ issue: IssueOut }>()
     </div>
     <div class="min-w-0 flex-1">
       <div class="mb-1 flex flex-wrap items-center gap-1.5">
-        <StatusChip
-          :status="issue.status"
-          :title="issue.status_title"
-          :overdue="issue.is_overdue"
-        />
+        <StatusChip :status="issue.status" :overdue="issue.is_overdue" />
         <span class="text-muted text-sm">{{ issue.category_title }}</span>
       </div>
       <h3 class="line-clamp-2 m-0 text-base leading-snug font-semibold">{{ issue.title }}</h3>
@@ -41,12 +37,12 @@ defineProps<{ issue: IssueOut }>()
         <div class="text-muted mt-1 text-sm">
           {{ issue.votes_count }} из {{ issue.votes_needed }}
           {{ plural(issue.votes_needed, ['голоса', 'голосов', 'голосов']) }}
-          <span v-if="issue.voted_by_me" class="font-semibold text-success"> · вы поддержали</span>
+          <span v-if="issue.voted_by_me" class="font-semibold text-primary"> · вы поддержали</span>
         </div>
       </div>
       <div v-else class="text-muted mt-1 text-sm">
         <span v-if="issue.responsible_org">{{ issue.responsible_org.name }} · </span>
-        {{ formatRelative(issue.created_at) }}
+        <span class="whitespace-nowrap">{{ formatRelative(issue.created_at) }}</span>
       </div>
     </div>
   </router-link>

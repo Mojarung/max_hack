@@ -11,7 +11,8 @@ const pulse = usePulseStore()
 const tabs: { key: TabKey; to: string; title: string; icon: string }[] = [
   { key: 'home', to: '/', title: 'Дом', icon: 'mdi-home-heart' },
   { key: 'issues', to: '/issues', title: 'Проблемы', icon: 'mdi-alert-circle-outline' },
-  { key: 'market', to: '/market', title: 'Барахолка', icon: 'mdi-storefront-outline' },
+  // Короткая подпись: «Барахолка» не помещается в пятую часть экрана 360px
+  { key: 'market', to: '/market', title: 'Вещи', icon: 'mdi-storefront-outline' },
   { key: 'events', to: '/events', title: 'События', icon: 'mdi-calendar-star' },
   { key: 'more', to: '/more', title: 'Ещё', icon: 'mdi-dots-horizontal-circle-outline' },
 ]
@@ -36,7 +37,7 @@ const openIssues = computed(() => pulse.pulse?.stats.open_issues ?? 0)
           <v-badge
             v-if="tab.key === 'issues' && openIssues > 0"
             :content="openIssues > 99 ? '99+' : openIssues"
-            color="error"
+            color="deep"
             floating
           >
             <v-icon :icon="tab.icon" size="26" />
@@ -86,6 +87,9 @@ const openIssues = computed(() => pulse.pulse?.stats.open_issues ?? 0)
   border-radius: 16px;
   transition: background-color 0.2s ease;
 }
+.v-theme--dark .bottom-nav__item:not(.bottom-nav__item--active) {
+  color: rgba(var(--v-theme-on-surface), 0.86);
+}
 .bottom-nav__item--active {
   color: rgb(var(--v-theme-primary));
 }
@@ -98,6 +102,11 @@ const openIssues = computed(() => pulse.pulse?.stats.open_issues ?? 0)
   border-radius: 12px;
 }
 .bottom-nav__label {
+  max-width: 100%;
+  padding-inline: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   line-height: 1.1;
 }
 </style>

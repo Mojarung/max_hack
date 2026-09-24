@@ -73,7 +73,13 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
           <div class="text-muted text-sm">очков</div>
         </div>
       </div>
-      <v-progress-linear :model-value="levelProgress" color="primary" height="10" class="mt-3" />
+      <v-progress-linear
+        :model-value="levelProgress"
+        color="primary"
+        height="10"
+        class="mt-3"
+        aria-label="Прогресс до следующего уровня"
+      />
       <div v-if="user.next_level_points" class="text-muted mt-1 text-sm">
         До следующего уровня: {{ Math.max(0, user.next_level_points - user.points) }} очков
       </div>
@@ -86,14 +92,15 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
 
     <template v-else-if="data">
       <div class="mt-5 flex items-baseline justify-between">
-        <h2 class="section-title !my-0">Ачивки</h2>
+        <h2 class="section-title !my-0">Награды</h2>
         <span class="text-muted text-sm">{{ earned }} из {{ total }}</span>
       </div>
       <v-progress-linear
         :model-value="total ? (earned / total) * 100 : 0"
-        color="warning"
+        color="primary"
         height="6"
         class="mt-2 mb-3"
+        aria-label="Сколько наград получено"
       />
 
       <div ref="grid" class="grid grid-cols-3 gap-3">
@@ -185,12 +192,12 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  color: #caf0f8;
-  background: linear-gradient(135deg, #48cae4, rgb(var(--v-theme-primary)));
+  color: rgb(var(--v-theme-on-primary));
+  background: linear-gradient(135deg, rgb(var(--v-theme-tertiary)), rgb(var(--v-theme-primary)));
   box-shadow: 0 6px 14px -6px rgba(var(--v-theme-primary), 0.8);
 }
 .badge__title {
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
@@ -201,7 +208,7 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
   box-shadow: none;
 }
 .badge--locked .badge__title {
-  opacity: 0.6;
+  color: rgba(var(--v-theme-on-surface), 0.72);
 }
 .leader {
   display: flex;

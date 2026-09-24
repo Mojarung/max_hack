@@ -17,15 +17,15 @@ const saving = ref(false)
 
 const OPTIONS: Record<NextStatus, { title: string; icon: string; color: string; hint: string }> = {
   in_progress: {
-    title: 'Взяли в работу',
+    title: 'Начали чинить',
     icon: 'mdi-hammer-wrench',
-    color: 'secondary',
+    color: 'primary',
     hint: 'Например: «Мастер придёт завтра до 12:00»',
   },
   resolved: {
     title: 'Проблема решена',
     icon: 'mdi-check-circle',
-    color: 'success',
+    color: 'primary',
     hint: 'Например: «Кровлю залатали, течь устранена»',
   },
   rejected: {
@@ -64,8 +64,10 @@ async function save(): Promise<void> {
 
 <template>
   <section class="card-soft p-4" aria-label="Управление статусом">
-    <h3 class="m-0 mb-1 text-base font-bold">Вы автор или администратор</h3>
-    <p class="text-muted mt-0 mb-3 text-sm">Отметьте, как продвигается решение.</p>
+    <h3 class="m-0 mb-1 text-base font-bold">Как продвигается решение?</h3>
+    <p class="text-muted mt-0 mb-3 text-sm">
+      Вы можете менять статус как автор заявки или администратор. Соседи увидят изменение сразу.
+    </p>
     <div class="flex flex-col gap-2">
       <v-btn
         v-for="s in available"

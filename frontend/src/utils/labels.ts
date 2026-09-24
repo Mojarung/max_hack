@@ -1,12 +1,21 @@
 import type { EventKind, IssueStatus, ListingStatus, Mood } from '@/api/types'
 
+/** Названия статусов для жителя (сервер присылает свои, но говорим одинаково везде). */
+export const ISSUE_STATUS_TITLES: Record<IssueStatus, string> = {
+  voting: 'Собираем голоса',
+  sent: 'Отправлено',
+  in_progress: 'Чинят',
+  resolved: 'Решено',
+  rejected: 'Отклонено',
+}
+
 export const ISSUE_STATUSES: { value: IssueStatus | null; title: string }[] = [
   { value: null, title: 'Все' },
-  { value: 'voting', title: 'Голосование' },
-  { value: 'sent', title: 'Отправлено' },
-  { value: 'in_progress', title: 'В работе' },
-  { value: 'resolved', title: 'Решено' },
-  { value: 'rejected', title: 'Отклонено' },
+  { value: 'voting', title: ISSUE_STATUS_TITLES.voting },
+  { value: 'sent', title: ISSUE_STATUS_TITLES.sent },
+  { value: 'in_progress', title: ISSUE_STATUS_TITLES.in_progress },
+  { value: 'resolved', title: ISSUE_STATUS_TITLES.resolved },
+  { value: 'rejected', title: ISSUE_STATUS_TITLES.rejected },
 ]
 
 export const ISSUE_STATUS_META: Record<IssueStatus, { color: string; icon: string }> = {

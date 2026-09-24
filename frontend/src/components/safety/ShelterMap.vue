@@ -23,12 +23,14 @@ function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 }
 
+/** Кружок `size` px, но зона нажатия не меньше 44px (DESIGN.md). */
 function pin(lib: typeof Leaflet, icon: string, bg: string, size = 34): Leaflet.DivIcon {
+  const hit = Math.max(44, size)
   return lib.divIcon({
     className: 'kz-pin',
     html: `<span style="background:${bg};width:${size}px;height:${size}px"><i class="mdi ${icon}"></i></span>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    iconSize: [hit, hit],
+    iconAnchor: [hit / 2, hit / 2],
   })
 }
 
@@ -92,6 +94,8 @@ onMounted(async () => {
     map.value = lib
       .map(el.value, { zoomControl: true, attributionControl: true })
       .setView([props.house.lat, props.house.lon], 15)
+    // Без стандартного префикса Leaflet (флаг и ссылка-мелочь): оставляем только атрибуцию OSM
+    map.value.attributionControl.setPrefix(false)
     lib
       .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -136,6 +140,11 @@ defineExpose({ focus })
 </template>
 
 <style>
+.kz-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .kz-pin span {
   display: flex;
   align-items: center;
@@ -148,5 +157,14 @@ defineExpose({ focus })
 }
 .leaflet-container {
   font: inherit;
+}
+/* Кнопки масштаба и ссылка атрибуции: крупные тач-зоны и различимая ссылка */
+.leaflet-touch .leaflet-bar a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+.leaflet-control-attribution a {
+  text-decoration: underline;
 }
 </style>

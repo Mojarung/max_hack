@@ -29,6 +29,8 @@ export const vuetify = createVuetify({
     themes: {
       light: {
         dark: false,
+        // подписи полей и второстепенный текст Vuetify: контраст не ниже WCAG AA
+        variables: { 'medium-emphasis-opacity': 0.78 },
         colors: {
           primary: P.indigo,
           'on-primary': P.ice,
@@ -60,10 +62,12 @@ export const vuetify = createVuetify({
           'on-muted': P.indigo,
           light: P.ice,
           deep: P.navy,
+          'on-deep': P.ice,
         },
       },
       dark: {
         dark: true,
+        variables: { 'medium-emphasis-opacity': 0.78 },
         colors: {
           primary: P.sky,
           'on-primary': P.navy,
@@ -94,7 +98,9 @@ export const vuetify = createVuetify({
           muted: P.ocean,
           'on-muted': P.ice,
           light: P.ice,
-          deep: P.navy,
+          // В тёмной теме фон уже navy: тревожное (просрочка, тревога) инвертируем в самый светлый
+          deep: P.ice,
+          'on-deep': P.navy,
         },
       },
     },

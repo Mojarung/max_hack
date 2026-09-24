@@ -2,6 +2,7 @@
 import { gsap } from 'gsap'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import KuzyaMascot from '@/components/kuzya/KuzyaMascot.vue'
+import { ALERT_INSTRUCTIONS as INSTRUCTIONS } from '@/components/safety/instructions'
 import { prefersReducedMotion } from '@/composables/useMotion'
 import { notify } from '@/lib/notify'
 import { openLink } from '@/max/bridge'
@@ -19,13 +20,6 @@ let pulseTween: gsap.core.Tween | null = null
 const expanded = computed(() => !!alerts.active && !alerts.minimized)
 const title = computed(() => alerts.active?.kind_title || 'Беспилотная опасность')
 
-const INSTRUCTIONS = [
-  { icon: 'mdi-window-closed-variant', text: 'Отойдите от окон и стеклянных дверей' },
-  { icon: 'mdi-stairs-down', text: 'Спуститесь в укрытие или встаньте в коридоре без окон' },
-  { icon: 'mdi-cellphone-off', text: 'Не снимайте и не выкладывайте видео с небом' },
-  { icon: 'mdi-bell-ring-outline', text: 'Дождитесь сигнала «Отбой», Кузя сообщит' },
-]
-
 watch(
   expanded,
   async (open) => {
@@ -33,6 +27,9 @@ watch(
     pulseTween = null
     if (!open) return
     await nextTick()
+    // Фокус в диалог: диктор читает заголовок, дальше по Tab - маршрут (кнопка может быть
+    // ещё неактивна, пока ищем укрытие, поэтому фокусируем сам диалог)
+    panel.value?.focus()
     if (prefersReducedMotion()) return
     if (panel.value) {
       gsap.fromTo(
@@ -90,6 +87,7 @@ async function endAlert(): Promise<void> {
     class="alert-overlay"
     role="alertdialog"
     aria-modal="true"
+    tabindex="-1"
     aria-labelledby="alert-title"
     aria-describedby="alert-desc"
   >
@@ -181,6 +179,7 @@ async function endAlert(): Promise<void> {
 
 <style scoped>
 .alert-overlay {
+  outline: none;
   position: fixed;
   inset: 0;
   z-index: 3000;
@@ -238,7 +237,7 @@ async function endAlert(): Promise<void> {
   color: #caf0f8;
   font-size: 16px;
   font-weight: 700;
-  background: #023e8a;
+  background: #03045e;
   animation: alert-bar-blink 1.6s ease-in-out infinite;
   cursor: pointer;
 }
@@ -250,7 +249,7 @@ async function endAlert(): Promise<void> {
 }
 @keyframes alert-bar-blink {
   50% {
-    background: #0077b6;
+    background: #023e8a;
   }
 }
 </style>

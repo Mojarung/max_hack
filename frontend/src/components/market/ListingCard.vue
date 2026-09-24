@@ -28,19 +28,9 @@ defineProps<{ listing: ListingOut }>()
         />
       </div>
       <v-chip
-        v-if="listing.is_free"
-        class="!absolute top-2 left-2 font-bold"
-        color="secondary"
-        variant="flat"
-        size="small"
-        prepend-icon="mdi-gift-outline"
-      >
-        Даром
-      </v-chip>
-      <v-chip
         v-if="listing.status !== 'active'"
         class="!absolute top-2 right-2"
-        :color="LISTING_STATUS_META[listing.status].color"
+        color="deep"
         variant="flat"
         size="small"
       >
@@ -48,7 +38,8 @@ defineProps<{ listing: ListingOut }>()
       </v-chip>
     </div>
     <div class="flex flex-1 flex-col p-3">
-      <div class="text-lg leading-tight font-bold" :class="listing.is_free ? 'text-secondary' : ''">
+      <div class="flex items-center gap-1 text-lg leading-tight font-bold text-primary">
+        <v-icon v-if="listing.is_free" icon="mdi-gift-outline" size="20" />
         {{ formatPrice(listing.price, listing.is_free) }}
       </div>
       <h3 class="line-clamp-2 mt-1 mb-0 text-[15px] leading-snug font-medium">

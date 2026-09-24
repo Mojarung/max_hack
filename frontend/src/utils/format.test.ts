@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCountdown, formatDistance, formatPrice, plural } from './format'
+import { formatCountdown, formatDistance, formatHours, formatPrice, plural } from './format'
 
 const MIN = 60_000
 const HOUR = 60 * MIN
@@ -62,5 +62,14 @@ describe('formatDistance and formatPrice', () => {
   it('shows "Даром" for free listings', () => {
     expect(formatPrice(0, true)).toBe('Даром')
     expect(formatPrice(1500, false)).toMatch(/^1\s500 ₽$/)
+  })
+})
+
+describe('formatHours', () => {
+  it('до двух суток - часами, дальше - днями', () => {
+    expect(formatHours(24)).toBe('24\u00a0часа')
+    expect(formatHours(1)).toBe('1\u00a0час')
+    expect(formatHours(168)).toBe('7\u00a0дней')
+    expect(formatHours(720)).toBe('30\u00a0дней')
   })
 })

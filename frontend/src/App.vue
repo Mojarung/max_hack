@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import BootScreen from '@/components/layout/BootScreen.vue'
@@ -18,6 +18,7 @@ const session = useSessionStore()
 const alerts = useAlertsStore()
 const pulse = usePulseStore()
 const route = useRoute()
+const alertOpen = computed(() => !!alerts.active && !alerts.minimized)
 const router = useRouter()
 let deepLinkHandled = false
 
@@ -63,15 +64,16 @@ watch(
   <v-app>
     <BootScreen v-if="session.status !== 'ready'" />
     <template v-else>
-      <AppHeader />
-      <main ref="mainEl">
+      <!-- Пока открыт экран тревоги, всё под ним недоступно для фокуса и диктора -->
+      <AppHeader :inert="alertOpen" />
+      <main ref="mainEl" :inert="alertOpen">
         <router-view v-slot="{ Component, route: current }">
           <Transition :css="false" mode="out-in" @enter="pageEnter" @leave="pageLeave">
             <component :is="Component" :key="`${current.path}#${session.userKey}`" />
           </Transition>
         </router-view>
       </main>
-      <BottomNav />
+      <BottomNav :inert="alertOpen" />
     </template>
     <DroneAlertOverlay v-if="alerts.active" />
     <Toaster />

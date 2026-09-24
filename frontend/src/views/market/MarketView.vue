@@ -57,16 +57,8 @@ watchDebounced(
     <div class="chips-scroll" role="toolbar" aria-label="Категории">
       <v-chip
         size="large"
-        :color="store.freeOnly ? 'secondary' : undefined"
-        :variant="store.freeOnly ? 'flat' : 'outlined'"
-        prepend-icon="mdi-gift-outline"
-        :aria-pressed="store.freeOnly"
-        @click="store.freeOnly = !store.freeOnly"
-      >
-        Даром
-      </v-chip>
-      <v-chip
-        size="large"
+        class="filter-chip"
+        role="button"
         :color="!store.category ? 'primary' : undefined"
         :variant="!store.category ? 'flat' : 'outlined'"
         :aria-pressed="!store.category"
@@ -75,9 +67,23 @@ watchDebounced(
         Все
       </v-chip>
       <v-chip
+        size="large"
+        class="filter-chip"
+        role="button"
+        :color="store.freeOnly ? 'primary' : undefined"
+        :variant="store.freeOnly ? 'flat' : 'outlined'"
+        prepend-icon="mdi-gift-outline"
+        :aria-pressed="store.freeOnly"
+        @click="store.freeOnly = !store.freeOnly"
+      >
+        Только даром
+      </v-chip>
+      <v-chip
         v-for="c in store.categories"
         :key="c.code"
         size="large"
+        class="filter-chip"
+        role="button"
         :color="store.category === c.code ? 'primary' : undefined"
         :variant="store.category === c.code ? 'flat' : 'outlined'"
         :prepend-icon="LISTING_CATEGORY_ICONS[c.code]"
@@ -132,7 +138,7 @@ watchDebounced(
       prepend-icon="mdi-plus"
       class="fab"
     >
-      Разместить
+      Отдать или продать
     </v-btn>
   </div>
 </template>

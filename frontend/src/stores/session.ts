@@ -56,8 +56,8 @@ export const useSessionStore = defineStore('session', () => {
       const payload = (data ?? {}) as { user_id?: number; title?: string; points?: number }
       if (!me.value || payload.user_id !== me.value.user.id) return
       notify.success(
-        payload.title ? `Новая ачивка: ${payload.title}` : 'Новая ачивка!',
-        payload.points ? `+${payload.points} очков` : 'Загляните в раздел «Ачивки»',
+        payload.title ? `Новая награда: ${payload.title}` : 'Новая награда!',
+        payload.points ? `+${payload.points} очков` : 'Загляните в раздел «Награды»',
       )
       void refreshMe()
     })

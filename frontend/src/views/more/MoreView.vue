@@ -21,13 +21,6 @@ interface Entry {
 const entries = computed<Entry[]>(() => {
   const list: Entry[] = [
     {
-      to: '/more/achievements',
-      title: 'Ачивки и рейтинг',
-      subtitle: 'Награды за добрые дела',
-      icon: 'mdi-trophy-outline',
-      color: 'warning',
-    },
-    {
       to: '/more/safety',
       title: 'Безопасность',
       subtitle: 'Укрытия рядом и что делать при тревоге',
@@ -43,10 +36,17 @@ const entries = computed<Entry[]>(() => {
     },
     {
       to: '/more/assistant',
-      title: 'Чат с Кузей',
-      subtitle: 'Спросите что угодно о доме',
+      title: 'Спросить Кузю',
+      subtitle: 'Ответит здесь: заявки, сроки, события',
       icon: 'mdi-chat-processing-outline',
       color: 'primary',
+    },
+    {
+      to: '/more/achievements',
+      title: 'Награды и рейтинг',
+      subtitle: 'Награды за добрые дела',
+      icon: 'mdi-trophy-outline',
+      color: 'warning',
     },
   ]
   if (session.canUseDevTools) {
@@ -125,7 +125,7 @@ function openBot(): void {
       data-stagger
       @click="openBot"
     >
-      Написать Кузе в MAX
+      Открыть чат с Кузей в MAX
     </v-btn>
 
     <p class="text-muted mt-6 text-center text-sm">

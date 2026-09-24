@@ -3,6 +3,11 @@
  * Разрешены только известные форматы: `issue_5`, `event_3`, `listing_2`,
  * `alert`, `safety`, `issues`, `events`, `market`, `home`.
  */
+/** Ссылка, которая откроет заявку в мини-приложении MAX (null, если ник бота неизвестен). */
+export function issueDeepLink(id: number, botUsername: string | null | undefined): string | null {
+  return botUsername ? `https://max.ru/${botUsername}?startapp=issue_${id}` : null
+}
+
 export function deepLinkToPath(raw: string | null | undefined): string | null {
   if (!raw) return null
   const value = raw.trim().toLowerCase()

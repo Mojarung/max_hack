@@ -22,7 +22,9 @@ async function toggle(): Promise<void> {
   try {
     await store.toggleJoin(props.event.id)
     pop(button.value?.$el)
-    notify.success(joining ? 'Вы идёте! Кузя напомнит заранее' : 'Отметку сняли')
+    notify.success(
+      joining ? 'Вы идёте! Кузя напомнит заранее' : 'Запись отменена. Передумаете - нажмите «Иду»',
+    )
   } catch (e) {
     notify.error(e, 'Не удалось сохранить')
   } finally {
@@ -57,19 +59,42 @@ async function toggle(): Promise<void> {
       </div>
     </router-link>
     <div v-if="!past" class="px-3 pb-3">
+      <!-- Запись и отмена - разные кнопки: случайное второе нажатие не снимает запись -->
+      <template v-if="event.joined_by_me">
+        <div class="joined" role="status">
+          <v-icon icon="mdi-check-circle" size="22" /> Вы идёте
+        </div>
+        <v-btn block variant="text" size="large" class="mt-1" :loading="busy" @click="toggle">
+          Не смогу прийти
+        </v-btn>
+      </template>
       <v-btn
+        v-else
         ref="button"
         block
         size="large"
-        :color="event.joined_by_me ? 'success' : 'primary'"
-        :variant="event.joined_by_me ? 'tonal' : 'flat'"
-        :prepend-icon="event.joined_by_me ? 'mdi-check-circle' : 'mdi-hand-wave-outline'"
+        color="primary"
+        variant="tonal"
+        prepend-icon="mdi-hand-wave-outline"
         :loading="busy"
-        :aria-pressed="event.joined_by_me"
         @click="toggle"
       >
-        {{ event.joined_by_me ? 'Иду! Нажмите, если передумали' : 'Иду' }}
+        Иду
       </v-btn>
     </div>
   </article>
 </template>
+
+<style scoped>
+.joined {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+  border: 2px solid rgba(var(--v-theme-primary), 0.5);
+}
+</style>

@@ -69,7 +69,7 @@ watch(scope, (value) => void store.load(value), { immediate: true })
       prepend-icon="mdi-plus"
       class="fab"
     >
-      Создать
+      Создать событие
     </v-btn>
   </div>
 </template>

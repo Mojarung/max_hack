@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, defineAsyncComponent } from 'vue'
+import { computed, nextTick, onMounted, ref, defineAsyncComponent } from 'vue'
 import { errorMessage } from '@/api/client'
 import { safetyApi } from '@/api/endpoints'
 import type { ShelterOut } from '@/api/types'
 import ErrorState from '@/components/common/ErrorState.vue'
 import ListSkeleton from '@/components/common/ListSkeleton.vue'
+import { ALERT_INSTRUCTIONS } from '@/components/safety/instructions'
 import { useStagger } from '@/composables/useMotion'
 import { notify } from '@/lib/notify'
 import { haptic, openLink } from '@/max/bridge'
@@ -61,6 +62,11 @@ async function findNearest(): Promise<void> {
     }
     selectedId.value = nearest.id
     mapRef.value?.focus(nearest.id)
+    // Ответ «куда идти» должен быть на экране, а не под навигацией
+    await nextTick()
+    document
+      .getElementById(`shelter-${nearest.id}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     if (position.value.source === 'house') {
       notify.info('Не удалось узнать, где вы', 'Считаем расстояние от дома')
     } else {
@@ -132,7 +138,8 @@ async function endAlert(): Promise<void> {
     <v-btn
       block
       size="x-large"
-      color="error"
+      color="deep"
+      :variant="selectedId ? 'tonal' : 'flat'"
       class="mt-3"
       prepend-icon="mdi-crosshairs-gps"
       :loading="locating"
@@ -141,8 +148,28 @@ async function endAlert(): Promise<void> {
       Найти ближайшее укрытие
     </v-btn>
     <p class="text-muted mt-2 mb-0 text-center text-sm">
-      Разрешите доступ к геопозиции. Если не получится, посчитаем от дома.
+      <template v-if="position?.source === 'house'">
+        Не удалось узнать, где вы: считаем расстояние от дома.
+      </template>
+      <template v-else-if="position">Расстояние посчитано от того места, где вы сейчас.</template>
+      <template v-else
+        >Разрешите доступ к геопозиции. Если не получится, посчитаем от дома.</template
+      >
     </p>
+
+    <details class="card-soft rules mt-3" :open="!!alerts.active">
+      <summary>
+        <v-icon icon="mdi-shield-alert-outline" color="primary" />
+        <span class="flex-1">Что делать при тревоге</span>
+        <v-icon icon="mdi-chevron-down" class="rules__chevron" />
+      </summary>
+      <ol class="m-0 flex list-none flex-col gap-2 p-0 pt-2">
+        <li v-for="item in ALERT_INSTRUCTIONS" :key="item.text" class="flex items-center gap-3">
+          <v-icon :icon="item.icon" color="primary" size="24" />
+          <span>{{ item.text }}</span>
+        </li>
+      </ol>
+    </details>
 
     <h2 class="section-title">Укрытия рядом</h2>
     <ListSkeleton v-if="loading && !shelters.length" :count="3" />
@@ -179,19 +206,13 @@ async function endAlert(): Promise<void> {
           <v-btn
             class="flex-1"
             color="primary"
+            :variant="s.id === selectedId ? 'flat' : 'tonal'"
             size="large"
             prepend-icon="mdi-walk"
+            aria-label="Маршрут пешком в Яндекс Картах"
             @click="openLink(s.yandex_url)"
           >
-            Маршрут в Яндекс Картах
-          </v-btn>
-          <v-btn
-            variant="tonal"
-            size="large"
-            aria-label="Открыть в OpenStreetMap"
-            @click="openLink(s.osm_url)"
-          >
-            OSM
+            Маршрут
           </v-btn>
         </div>
       </li>
@@ -252,10 +273,28 @@ async function endAlert(): Promise<void> {
   flex-shrink: 0;
   border-radius: 50%;
   font-weight: 700;
-  color: #caf0f8;
-  background: rgb(var(--v-theme-secondary));
+  color: rgb(var(--v-theme-on-primary));
+  background: rgb(var(--v-theme-primary));
 }
 .shelter--selected {
-  outline: 3px solid rgb(var(--v-theme-error));
+  outline: 3px solid rgb(var(--v-theme-primary));
+}
+.rules {
+  padding: 4px 16px 14px;
+}
+.rules summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  min-height: 48px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rules summary::-webkit-details-marker {
+  display: none;
+}
+.rules[open] .rules__chevron {
+  transform: rotate(180deg);
 }
 </style>

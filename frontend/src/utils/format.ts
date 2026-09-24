@@ -89,6 +89,13 @@ export function formatRelative(value: string | Date, now: number = Date.now()): 
   return formatDate(value)
 }
 
+/** Нормативный срок для жителя: «24 часа», от 48 часов - днями: «7 дней». */
+export function formatHours(hours: number): string {
+  const days = Math.round(hours / 24)
+  if (hours >= 48) return `${days}\u00a0${plural(days, ['день', 'дня', 'дней'])}`
+  return `${hours}\u00a0${plural(hours, ['час', 'часа', 'часов'])}`
+}
+
 export function formatDistance(meters: number | null | undefined): string {
   if (meters === null || meters === undefined || Number.isNaN(meters)) return ''
   if (meters < 1000) return `${Math.round(meters / 10) * 10} м`

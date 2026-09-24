@@ -142,7 +142,7 @@ async function remove(): Promise<void> {
           {{ listing.category_title }}
         </v-chip>
       </div>
-      <div class="mt-2 text-[28px] font-extrabold" :class="listing.is_free ? 'text-secondary' : ''">
+      <div class="mt-2 text-[28px] font-extrabold text-primary">
         {{ formatPrice(listing.price, listing.is_free) }}
       </div>
       <h2 class="mt-1 mb-0 text-xl leading-snug font-bold">{{ listing.title }}</h2>
@@ -167,7 +167,10 @@ async function remove(): Promise<void> {
         class="card-soft mt-4 p-4"
         aria-label="Управление объявлением"
       >
-        <h3 class="m-0 mb-3 text-base font-bold">Ваше объявление</h3>
+        <h3 class="m-0 mb-1 text-base font-bold">Ваше объявление</h3>
+        <p class="text-muted mt-0 mb-3 text-sm">
+          Договорились с соседом - отметьте «Забронировано», отдали или продали - «Закрыто».
+        </p>
         <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Статус объявления">
           <v-btn
             v-for="s in STATUSES"
@@ -205,13 +208,19 @@ async function remove(): Promise<void> {
         :disabled="listing.status === 'closed'"
         @click="openContact"
       >
-        {{ listing.status === 'closed' ? 'Объявление закрыто' : 'Написать продавцу' }}
+        {{
+          listing.status === 'closed'
+            ? 'Объявление закрыто'
+            : listing.is_free
+              ? 'Хочу забрать'
+              : 'Написать продавцу'
+        }}
       </v-btn>
 
       <Drawer v-model:open="contactOpen">
         <DrawerContent>
           <DrawerHeader
-            title="Сообщение продавцу"
+            :title="listing.is_free ? 'Сообщение автору' : 'Сообщение продавцу'"
             :description="`Кузя передаст сообщение в личку MAX. Продавец: ${fullName(listing.author)}`"
           />
           <v-textarea
