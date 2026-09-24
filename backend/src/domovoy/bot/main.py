@@ -3,6 +3,7 @@
 import asyncio
 from typing import Any
 
+import httpx
 import structlog
 from sqlalchemy import select
 
@@ -54,13 +55,20 @@ class BotRuntime:
 
     async def poll(self) -> None:
         assert self.client is not None
-        me = await self.client.me()
+        while True:
+            try:
+                me = await self.client.me()
+            except (MaxApiError, OSError, httpx.TransportError) as exc:
+                log.warning("bot.poll_error", error=str(exc))
+                await asyncio.sleep(POLL_ERROR_BACKOFF)
+                continue
+            break
         log.info("bot.polling_started", username=me.get("username"))
         marker: int | None = None
         while True:
             try:
                 updates, marker = await self.client.get_updates(marker)
-            except (MaxApiError, OSError) as exc:
+            except (MaxApiError, OSError, httpx.TransportError) as exc:
                 log.warning("bot.poll_error", error=str(exc))
                 await asyncio.sleep(POLL_ERROR_BACKOFF)
                 continue
