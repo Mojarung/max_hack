@@ -2,6 +2,9 @@ import { getInitData, isInMax } from '@/max/bridge'
 
 export const API_BASE = '/api/v1'
 
+/** Мок-бэкенд в памяти (`npm run dev:mock`). В продовой сборке ветка вырезается. */
+const MOCK_API = import.meta.env.VITE_MOCK_API === 'true'
+
 /** Кто мы для сервера: подпись MAX или демо-житель. */
 const auth = {
   devUser: null as number | null,
@@ -121,6 +124,10 @@ const DEFAULT_TIMEOUT = 20_000
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', query, body, signal, timeoutMs = DEFAULT_TIMEOUT } = options
+  if (MOCK_API) {
+    const { mockRequest } = await import('@/mock/server')
+    return mockRequest<T>(method, path, query, body as Record<string, unknown> | undefined)
+  }
   const headers: Record<string, string> = { Accept: 'application/json', ...authHeaders() }
   let payload: BodyInit | undefined
   if (body instanceof FormData) {
@@ -182,6 +189,7 @@ export function upload<T>(
   form: FormData,
   onProgress?: (fraction: number) => void,
 ): Promise<T> {
+  if (MOCK_API) return import('@/mock/server').then((m) => m.mockUpload<T>(path, form, onProgress))
   return new Promise<T>((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open('POST', buildUrl(path))

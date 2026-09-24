@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "vite --mode mock --port 5174 --strictPort",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "vue-tsc -b",
@@ -39,6 +40,7 @@
     "@vue/eslint-config-typescript": "^14.9.0",
     "@vue/test-utils": "^2.5.1",
     "@vue/tsconfig": "^0.9.1",
+    "axe-core": "^4.13.0",
     "eslint": "^10.11.0",
     "eslint-plugin-vue": "^10.11.0",
     "globals": "^17.12.0",

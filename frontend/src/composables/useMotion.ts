@@ -3,8 +3,10 @@ import { nextTick, onMounted, watch, type Ref, type WatchSource } from 'vue'
 import { autoRevealActive } from './useReveal'
 
 export function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined') return false
+  // мок-режим выключает анимации (?motion=0), чтобы скриншоты были стабильными
+  if (document.documentElement.dataset.motion === 'off') return true
   return (
-    typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
   )
@@ -43,8 +45,11 @@ export function useStagger(container: Ref<HTMLElement | null>, source: WatchSour
 
 /** Переход между страницами: лёгкий сдвиг и проявление. */
 export function pageEnter(el: Element, done: () => void): void {
+  // Без анимации переключаем сразу: переход не должен зависеть от кадров (фоновая вкладка их не рисует).
+  // done() откладываем на микрозадачу: синхронный вызов посреди патча ломает <Transition mode="out-in">.
   if (prefersReducedMotion()) {
-    gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.15, onComplete: done })
+    gsap.set(el, { opacity: 1, clearProps: 'transform' })
+    queueMicrotask(done)
     return
   }
   gsap.fromTo(
@@ -62,9 +67,13 @@ export function pageEnter(el: Element, done: () => void): void {
 }
 
 export function pageLeave(el: Element, done: () => void): void {
+  if (prefersReducedMotion()) {
+    queueMicrotask(done)
+    return
+  }
   gsap.to(el, {
     opacity: 0,
-    y: prefersReducedMotion() ? 0 : -8,
+    y: -8,
     duration: 0.14,
     ease: 'power1.in',
     onComplete: done,

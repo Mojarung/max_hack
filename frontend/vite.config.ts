@@ -11,6 +11,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: '/',
+    // npm run dev:mock: фронтенд без бэкенда на данных из src/mock
+    define: mode === 'mock' ? { 'import.meta.env.VITE_MOCK_API': JSON.stringify('true') } : {},
     plugins: [vue(), vuetify({ autoImport: true }), tailwindcss()],
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },

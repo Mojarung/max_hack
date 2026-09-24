@@ -61,6 +61,10 @@ function parse(raw: string): unknown {
 
 export function connectRealtime(): void {
   disconnectRealtime()
+  if (import.meta.env.VITE_MOCK_API === 'true') {
+    realtimeStatus.value = 'open'
+    return
+  }
   if (typeof EventSource === 'undefined') return
   realtimeStatus.value = hadConnection ? 'reconnecting' : 'connecting'
   const url = `${API_BASE}/realtime/stream?${authQuery().toString()}`
