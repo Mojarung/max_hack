@@ -1,15 +1,15 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Р”РѕРјРѕРІРѕР№ РљСѓР·СЏ API",
-    "description": "REST API РјРёРЅРё-РїСЂРёР»РѕР¶РµРЅРёСЏ MAX В«Р”РѕРјРѕРІРѕР№ РљСѓР·СЏВ»: РїСЂРѕР±Р»РµРјС‹ РґРѕРјР°, Р±Р°СЂР°С…РѕР»РєР°, СЃРѕР±С‹С‚РёСЏ, Р°С‡РёРІРєРё, Р±РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ.",
+    "title": "Домовой Кузя API",
+    "description": "REST API мини-приложения MAX «Домовой Кузя»: проблемы дома, барахолка, события, ачивки, безопасность.",
     "version": "1.0.0"
   },
   "paths": {
     "/api/v1/me": {
       "get": {
         "tags": [
-          "РџСЂРѕС„РёР»СЊ Рё РґРѕРј"
+          "Профиль и дом"
         ],
         "summary": "Me",
         "operationId": "me_api_v1_me_get",
@@ -87,10 +87,188 @@
         }
       }
     },
+    "/api/v1/me/onboarded": {
+      "post": {
+        "tags": [
+          "Профиль и дом"
+        ],
+        "summary": "Onboarded",
+        "description": "Житель прошёл обучалку при первом входе: больше её не показываем (на любом устройстве).",
+        "operationId": "onboarded_api_v1_me_onboarded_post",
+        "parameters": [
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/houses": {
+      "get": {
+        "tags": [
+          "Профиль и дом"
+        ],
+        "summary": "Houses",
+        "description": "Дома жителя. refresh=true заново ищет чаты с Кузей, где он состоит (дома добавляются сами).",
+        "operationId": "houses_api_v1_houses_get",
+        "parameters": [
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Refresh"
+            }
+          },
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HouseBrief"
+                  },
+                  "title": "Response Houses Api V1 Houses Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/house/pulse": {
       "get": {
         "tags": [
-          "РџСЂРѕС„РёР»СЊ Рё РґРѕРј"
+          "Профиль и дом"
         ],
         "summary": "Pulse",
         "operationId": "pulse_api_v1_house_pulse_get",
@@ -168,11 +346,458 @@
         }
       }
     },
+    "/api/v1/house": {
+      "patch": {
+        "tags": [
+          "Профиль и дом"
+        ],
+        "summary": "Update House",
+        "description": "Настройка дома администратором (адрес, координаты, УК, информация, порог голосов) и своей квартиры.",
+        "operationId": "update_house_api_v1_house_patch",
+        "parameters": [
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HouseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/house/sync": {
+      "post": {
+        "tags": [
+          "Профиль и дом"
+        ],
+        "summary": "Sync House",
+        "description": "Сверить жителей и администраторов с чатом MAX (кнопка в настройках дома).",
+        "operationId": "sync_house_api_v1_house_sync_post",
+        "parameters": [
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/house/geocode": {
+      "get": {
+        "tags": [
+          "Профиль и дом"
+        ],
+        "summary": "Geocode",
+        "description": "Координаты дома по адресу (OpenStreetMap Nominatim): нужны для карты укрытий.",
+        "operationId": "geocode_api_v1_house_geocode_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GeoResult"
+                  },
+                  "title": "Response Geocode Api V1 House Geocode Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/people": {
+      "get": {
+        "tags": [
+          "Профиль и дом",
+          "Соседи"
+        ],
+        "summary": "People",
+        "operationId": "people_api_v1_people_get",
+        "parameters": [
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Neighbour"
+                  },
+                  "title": "Response People Api V1 People Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/people/{user_id}": {
+      "get": {
+        "tags": [
+          "Профиль и дом",
+          "Соседи"
+        ],
+        "summary": "Profile",
+        "description": "Профиль соседа. Видны только жители того же дома; телефонов и MAX id нет.",
+        "operationId": "profile_api_v1_people__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/dev/users": {
       "get": {
         "tags": [
-          "РџСЂРѕС„РёР»СЊ Рё РґРѕРј",
-          "РњРѕРє-СЂРµР¶РёРј"
+          "Профиль и дом",
+          "Мок-режим"
         ],
         "summary": "Dev Users",
         "operationId": "dev_users_api_v1_dev_users_get",
@@ -197,7 +822,7 @@
     "/api/v1/issues": {
       "get": {
         "tags": [
-          "РџСЂРѕР±Р»РµРјС‹ РґРѕРјР°"
+          "Проблемы дома"
         ],
         "summary": "List Issues",
         "operationId": "list_issues_api_v1_issues_get",
@@ -312,7 +937,7 @@
       },
       "post": {
         "tags": [
-          "РџСЂРѕР±Р»РµРјС‹ РґРѕРјР°"
+          "Проблемы дома"
         ],
         "summary": "Create Issue",
         "operationId": "create_issue_api_v1_issues_post",
@@ -403,7 +1028,7 @@
     "/api/v1/issues/similar": {
       "post": {
         "tags": [
-          "РџСЂРѕР±Р»РµРјС‹ РґРѕРјР°"
+          "Проблемы дома"
         ],
         "summary": "Similar",
         "operationId": "similar_api_v1_issues_similar_post",
@@ -498,7 +1123,7 @@
     "/api/v1/issues/classify": {
       "post": {
         "tags": [
-          "РџСЂРѕР±Р»РµРјС‹ РґРѕРјР°"
+          "Проблемы дома"
         ],
         "summary": "Classify Text",
         "operationId": "classify_text_api_v1_issues_classify_post",
@@ -589,7 +1214,7 @@
     "/api/v1/issues/{issue_id}": {
       "get": {
         "tags": [
-          "РџСЂРѕР±Р»РµРјС‹ РґРѕРјР°"
+          "Проблемы дома"
         ],
         "summary": "Get Issue",
         "operationId": "get_issue_api_v1_issues__issue_id__get",
@@ -679,7 +1304,7 @@
     "/api/v1/issues/{issue_id}/vote": {
       "post": {
         "tags": [
-          "РџСЂРѕР±Р»РµРјС‹ РґРѕРјР°"
+          "Проблемы дома"
         ],
         "summary": "Vote",
         "operationId": "vote_api_v1_issues__issue_id__vote_post",
@@ -767,7 +1392,7 @@
       },
       "delete": {
         "tags": [
-          "РџСЂРѕР±Р»РµРјС‹ РґРѕРјР°"
+          "Проблемы дома"
         ],
         "summary": "Unvote",
         "operationId": "unvote_api_v1_issues__issue_id__vote_delete",
@@ -857,7 +1482,7 @@
     "/api/v1/issues/{issue_id}/status": {
       "post": {
         "tags": [
-          "РџСЂРѕР±Р»РµРјС‹ РґРѕРјР°"
+          "Проблемы дома"
         ],
         "summary": "Set Status",
         "operationId": "set_status_api_v1_issues__issue_id__status_post",
@@ -957,7 +1582,7 @@
     "/api/v1/listings/categories": {
       "get": {
         "tags": [
-          "Р‘Р°СЂР°С…РѕР»РєР°"
+          "Барахолка"
         ],
         "summary": "Categories",
         "operationId": "categories_api_v1_listings_categories_get",
@@ -985,9 +1610,10 @@
     "/api/v1/listings": {
       "get": {
         "tags": [
-          "Р‘Р°СЂР°С…РѕР»РєР°"
+          "Барахолка"
         ],
         "summary": "List Listings",
+        "description": "scope=mine показывает свои объявления вместе с закрытыми: их можно вернуть в продажу.",
         "operationId": "list_listings_api_v1_listings_get",
         "parameters": [
           {
@@ -1036,6 +1662,21 @@
                 }
               ],
               "title": "Free"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "active",
+                "mine",
+                "closed"
+              ],
+              "type": "string",
+              "default": "active",
+              "title": "Scope"
             }
           },
           {
@@ -1116,7 +1757,7 @@
       },
       "post": {
         "tags": [
-          "Р‘Р°СЂР°С…РѕР»РєР°"
+          "Барахолка"
         ],
         "summary": "Create Listing",
         "operationId": "create_listing_api_v1_listings_post",
@@ -1207,7 +1848,7 @@
     "/api/v1/listings/{listing_id}": {
       "get": {
         "tags": [
-          "Р‘Р°СЂР°С…РѕР»РєР°"
+          "Барахолка"
         ],
         "summary": "Get Listing",
         "operationId": "get_listing_api_v1_listings__listing_id__get",
@@ -1295,7 +1936,7 @@
       },
       "patch": {
         "tags": [
-          "Р‘Р°СЂР°С…РѕР»РєР°"
+          "Барахолка"
         ],
         "summary": "Update Status",
         "operationId": "update_status_api_v1_listings__listing_id__patch",
@@ -1393,7 +2034,7 @@
       },
       "delete": {
         "tags": [
-          "Р‘Р°СЂР°С…РѕР»РєР°"
+          "Барахолка"
         ],
         "summary": "Delete Listing",
         "operationId": "delete_listing_api_v1_listings__listing_id__delete",
@@ -1476,7 +2117,7 @@
     "/api/v1/listings/{listing_id}/contact": {
       "post": {
         "tags": [
-          "Р‘Р°СЂР°С…РѕР»РєР°"
+          "Барахолка"
         ],
         "summary": "Contact",
         "operationId": "contact_api_v1_listings__listing_id__contact_post",
@@ -1576,7 +2217,7 @@
     "/api/v1/events": {
       "get": {
         "tags": [
-          "РЎРѕР±С‹С‚РёСЏ РґРІРѕСЂР°"
+          "События двора"
         ],
         "summary": "List Events",
         "operationId": "list_events_api_v1_events_get",
@@ -1669,7 +2310,7 @@
       },
       "post": {
         "tags": [
-          "РЎРѕР±С‹С‚РёСЏ РґРІРѕСЂР°"
+          "События двора"
         ],
         "summary": "Create Event",
         "operationId": "create_event_api_v1_events_post",
@@ -1760,7 +2401,7 @@
     "/api/v1/events/{event_id}": {
       "get": {
         "tags": [
-          "РЎРѕР±С‹С‚РёСЏ РґРІРѕСЂР°"
+          "События двора"
         ],
         "summary": "Get Event",
         "operationId": "get_event_api_v1_events__event_id__get",
@@ -1850,7 +2491,7 @@
     "/api/v1/events/{event_id}/join": {
       "post": {
         "tags": [
-          "РЎРѕР±С‹С‚РёСЏ РґРІРѕСЂР°"
+          "События двора"
         ],
         "summary": "Join",
         "operationId": "join_api_v1_events__event_id__join_post",
@@ -1938,7 +2579,7 @@
       },
       "delete": {
         "tags": [
-          "РЎРѕР±С‹С‚РёСЏ РґРІРѕСЂР°"
+          "События двора"
         ],
         "summary": "Leave",
         "operationId": "leave_api_v1_events__event_id__join_delete",
@@ -2028,7 +2669,7 @@
     "/api/v1/events/{event_id}/comments": {
       "get": {
         "tags": [
-          "РЎРѕР±С‹С‚РёСЏ РґРІРѕСЂР°"
+          "События двора"
         ],
         "summary": "Comments",
         "operationId": "comments_api_v1_events__event_id__comments_get",
@@ -2120,7 +2761,7 @@
       },
       "post": {
         "tags": [
-          "РЎРѕР±С‹С‚РёСЏ РґРІРѕСЂР°"
+          "События двора"
         ],
         "summary": "Add Comment",
         "operationId": "add_comment_api_v1_events__event_id__comments_post",
@@ -2220,7 +2861,7 @@
     "/api/v1/achievements": {
       "get": {
         "tags": [
-          "РђС‡РёРІРєРё"
+          "Ачивки"
         ],
         "summary": "Achievements",
         "operationId": "achievements_api_v1_achievements_get",
@@ -2298,10 +2939,732 @@
         }
       }
     },
+    "/api/v1/announcements": {
+      "get": {
+        "tags": [
+          "Объявления дома"
+        ],
+        "summary": "List Announcements",
+        "operationId": "list_announcements_api_v1_announcements_get",
+        "parameters": [
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AnnouncementOut"
+                  },
+                  "title": "Response List Announcements Api V1 Announcements Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Объявления дома"
+        ],
+        "summary": "Create",
+        "operationId": "create_api_v1_announcements_post",
+        "parameters": [
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/announcements/{item_id}": {
+      "patch": {
+        "tags": [
+          "Объявления дома"
+        ],
+        "summary": "Pin",
+        "operationId": "pin_api_v1_announcements__item_id__patch",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Item Id"
+            }
+          },
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PinIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Объявления дома"
+        ],
+        "summary": "Delete",
+        "operationId": "delete_api_v1_announcements__item_id__delete",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Item Id"
+            }
+          },
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents": {
+      "get": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "List Documents",
+        "operationId": "list_documents_api_v1_documents_get",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "house",
+                    "personal"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Scope"
+            }
+          },
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentOut"
+                  },
+                  "title": "Response List Documents Api V1 Documents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Upload Document",
+        "operationId": "upload_document_api_v1_documents_post",
+        "parameters": [
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_api_v1_documents_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{doc_id}/link": {
+      "get": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Document Link",
+        "operationId": "document_link_api_v1_documents__doc_id__link_get",
+        "parameters": [
+          {
+            "name": "doc_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Doc Id"
+            }
+          },
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{doc_id}": {
+      "delete": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Delete Document",
+        "operationId": "delete_document_api_v1_documents__doc_id__delete",
+        "parameters": [
+          {
+            "name": "doc_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Doc Id"
+            }
+          },
+          {
+            "name": "x-max-init-data",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Max-Init-Data"
+            }
+          },
+          {
+            "name": "x-dev-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User"
+            }
+          },
+          {
+            "name": "x-house-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-House-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/shelters": {
       "get": {
         "tags": [
-          "Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ"
+          "Безопасность"
         ],
         "summary": "Shelters",
         "operationId": "shelters_api_v1_shelters_get",
@@ -2418,7 +3781,7 @@
     "/api/v1/alerts/active": {
       "get": {
         "tags": [
-          "Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ"
+          "Безопасность"
         ],
         "summary": "Active",
         "operationId": "active_api_v1_alerts_active_get",
@@ -2507,7 +3870,7 @@
     "/api/v1/alerts": {
       "post": {
         "tags": [
-          "Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ"
+          "Безопасность"
         ],
         "summary": "Start",
         "operationId": "start_api_v1_alerts_post",
@@ -2598,7 +3961,7 @@
     "/api/v1/alerts/{alert_id}/end": {
       "post": {
         "tags": [
-          "Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ"
+          "Безопасность"
         ],
         "summary": "End",
         "operationId": "end_api_v1_alerts__alert_id__end_post",
@@ -2688,7 +4051,7 @@
     "/api/v1/search": {
       "get": {
         "tags": [
-          "РџРѕРёСЃРє"
+          "Поиск"
         ],
         "summary": "Search",
         "operationId": "search_api_v1_search_get",
@@ -2780,7 +4143,7 @@
     "/api/v1/assistant/chat": {
       "post": {
         "tags": [
-          "РђСЃСЃРёСЃС‚РµРЅС‚ Рё MCP"
+          "Ассистент и MCP"
         ],
         "summary": "Chat",
         "operationId": "chat_api_v1_assistant_chat_post",
@@ -2871,7 +4234,7 @@
     "/api/v1/mcp/servers": {
       "get": {
         "tags": [
-          "РђСЃСЃРёСЃС‚РµРЅС‚ Рё MCP"
+          "Ассистент и MCP"
         ],
         "summary": "List Servers",
         "operationId": "list_servers_api_v1_mcp_servers_get",
@@ -2954,7 +4317,7 @@
       },
       "post": {
         "tags": [
-          "РђСЃСЃРёСЃС‚РµРЅС‚ Рё MCP"
+          "Ассистент и MCP"
         ],
         "summary": "Add Server",
         "operationId": "add_server_api_v1_mcp_servers_post",
@@ -3045,7 +4408,7 @@
     "/api/v1/mcp/servers/{server_id}": {
       "delete": {
         "tags": [
-          "РђСЃСЃРёСЃС‚РµРЅС‚ Рё MCP"
+          "Ассистент и MCP"
         ],
         "summary": "Delete Server",
         "operationId": "delete_server_api_v1_mcp_servers__server_id__delete",
@@ -3128,7 +4491,7 @@
     "/api/v1/mcp/servers/{server_id}/tools": {
       "get": {
         "tags": [
-          "РђСЃСЃРёСЃС‚РµРЅС‚ Рё MCP"
+          "Ассистент и MCP"
         ],
         "summary": "Server Tools",
         "operationId": "server_tools_api_v1_mcp_servers__server_id__tools_get",
@@ -3222,7 +4585,7 @@
     "/api/v1/dev/chats": {
       "get": {
         "tags": [
-          "РњРѕРє-СЂРµР¶РёРј"
+          "Мок-режим"
         ],
         "summary": "Chats",
         "operationId": "chats_api_v1_dev_chats_get",
@@ -3291,7 +4654,7 @@
     "/api/v1/dev/chat/messages": {
       "get": {
         "tags": [
-          "РњРѕРє-СЂРµР¶РёРј"
+          "Мок-режим"
         ],
         "summary": "Messages",
         "operationId": "messages_api_v1_dev_chat_messages_get",
@@ -3338,7 +4701,7 @@
     "/api/v1/dev/chat/send": {
       "post": {
         "tags": [
-          "РњРѕРє-СЂРµР¶РёРј"
+          "Мок-режим"
         ],
         "summary": "Send",
         "operationId": "send_api_v1_dev_chat_send_post",
@@ -3379,7 +4742,7 @@
     "/api/v1/dev/chat/callback": {
       "post": {
         "tags": [
-          "РњРѕРє-СЂРµР¶РёРј"
+          "Мок-режим"
         ],
         "summary": "Callback",
         "operationId": "callback_api_v1_dev_chat_callback_post",
@@ -3420,7 +4783,7 @@
     "/api/v1/media/{key}": {
       "get": {
         "tags": [
-          "РњРµРґРёР°"
+          "Медиа"
         ],
         "summary": "Media",
         "operationId": "media_api_v1_media__key__get",
@@ -3460,7 +4823,7 @@
     "/api/v1/realtime/stream": {
       "get": {
         "tags": [
-          "Р РµР°Р»С‚Р°Р№Рј"
+          "Реалтайм"
         ],
         "summary": "Stream",
         "operationId": "stream_api_v1_realtime_stream_get",
@@ -3539,7 +4902,7 @@
     "/api/v1/health": {
       "get": {
         "tags": [
-          "РЎР»СѓР¶РµР±РЅРѕРµ"
+          "Служебное"
         ],
         "summary": "Health",
         "operationId": "health_api_v1_health_get",
@@ -3713,6 +5076,95 @@
         ],
         "title": "AlertOut"
       },
+      "AnnouncementIn": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Text",
+            "default": ""
+          },
+          "pin": {
+            "type": "boolean",
+            "title": "Pin",
+            "description": "Закрепить в чате дома (только администратор)",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "AnnouncementIn"
+      },
+      "AnnouncementOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "pinned": {
+            "type": "boolean",
+            "title": "Pinned"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserShort"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "is_mine": {
+            "type": "boolean",
+            "title": "Is Mine"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "text",
+          "pinned",
+          "event_id",
+          "author",
+          "is_mine",
+          "created_at"
+        ],
+        "title": "AnnouncementOut"
+      },
       "Body_create_issue_api_v1_issues_post": {
         "properties": {
           "description": {
@@ -3814,6 +5266,36 @@
           "title"
         ],
         "title": "Body_create_listing_api_v1_listings_post"
+      },
+      "Body_upload_document_api_v1_documents_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Title"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "house",
+              "personal"
+            ],
+            "title": "Scope",
+            "default": "personal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "title"
+        ],
+        "title": "Body_upload_document_api_v1_documents_post"
       },
       "CallbackIn": {
         "properties": {
@@ -4056,6 +5538,70 @@
         ],
         "title": "DevUser"
       },
+      "DocumentOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "house",
+              "personal"
+            ],
+            "title": "Scope"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserShort"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "can_delete": {
+            "type": "boolean",
+            "title": "Can Delete"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "filename",
+          "content_type",
+          "size",
+          "scope",
+          "author",
+          "can_delete",
+          "created_at"
+        ],
+        "title": "DocumentOut"
+      },
       "EventDetail": {
         "properties": {
           "id": {
@@ -4192,7 +5738,7 @@
             "type": "string",
             "maxLength": 200,
             "title": "Place",
-            "default": "Р’Рѕ РґРІРѕСЂРµ"
+            "default": "Во дворе"
           },
           "max_participants": {
             "anyOf": [
@@ -4307,6 +5853,29 @@
         ],
         "title": "EventOut"
       },
+      "GeoResult": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lon": {
+            "type": "number",
+            "title": "Lon"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "lat",
+          "lon"
+        ],
+        "title": "GeoResult"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -4319,6 +5888,191 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HouseBrief": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "address": {
+            "type": "string",
+            "title": "Address"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "is_demo": {
+            "type": "boolean",
+            "title": "Is Demo"
+          },
+          "is_current": {
+            "type": "boolean",
+            "title": "Is Current"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "address",
+          "role",
+          "is_demo",
+          "is_current"
+        ],
+        "title": "HouseBrief"
+      },
+      "HouseIn": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512,
+                "minLength": 5
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 90.0,
+                "minimum": -90.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 180.0,
+                "minimum": -180.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "vote_threshold_pct": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 5.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vote Threshold Pct"
+          },
+          "info": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Info",
+            "description": "Информация о доме для жителей"
+          },
+          "uk_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uk Name",
+            "description": "Управляющая организация"
+          },
+          "uk_email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uk Email",
+            "description": "E-mail УК для обращений"
+          },
+          "uk_phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uk Phone"
+          },
+          "setup_done": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setup Done"
+          },
+          "apartment": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apartment",
+            "description": "Квартира текущего жителя"
+          }
+        },
+        "type": "object",
+        "title": "HouseIn"
       },
       "HouseOut": {
         "properties": {
@@ -4360,6 +6114,59 @@
               }
             ],
             "title": "Uk Name"
+          },
+          "uk_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uk Email"
+          },
+          "uk_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uk Phone"
+          },
+          "info": {
+            "type": "string",
+            "title": "Info",
+            "default": ""
+          },
+          "setup_done": {
+            "type": "boolean",
+            "title": "Setup Done",
+            "default": true
+          },
+          "is_demo": {
+            "type": "boolean",
+            "title": "Is Demo",
+            "default": false
+          },
+          "has_chat": {
+            "type": "boolean",
+            "title": "Has Chat",
+            "default": false
+          },
+          "bot_is_admin": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bot Is Admin"
           }
         },
         "type": "object",
@@ -4499,6 +6306,17 @@
               }
             ],
             "title": "Appeal Text"
+          },
+          "appeal_channel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appeal Channel"
           },
           "location_hint": {
             "anyOf": [
@@ -4706,6 +6524,24 @@
           "is_me"
         ],
         "title": "LeaderRow"
+      },
+      "LinkOut": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "expires_at": {
+            "type": "integer",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "expires_at"
+        ],
+        "title": "LinkOut"
       },
       "ListingOut": {
         "properties": {
@@ -4937,6 +6773,68 @@
         ],
         "title": "MeOut"
       },
+      "Neighbour": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "title": "Last Name"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "apartment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apartment"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "level_title": {
+            "type": "string",
+            "title": "Level Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "photo_url",
+          "apartment",
+          "role",
+          "points",
+          "level_title"
+        ],
+        "title": "Neighbour"
+      },
       "Ok": {
         "properties": {
           "ok": {
@@ -4981,6 +6879,145 @@
           "kind_title"
         ],
         "title": "OrgOut"
+      },
+      "PinIn": {
+        "properties": {
+          "pinned": {
+            "type": "boolean",
+            "title": "Pinned"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pinned"
+        ],
+        "title": "PinIn"
+      },
+      "ProfileAchievement": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "icon": {
+            "type": "string",
+            "title": "Icon"
+          },
+          "awarded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Awarded At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "title",
+          "icon",
+          "awarded_at"
+        ],
+        "title": "ProfileAchievement"
+      },
+      "ProfileOut": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/Neighbour"
+          },
+          "is_me": {
+            "type": "boolean",
+            "title": "Is Me"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "member_since": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Member Since"
+          },
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "next_level_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Level Points"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ProfileStats"
+          },
+          "achievements": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileAchievement"
+            },
+            "type": "array",
+            "title": "Achievements"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "is_me",
+          "username",
+          "member_since",
+          "level",
+          "next_level_points",
+          "stats",
+          "achievements"
+        ],
+        "title": "ProfileOut"
+      },
+      "ProfileStats": {
+        "properties": {
+          "issues_created": {
+            "type": "integer",
+            "title": "Issues Created"
+          },
+          "issues_open": {
+            "type": "integer",
+            "title": "Issues Open"
+          },
+          "votes": {
+            "type": "integer",
+            "title": "Votes"
+          },
+          "events_joined": {
+            "type": "integer",
+            "title": "Events Joined"
+          },
+          "listings_active": {
+            "type": "integer",
+            "title": "Listings Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "issues_created",
+          "issues_open",
+          "votes",
+          "events_joined",
+          "listings_active"
+        ],
+        "title": "ProfileStats"
       },
       "PulseOut": {
         "properties": {
@@ -5215,6 +7252,31 @@
         ],
         "title": "StatusIn"
       },
+      "SyncOut": {
+        "properties": {
+          "members": {
+            "type": "integer",
+            "title": "Members"
+          },
+          "bot_is_admin": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bot Is Admin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "members",
+          "bot_is_admin"
+        ],
+        "title": "SyncOut"
+      },
       "TextIn": {
         "properties": {
           "text": {
@@ -5332,6 +7394,11 @@
               }
             ],
             "title": "Next Level Points"
+          },
+          "onboarded": {
+            "type": "boolean",
+            "title": "Onboarded",
+            "default": false
           }
         },
         "type": "object",

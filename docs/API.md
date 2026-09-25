@@ -14,7 +14,14 @@ X-Max-Init-Data: <initData>
 
 В мок-режиме (`MOCK_MAX=true`) вместо подписи принимается заголовок `X-Dev-User: <max_user_id>` одного из демо-жителей (`GET /dev/users`).
 
-Дом определяется так: заголовок `X-House-Id`, затем чат из `initData` (`chat.id` сопоставляется с `houses.max_chat_id`), затем первый дом, где пользователь состоит.
+Дом определяется так:
+
+1. заголовок `X-House-Id`: пускаем, только если житель состоит в этом доме (сверяется с участниками чата MAX, кэш 10 минут), иначе 403;
+2. чат из `initData` (`chat.id` сопоставляется с `houses.max_chat_id`);
+3. активный дом жителя (`users.active_house_id`): последний выбранный в приложении или чат, куда он писал последним. Этот же дом видит бот в личке;
+4. первый настоящий дом жителя, затем демо-дом.
+
+Перед шагом 3 сервер ищет чаты с Кузей, где состоит житель (`GET /chats/{id}/members?user_ids=...`, не чаще раза в 10 минут), и сам добавляет эти дома. Администратор или владелец чата MAX становится администратором дома, вышедший из чата теряет доступ (если Кузя администратор чата).
 
 Для SSE (`EventSource` не умеет заголовки) те же значения передаются query-параметрами `init_data` или `dev_user`.
 
@@ -25,9 +32,15 @@ X-Max-Init-Data: <initData>
 | Метод | Путь | Ответ |
 |---|---|---|
 | GET | `/me` | `MeOut` |
+| POST | `/me/onboarded` | `MeOut`, житель прошёл обучалку первого входа |
+| GET | `/houses?refresh=true` | `HouseBrief[]`, дома жителя; `refresh` заново ищет чаты с Кузей |
 | GET | `/house/pulse` | `PulseOut`, состояние маскота Кузи |
 | GET | `/dev/users` | `DevUser[]`, только в мок-режиме |
-| PATCH | `/house` | `MeOut`. Тело: `title`, `address`, `lat`, `lon`, `vote_threshold_pct` (только администратор дома), `apartment` (своя квартира, любой житель) |
+| PATCH | `/house` | `MeOut`. Тело: `title`, `address`, `lat`, `lon`, `vote_threshold_pct`, `info`, `uk_name`, `uk_email`, `uk_phone`, `setup_done` (только администратор дома), `apartment` (своя квартира, любой житель). Общую демо-УК не меняет, а заводит дому свою запись |
+| POST | `/house/sync` | `{"members": 40, "bot_is_admin": true}`, сверка жителей и администраторов с чатом MAX (администратор) |
+| GET | `/house/geocode?q=` | `[{"title", "lat", "lon"}]`, координаты по адресу через OpenStreetMap Nominatim (администратор) |
+| GET | `/people` | `Neighbour[]`, жители дома |
+| GET | `/people/{id}` | `ProfileOut`: уровень, статистика помощи дому, награды. Только жители того же дома |
 
 ```jsonc
 // MeOut
@@ -36,7 +49,10 @@ X-Max-Init-Data: <initData>
            "username": "anna", "photo_url": null, "apartment": "12",
            "points": 140, "level": 3, "level_title": "Надёжный сосед", "next_level_points": 200},
   "house": {"id": 1, "title": "ЖК «Сказочный», дом 7", "address": "Казань, ул. ...",
-            "lat": 55.79, "lon": 49.12, "members_count": 40, "vote_threshold_pct": 15},
+            "lat": 55.79, "lon": 49.12, "members_count": 40, "vote_threshold_pct": 15,
+            "uk_name": "УК ...", "uk_email": "uk@example.org", "uk_phone": "+7 ...",
+            "info": "Диспетчерская ...", "setup_done": true, "is_demo": false,
+            "has_chat": true, "bot_is_admin": true},
   "role": "resident",           // resident | admin
   "mock": true                  // сервер в мок-режиме
 }
@@ -85,6 +101,7 @@ X-Max-Init-Data: <initData>
   "legal_basis": "ПП РФ № 290, п. 7; ПП РФ № 170, п. 4.6.1.10",
   "deadline_hours": 24,
   "appeal_text": "Официальное обращение ... (появляется после отправки)",
+  "appeal_channel": "test_email:uk-test@domovoy.local", // model | test_email:<адрес>: модельная интеграция
   "location_hint": "подъезд 2, 9 этаж",
   "timeline": [{"status": "voting", "status_title": "...", "note": "...", "created_at": "..."}]
 }
@@ -98,7 +115,7 @@ X-Max-Init-Data: <initData>
 
 | Метод | Путь | Тело | Ответ |
 |---|---|---|---|
-| GET | `/listings?q=&category=&free=true` | | `ListingOut[]` |
+| GET | `/listings?q=&category=&free=true&scope=` | | `ListingOut[]`. `scope`: `active` (по умолчанию, в продаже и забронированные), `mine` (свои, включая закрытые), `closed` (завершённые) |
 | GET | `/listings/{id}` | | `ListingOut` |
 | POST | `/listings` | multipart: `title`, `description`, `price` (0 = даром), `category`, `photos` | `ListingOut`, 201 |
 | PATCH | `/listings/{id}` | `{"status": "active"\|"reserved"\|"closed"}` (только автор) | `ListingOut` |
@@ -182,11 +199,33 @@ X-Max-Init-Data: <initData>
 | GET | `/search?q=` | | `{"issues": IssueOut[], "events": EventOut[], "listings": ListingOut[]}` |
 | POST | `/assistant/chat` | `{"message": "..."}` | `{"reply": "...", "tools_used": ["search_issues"]}` |
 
+## Объявления дома
+
+| Метод | Путь | Тело | Ответ |
+|---|---|---|---|
+| GET | `/announcements` | | `AnnouncementOut[]`, закреплённые сверху |
+| POST | `/announcements` | `{"title", "text", "pin"}`; `pin` только для администратора | `AnnouncementOut`, 201. Кузя публикует объявление в чате дома (и закрепляет при `pin`) |
+| PATCH | `/announcements/{id}` | `{"pinned": true}` (администратор) | `AnnouncementOut` |
+| DELETE | `/announcements/{id}` | автор или администратор | 204 |
+
+В чате объявление создаёт агент: «@бот сделай объявление о субботнике в субботу в 11» (инструмент `create_announcement`; с датой заодно создаётся событие с кнопкой «Иду»).
+
+## Документы
+
+| Метод | Путь | Тело | Ответ |
+|---|---|---|---|
+| GET | `/documents?scope=house\|personal` | | `DocumentOut[]`: документы дома и свои личные |
+| POST | `/documents` | multipart: `file`, `title`, `scope` (`house` только администратор) | `DocumentOut`, 201. PDF, Word, Excel, ODT, TXT, фото; до 20 МБ; у фото удаляется EXIF |
+| GET | `/documents/{id}/link` | | `{"url": "/api/v1/files/{id}?exp=...&sig=...", "expires_at"}`, ссылка живёт 15 минут |
+| DELETE | `/documents/{id}` | личный: владелец; дома: администратор или загрузивший | 204 |
+
+Чужие личные документы недоступны (404). Файл отдаётся только по подписанной HMAC ссылке.
+
 ## Реалтайм (SSE)
 
 `GET /realtime/stream?house_id=1&dev_user=1001` (или `init_data=...`). Поток `text/event-stream`, событие имеет `event: <тип>` и `data: <json>`:
 
-`issue.created`, `issue.updated`, `listing.created`, `listing.updated`, `event.created`, `event.updated`, `comment.created`, `alert.started`, `alert.ended`, `achievement.awarded` (data содержит `user_id`), `pulse.changed`, `chat.message` (эмулятор чата). Каждые 15 секунд приходит `ping`.
+`issue.created`, `issue.updated`, `listing.created`, `listing.updated`, `event.created`, `event.updated`, `comment.created`, `announcement.created`, `announcement.updated`, `alert.started`, `alert.ended`, `achievement.awarded` (data содержит `user_id`), `pulse.changed`, `chat.message` (эмулятор чата). Каждые 15 секунд приходит `ping`.
 
 ## Эмулятор чата (только мок-режим)
 
