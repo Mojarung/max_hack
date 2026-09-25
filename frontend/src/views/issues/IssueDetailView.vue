@@ -15,7 +15,19 @@ import { copyText, haptic, shareContent } from '@/max/bridge'
 import { issueDeepLink } from '@/max/deeplink'
 import { useIssuesStore } from '@/stores/issues'
 import { useSessionStore } from '@/stores/session'
-import { formatDateTime, formatHours, formatRelative, fullName, pluralize } from '@/utils/format'
+import {
+  formatDateTime,
+  formatHours,
+  formatRelative,
+  capitalize,
+  fullName,
+  orgAccusative,
+  orgRecipient,
+  orgTitle,
+  orgTitleCap,
+  plainOrgWords,
+  pluralize,
+} from '@/utils/format'
 import { ISSUE_STATUS_META, ISSUE_STATUS_TITLES, issueCategoryIcon } from '@/utils/labels'
 
 const PhotoGallery = defineAsyncComponent(() => import('@/components/common/PhotoGallery.vue'))
@@ -40,9 +52,17 @@ const appealEmail = computed(() => {
 const remaining = computed(() =>
   issue.value ? Math.max(0, issue.value.votes_needed - issue.value.votes_count) : 0,
 )
-const orgName = computed(
-  () => issue.value?.responsible_org?.name ?? session.me?.house.uk_name ?? 'управляющую компанию',
-)
+const orgRaw = computed(() => issue.value?.responsible_org?.name ?? session.me?.house.uk_name)
+/** «в управляющую компанию …» / «оператору вывоза мусора …» */
+const orgTo = computed(() => orgRecipient(orgRaw.value) || 'в управляющую компанию')
+const orgAcc = computed(() => orgAccusative(orgRaw.value) || 'управляющую компанию')
+/** Вид организации, если он не повторяет её название («Управляющая компания» у «УК …»). */
+const orgKind = computed(() => {
+  const org = issue.value?.responsible_org
+  if (!org?.kind_title) return ''
+  const kind = plainOrgWords(org.kind_title).toLowerCase()
+  return orgTitle(org.name).toLowerCase().includes(kind) ? '' : capitalize(kind)
+})
 const countdown = useCountdown(toRef(() => issue.value?.deadline_at))
 const slaActive = computed(
   () => !!issue.value?.deadline_at && ['sent', 'in_progress'].includes(issue.value.status),
@@ -65,7 +85,7 @@ const complaintText = computed(() => {
     '',
     'ЖАЛОБА',
     '',
-    `${i.sent_at ? formatDateTime(i.sent_at) : 'Ранее'} жители направили в ${orgName.value} обращение: «${i.title}».`,
+    `${i.sent_at ? formatDateTime(i.sent_at) : 'Ранее'} жители направили обращение ${orgTo.value}: «${i.title}».`,
     i.description,
     '',
     i.deadline_hours
@@ -74,7 +94,7 @@ const complaintText = computed(() => {
     i.legal_basis ? `Основание: ${i.legal_basis}.` : '',
     `Обращение поддержали ${pluralize(i.votes_count, ['житель', 'жителя', 'жителей'])}.`,
     '',
-    `Просим провести проверку и обязать ${orgName.value} устранить нарушение.`,
+    `Просим провести проверку и обязать ${orgAcc.value} устранить нарушение.`,
   ]
   return lines.filter((line, idx, all) => line !== '' || all[idx - 1] !== '').join('\n')
 })
@@ -113,7 +133,7 @@ async function toggleVote(): Promise<void> {
       notify.info('Голос отозван')
     } else if (updated.status !== 'voting') {
       confetti(voteBlock.value)
-      notify.success('Порог набран!', `Кузя отправил обращение в ${orgName.value}`)
+      notify.success('Порог набран!', `Кузя отправил обращение ${orgTo.value}`)
     } else {
       pop(voteBlock.value)
       notify.success('Голос учтён, спасибо!')
@@ -178,7 +198,7 @@ async function share(text: string | null | undefined): Promise<void> {
 
       <div class="mt-4 flex flex-wrap items-center gap-2">
         <StatusChip :status="issue.status" :overdue="overdue" />
-        <v-chip variant="outlined" :prepend-icon="issueCategoryIcon(issue.category)">
+        <v-chip variant="tonal" :prepend-icon="issueCategoryIcon(issue.category)">
           {{ issue.category_title }}
         </v-chip>
       </div>
@@ -208,9 +228,9 @@ async function share(text: string | null | undefined): Promise<void> {
           <template v-if="remaining > 0">
             <strong>Пока не чинят:</strong> обращение ещё не отправлено. Когда поддержат ещё
             <strong>{{ pluralize(remaining, ['сосед', 'соседа', 'соседей']) }}</strong
-            >, Кузя отправит его в {{ orgName }}.
+            >, Кузя отправит его {{ orgTo }}.
           </template>
-          <template v-else>Голосов хватает, Кузя готовит обращение в {{ orgName }}.</template>
+          <template v-else>Голосов хватает, Кузя готовит обращение {{ orgTo }}.</template>
         </p>
         <template v-if="issue.voted_by_me">
           <div class="voted" role="status">
@@ -262,7 +282,7 @@ async function share(text: string | null | undefined): Promise<void> {
           </div>
         </div>
         <p class="mt-3 mb-4">
-          Не починили вовремя. Кузя подготовил жалобу в Госжилинспекцию: она может обязать
+          Не сделали вовремя. Кузя подготовил жалобу в Госжилинспекцию: она может обязать
           исполнителя всё исправить. Осталось переслать её.
         </p>
         <v-btn
@@ -283,9 +303,9 @@ async function share(text: string | null | undefined): Promise<void> {
       <section v-if="issue.responsible_org" class="card-soft mt-4 p-4" aria-labelledby="who">
         <h3 id="who" class="m-0 text-base font-bold">Кто отвечает</h3>
         <div class="mt-1 text-lg leading-snug font-bold text-primary">
-          {{ issue.responsible_org.name }}
+          {{ orgTitleCap(issue.responsible_org.name) }}
         </div>
-        <div class="text-muted text-sm">{{ issue.responsible_org.kind_title }}</div>
+        <div v-if="orgKind" class="text-muted text-sm">{{ orgKind }}</div>
 
         <div v-if="issue.deadline_hours" class="mt-3">
           По закону должны устранить за <strong>{{ formatHours(issue.deadline_hours) }}</strong>
@@ -333,14 +353,15 @@ async function share(text: string | null | undefined): Promise<void> {
             <div class="model-note mb-3" role="note">
               <v-icon icon="mdi-flask-outline" size="22" class="shrink-0" aria-hidden="true" />
               <p class="m-0 text-sm">
-                <strong>Модельная интеграция.</strong>
+                <strong>Тестовый режим.</strong>
                 <template v-if="appealEmail">
-                  Письмо ушло на тестовый адрес {{ appealEmail }}, а не в управляющую компанию.
+                  Письмо ушло на проверочный адрес {{ appealEmail }}, а не в управляющую компанию.
                 </template>
                 <template v-else>
-                  Текст обращения сохранён здесь, исполнителю он автоматически не отправлялся.
+                  Текст обращения сохранён здесь, в организацию он не ушёл.
                 </template>
-                В пилоте получателем станет e-mail УК из настроек дома.
+                Это модельная интеграция: настоящая отправка включится, когда подключим почту
+                управляющей компании.
               </p>
             </div>
             <p class="pre-wrap mt-0 text-[15px] leading-relaxed">{{ issue.appeal_text }}</p>
@@ -383,7 +404,9 @@ async function share(text: string | null | undefined): Promise<void> {
               {{ ISSUE_STATUS_TITLES[step.status] ?? step.status_title }}
             </div>
             <div class="text-muted text-sm">{{ formatDateTime(step.created_at) }}</div>
-            <div v-if="step.note" class="mt-1 text-sm">{{ step.note }}</div>
+            <div v-if="step.note" class="mt-1 text-sm">
+              {{ capitalize(plainOrgWords(step.note)) }}
+            </div>
           </v-timeline-item>
         </v-timeline>
       </section>
@@ -457,17 +480,6 @@ async function share(text: string | null | undefined): Promise<void> {
   color: rgb(var(--v-theme-deep)) !important;
   background: rgb(var(--v-theme-on-deep)) !important;
   font-weight: 700;
-}
-.voted {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.12);
 }
 .basis summary {
   min-height: 44px;

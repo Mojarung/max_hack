@@ -73,3 +73,38 @@ describe('formatHours', () => {
     expect(formatHours(720)).toBe('30\u00a0дней')
   })
 })
+
+describe('orgTitle', () => {
+  it('раскрывает сокращения', async () => {
+    const { orgTitle, orgTitleCap } = await import('./format')
+    expect(orgTitle('УК «Уютный дом»')).toBe('управляющая компания «Уютный дом»')
+    expect(orgTitle('Регоператор ТКО «Гринта»')).toBe('оператор вывоза мусора «Гринта»')
+    expect(orgTitle('Региональный оператор по обращению с ТКО (демо)')).toBe(
+      'оператор вывоза мусора (демо)',
+    )
+    expect(orgTitleCap('УК «Уютный дом»')).toBe('Управляющая компания «Уютный дом»')
+    expect(orgTitle(null)).toBe('')
+  })
+
+  it('ставит название в нужный падеж', async () => {
+    const { orgAccusative, orgRecipient } = await import('./format')
+    expect(orgAccusative('УК «Уютный дом»')).toBe('управляющую компанию «Уютный дом»')
+    expect(orgRecipient('УК «Уютный дом»')).toBe('в управляющую компанию «Уютный дом»')
+    expect(orgRecipient('Регоператор ТКО «Гринта»')).toBe('оператору вывоза мусора «Гринта»')
+    expect(orgAccusative('Регоператор ТКО «Гринта»')).toBe('оператора вывоза мусора «Гринта»')
+    expect(orgRecipient('ГЖИ')).toBe('в Госжилинспекцию')
+    expect(orgRecipient('ООО «Сервис»')).toBe('в организацию ООО «Сервис»')
+    expect(orgRecipient(null)).toBe('')
+  })
+
+  it('раскрывает сокращения внутри текста', async () => {
+    const { plainOrgWords, capitalize } = await import('./format')
+    expect(capitalize(plainOrgWords('УК: бригада на месте'))).toBe(
+      'Управляющая компания: бригада на месте',
+    )
+    expect(plainOrgWords('Обращение отправлено: Регоператор ТКО «Гринта»')).toBe(
+      'Обращение отправлено: оператор вывоза мусора «Гринта»',
+    )
+    expect(plainOrgWords('ЖУКОВ и УКРОП')).toBe('ЖУКОВ и УКРОП')
+  })
+})

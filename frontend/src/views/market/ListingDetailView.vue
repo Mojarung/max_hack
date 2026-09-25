@@ -130,6 +130,7 @@ async function remove(): Promise<void> {
         <v-chip
           v-if="listing.status !== 'active'"
           :color="LISTING_STATUS_META[listing.status].color"
+          :prepend-icon="LISTING_STATUS_META[listing.status].icon"
           size="small"
         >
           {{ LISTING_STATUS_META[listing.status].title }}
@@ -142,7 +143,7 @@ async function remove(): Promise<void> {
           {{ listing.category_title }}
         </v-chip>
       </div>
-      <div class="mt-2 text-[28px] font-extrabold text-primary">
+      <div class="mt-2 text-[28px] font-extrabold">
         {{ formatPrice(listing.price, listing.is_free) }}
       </div>
       <h2 class="mt-1 mb-0 text-xl leading-snug font-bold">{{ listing.title }}</h2>
@@ -176,7 +177,7 @@ async function remove(): Promise<void> {
         <p class="text-muted mt-0 mb-3 text-sm">
           Договорились с соседом - отметьте «Забронировано», отдали или продали - «Закрыто».
         </p>
-        <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Статус объявления">
+        <div class="flex flex-col gap-2" role="radiogroup" aria-label="Статус объявления">
           <v-btn
             v-for="s in STATUSES"
             :key="s"
@@ -184,8 +185,10 @@ async function remove(): Promise<void> {
             :variant="listing.status === s ? 'flat' : 'outlined'"
             :loading="statusSaving === s"
             role="radio"
+            size="large"
             :aria-checked="listing.status === s"
-            class="!px-1"
+            :prepend-icon="listing.status === s ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"
+            class="justify-start"
             @click="setStatus(s)"
           >
             {{ LISTING_STATUS_META[s].title }}

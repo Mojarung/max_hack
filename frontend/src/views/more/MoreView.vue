@@ -24,7 +24,7 @@ const entries = computed<Entry[]>(() => {
     {
       to: '/more/house',
       title: 'О доме',
-      subtitle: 'Адрес, управляющая компания, контакты',
+      subtitle: 'Адрес, управляющая компания, телефоны',
       icon: 'mdi-home-city-outline',
       color: 'primary',
     },
@@ -33,28 +33,21 @@ const entries = computed<Entry[]>(() => {
       title: 'Объявления',
       subtitle: 'Отключения, работы, собрания',
       icon: 'mdi-bullhorn-variant-outline',
-      color: 'primary',
+      color: 'warning',
     },
     {
       to: '/more/documents',
       title: 'Документы',
-      subtitle: 'Документы дома и ваши личные',
+      subtitle: 'Протоколы собраний, договор, ваши квитанции',
       icon: 'mdi-file-document-multiple-outline',
-      color: 'primary',
+      color: 'secondary',
     },
     {
       to: '/people',
       title: 'Соседи',
       subtitle: 'Профили жителей дома',
       icon: 'mdi-account-group-outline',
-      color: 'primary',
-    },
-    {
-      to: '/more/safety',
-      title: 'Безопасность',
-      subtitle: 'Укрытия рядом и что делать при тревоге',
-      icon: 'mdi-shield-home-outline',
-      color: 'error',
+      color: 'tertiary',
     },
     {
       to: '/more/search',
@@ -121,13 +114,13 @@ function openBot(): void {
           <template v-if="session.me.user.apartment"
             >Квартира {{ session.me.user.apartment }} ·
           </template>
-          {{ session.me.user.level_title }}
+          {{ session.me.user.level_title }} · {{ session.me.user.points }} очков
         </div>
-        <div class="text-muted text-sm">{{ session.me.house.title }}</div>
+        <div v-if="!session.me.user.apartment" class="text-sm font-semibold text-primary">
+          Укажите номер квартиры
+        </div>
       </div>
-      <v-chip color="primary" variant="tonal" prepend-icon="mdi-star-circle-outline">
-        {{ session.me.user.points }}
-      </v-chip>
+      <v-icon icon="mdi-chevron-right" aria-hidden="true" />
     </router-link>
 
     <HouseSwitcher v-if="session.houses.length">
@@ -135,19 +128,39 @@ function openBot(): void {
         <v-btn
           block
           size="large"
-          variant="tonal"
+          variant="text"
           color="primary"
-          class="mt-3"
+          class="house-btn mt-1"
           prepend-icon="mdi-home-switch-outline"
           data-stagger
           @click="open"
         >
-          {{ session.houses.length > 1 ? `Сменить дом (${session.houses.length})` : 'Мои дома' }}
+          <span class="truncate">{{ session.me?.house.title }}</span>
+          <span class="text-muted ml-1 shrink-0">
+            · {{ session.houses.length > 1 ? 'сменить дом' : 'мои дома' }}
+          </span>
         </v-btn>
       </template>
     </HouseSwitcher>
 
-    <nav class="mt-3 flex flex-col gap-2" aria-label="Разделы">
+    <!-- Тревога - самое важное, что может понадобиться: сразу под профилем и красным -->
+    <router-link
+      to="/more/safety"
+      class="safety card-soft tap-card mt-3 flex items-center gap-3 p-3 no-underline"
+      data-stagger
+    >
+      <v-avatar color="deep" size="48" rounded="lg">
+        <v-icon icon="mdi-shield-home-outline" size="26" />
+      </v-avatar>
+      <div class="min-w-0 flex-1">
+        <div class="text-base font-bold">Безопасность</div>
+        <div class="text-muted text-sm">Укрытия рядом и что делать при тревоге</div>
+      </div>
+      <v-icon icon="mdi-chevron-right" aria-hidden="true" />
+    </router-link>
+
+    <h2 class="section-title">Мой дом</h2>
+    <nav class="flex flex-col gap-2" aria-label="Разделы">
       <router-link
         v-for="e in entries"
         :key="e.to"
@@ -185,3 +198,16 @@ function openBot(): void {
     </p>
   </div>
 </template>
+
+<style scoped>
+.safety {
+  color: inherit;
+  border-color: rgba(var(--v-theme-deep), 0.35);
+}
+.house-btn {
+  justify-content: flex-start;
+}
+.house-btn :deep(.v-btn__content) {
+  min-width: 0;
+}
+</style>

@@ -74,7 +74,7 @@ async function toggle(): Promise<void> {
         block
         size="large"
         color="primary"
-        variant="tonal"
+        variant="outlined"
         prepend-icon="mdi-hand-wave-outline"
         :loading="busy"
         @click="toggle"
@@ -85,16 +85,4 @@ async function toggle(): Promise<void> {
   </article>
 </template>
 
-<style scoped>
-.joined {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 12px;
-  border-radius: 12px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface));
-  border: 2px solid rgba(var(--v-theme-primary), 0.5);
-}
-</style>
+<style scoped></style>

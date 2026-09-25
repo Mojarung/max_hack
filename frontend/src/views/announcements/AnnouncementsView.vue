@@ -61,7 +61,16 @@ async function togglePin(item: AnnouncementOut): Promise<void> {
   }
 }
 
+const toDelete = ref<AnnouncementOut | null>(null)
+const deleteOpen = computed({
+  get: () => toDelete.value !== null,
+  set: (v: boolean) => {
+    if (!v) toDelete.value = null
+  },
+})
+
 async function remove(item: AnnouncementOut): Promise<void> {
+  toDelete.value = null
   busyId.value = item.id
   try {
     await store.remove(item.id)
@@ -75,7 +84,7 @@ async function remove(item: AnnouncementOut): Promise<void> {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page page--with-fab">
     <p class="text-muted mt-0 mb-3">
       Важное для всего дома: отключения, работы, собрания. Кузя дублирует объявления в чат дома. В
       чате можно попросить: «Кузя, сделай объявление о субботнике в субботу в 11».
@@ -117,7 +126,7 @@ async function remove(item: AnnouncementOut): Promise<void> {
               variant="text"
               prepend-icon="mdi-delete-outline"
               :disabled="busyId === item.id"
-              @click="remove(item)"
+              @click="toDelete = item"
             >
               Удалить
             </v-btn>
@@ -136,6 +145,27 @@ async function remove(item: AnnouncementOut): Promise<void> {
     >
       Объявление
     </v-btn>
+
+    <Drawer v-model:open="deleteOpen">
+      <DrawerContent>
+        <DrawerHeader
+          :title="`Удалить «${toDelete?.title ?? ''}»?`"
+          description="Объявление пропадёт у всех соседей. Вернуть не получится."
+        />
+        <v-btn
+          block
+          size="x-large"
+          color="deep"
+          prepend-icon="mdi-delete-outline"
+          @click="toDelete && remove(toDelete)"
+        >
+          Удалить
+        </v-btn>
+        <v-btn block size="large" variant="text" class="mt-1" @click="toDelete = null">
+          Оставить
+        </v-btn>
+      </DrawerContent>
+    </Drawer>
 
     <Drawer v-model:open="open">
       <DrawerContent>
@@ -180,13 +210,3 @@ async function remove(item: AnnouncementOut): Promise<void> {
     </Drawer>
   </div>
 </template>
-
-<style scoped>
-.fab {
-  position: fixed;
-  right: max(16px, calc((100vw - var(--app-max-width)) / 2 + 16px));
-  bottom: calc(var(--app-nav-height) + 16px + env(safe-area-inset-bottom));
-  z-index: 900;
-  box-shadow: 0 8px 24px -6px rgba(var(--v-theme-primary), 0.6);
-}
-</style>

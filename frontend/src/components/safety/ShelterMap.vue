@@ -151,7 +151,7 @@ defineExpose({ focus })
   justify-content: center;
   border-radius: 50%;
   border: 3px solid #caf0f8;
-  box-shadow: 0 3px 10px rgba(3, 4, 94, 0.35);
+  box-shadow: 0 3px 10px rgba(16, 24, 40, 0.35);
   color: #caf0f8;
   font-size: 18px;
 }

@@ -72,7 +72,7 @@ const openIssues = computed(() => pulse.pulse?.stats.open_issues ?? 0)
   align-items: center;
   justify-content: center;
   gap: 2px;
-  color: rgba(var(--v-theme-on-surface), 0.62);
+  color: rgb(var(--v-theme-on-surface-variant));
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;

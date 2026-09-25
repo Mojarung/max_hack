@@ -52,7 +52,10 @@ watch(
 onBeforeUnmount(() => pulseTween?.kill())
 
 function route(): void {
-  if (alerts.nearest) openLink(alerts.nearest.yandex_url)
+  if (!alerts.nearest) return
+  // карта открывается не мгновенно: без подсказки житель нажмёт ещё раз
+  notify.info('Открываю карту с маршрутом...')
+  openLink(alerts.nearest.yandex_url)
 }
 
 async function endAlert(): Promise<void> {
@@ -184,13 +187,13 @@ async function endAlert(): Promise<void> {
   inset: 0;
   z-index: 3000;
   overflow-y: auto;
-  color: #caf0f8;
-  background: #03045e;
+  color: rgb(var(--v-theme-on-deep));
+  background: rgb(var(--v-theme-deep));
 }
 .alert-overlay__pulse {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 20%, #0096c7 0%, #023e8a 45%, #03045e 100%);
+  background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.18) 0%, transparent 60%);
   pointer-events: none;
 }
 .alert-overlay__content {
@@ -205,7 +208,7 @@ async function endAlert(): Promise<void> {
   gap: 12px;
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(3, 4, 94, 0.35);
+  background: rgba(0, 0, 0, 0.18);
   font-size: 17px;
   font-weight: 600;
   line-height: 1.3;
@@ -214,11 +217,11 @@ async function endAlert(): Promise<void> {
   margin-top: 16px;
   padding: 14px;
   border-radius: 16px;
-  background: rgba(202, 240, 248, 0.14);
-  border: 1px solid rgba(202, 240, 248, 0.3);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 .alert-route {
-  color: #023e8a !important;
+  color: rgb(var(--v-theme-deep)) !important;
   font-weight: 800;
 }
 .alert-bar {
@@ -234,22 +237,22 @@ async function endAlert(): Promise<void> {
   min-height: 52px;
   padding: 8px 16px;
   border: 0;
-  color: #caf0f8;
+  color: rgb(var(--v-theme-on-deep));
   font-size: 16px;
   font-weight: 700;
-  background: #03045e;
+  background: rgb(var(--v-theme-deep));
   animation: alert-bar-blink 1.6s ease-in-out infinite;
   cursor: pointer;
 }
 .alert-bar__open {
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(202, 240, 248, 0.2);
+  background: rgba(255, 255, 255, 0.22);
   font-size: 14px;
 }
 @keyframes alert-bar-blink {
   50% {
-    background: #023e8a;
+    filter: brightness(0.82);
   }
 }
 </style>

@@ -7,8 +7,8 @@ const props = withDefaults(defineProps<{ user: UserShort | null | undefined; siz
   size: 40,
 })
 
-/** Цвета темы, у которых текст (on-*) проходит WCAG AA в обеих темах. */
-const COLORS = ['deep', 'primary'] as const
+/** Шесть спокойных цветов темы: соседей проще различать; текст (on-*) проходит WCAG AA в обеих темах. */
+const COLORS = ['primary', 'secondary', 'tertiary', 'success', 'warning', 'ink'] as const
 const color = computed(() => COLORS[(props.user?.id ?? 0) % COLORS.length])
 /** В маленьком аватаре две буквы стали бы мельче 14px: оставляем одну. */
 const letters = computed(() => {

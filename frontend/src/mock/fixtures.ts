@@ -183,7 +183,7 @@ export const CATEGORIES: CategoryRule[] = [
   {
     code: 'lighting',
     title: 'Освещение',
-    words: ['свет', 'лампа', 'темно'],
+    words: ['свет', 'ламп', 'темно'],
     org: UK,
     basis: 'Постановление Госстроя № 170, п. 5.6',
     hours: 168,

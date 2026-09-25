@@ -26,7 +26,6 @@ interface Step {
 }
 
 const steps = computed<Step[]>(() => {
-  const bot = session.me?.bot_username
   const list: Step[] = [
     {
       mood: 'happy',
@@ -35,10 +34,10 @@ const steps = computed<Step[]>(() => {
     },
     {
       mood: 'worried',
-      title: 'Что-то сломалось? Сфотографируйте',
+      title: 'Что-то сломалось? Напишите мне',
       text: 'Три шага, и обращение уйдёт тем, кто отвечает за ремонт:',
       points: [
-        { icon: 'mdi-camera-outline', text: 'Фото и пара слов о проблеме' },
+        { icon: 'mdi-pencil-outline', text: 'Пара слов о проблеме и фото, если есть' },
         { icon: 'mdi-thumb-up-outline', text: 'Соседи поддерживают голосом в чате или здесь' },
         { icon: 'mdi-email-fast-outline', text: 'Я отправляю обращение и слежу за сроком' },
       ],
@@ -46,20 +45,18 @@ const steps = computed<Step[]>(() => {
     {
       mood: 'proud',
       title: 'Всё о доме в одном месте',
-      text: 'Внизу экрана разделы, а во вкладке «Ещё»:',
+      text: 'События и вещи соседей - на нижних вкладках. Остальное - во вкладке «Ещё»:',
       points: [
         { icon: 'mdi-bullhorn-variant-outline', text: 'Объявления: отключения, работы, собрания' },
         { icon: 'mdi-file-document-multiple-outline', text: 'Документы дома и ваши личные' },
-        { icon: 'mdi-account-group-outline', text: 'Соседи, события и барахолка' },
+        { icon: 'mdi-account-group-outline', text: 'Соседи по дому' },
         { icon: 'mdi-shield-home-outline', text: 'Укрытия рядом на случай тревоги' },
       ],
     },
     {
       mood: 'ok',
       title: 'Зовите меня в чате дома',
-      text: bot
-        ? `Напишите «Кузя, …» или упомяните @${bot}: «Кузя, сделай объявление о субботнике в субботу в 11».`
-        : 'Напишите «Кузя, …»: например, «Кузя, сделай объявление о субботнике в субботу в 11».',
+      text: 'Напишите в чате дома «Кузя, …», например: «Кузя, сделай объявление о субботнике в субботу в 11».',
     },
   ]
   if (session.needsSetup) {
@@ -80,16 +77,34 @@ function next(): void {
     step.value += 1
     return
   }
-  const goSetup = session.needsSetup
+  // главная кнопка на последнем шаге там же, где «Дальше»: у жителя она просто закрывает обучалку,
+  // чтобы нажатие «в ритме» не уводило в форму. Админа ведём к настройке дома - об этом сам шаг.
   void session.completeOnboarding()
-  if (goSetup) void router.push('/more/house/edit')
+  if (session.needsSetup) void router.push('/more/house/edit')
 }
+
+function secondary(): void {
+  void session.completeOnboarding()
+  if (last.value && !session.needsSetup) void router.push('/issues/new')
+}
+
+const primaryTitle = computed(() => {
+  if (!last.value) return 'Дальше'
+  return session.needsSetup ? 'Настроить дом' : 'Понятно, начать'
+})
+const secondaryTitle = computed(() => {
+  if (!last.value) return 'Пропустить'
+  return session.needsSetup ? 'Настрою позже' : 'Сообщить о проблеме'
+})
 </script>
 
 <template>
   <Drawer v-model:open="open">
     <DrawerContent>
-      <section class="flex flex-col items-center pt-2 text-center" aria-live="polite">
+      <section
+        class="onb flex flex-col items-center justify-center pt-2 text-center"
+        aria-live="polite"
+      >
         <KuzyaMascot :mood="current.mood" :size="120" :interactive="false" />
         <DrawerTitle as="h2" class="mt-3 mb-2 text-xl leading-snug font-bold">{{
           current.title
@@ -99,13 +114,9 @@ function next(): void {
         }}</DrawerDescription>
         <ul
           v-if="current.points"
-          class="mt-3 mb-0 flex w-full list-none flex-col gap-2 p-0 text-left"
+          class="mt-3 mb-0 flex w-full list-none flex-col gap-3 p-0 text-left"
         >
-          <li
-            v-for="p in current.points"
-            :key="p.text"
-            class="card-soft flex items-center gap-3 p-3"
-          >
+          <li v-for="p in current.points" :key="p.text" class="flex items-center gap-3">
             <v-icon :icon="p.icon" color="primary" size="26" aria-hidden="true" />
             <span>{{ p.text }}</span>
           </li>
@@ -118,23 +129,20 @@ function next(): void {
       <p class="sr-only">Шаг {{ step + 1 }} из {{ steps.length }}</p>
 
       <v-btn block size="x-large" color="primary" class="mt-4" @click="next">
-        {{ last ? (session.needsSetup ? 'Настроить дом' : 'Начать') : 'Дальше' }}
+        {{ primaryTitle }}
       </v-btn>
-      <v-btn
-        v-if="!last"
-        block
-        size="large"
-        variant="text"
-        class="mt-1"
-        @click="session.completeOnboarding()"
-      >
-        Пропустить
+      <v-btn block size="large" variant="text" color="primary" class="mt-1" @click="secondary">
+        {{ secondaryTitle }}
       </v-btn>
     </DrawerContent>
   </Drawer>
 </template>
 
 <style scoped>
+/* одинаковая высота на всех шагах: кнопки не прыгают под пальцем */
+.onb {
+  min-height: 440px;
+}
 .dot {
   width: 8px;
   height: 8px;

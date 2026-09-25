@@ -324,7 +324,7 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
   font-size: 15.5px;
   line-height: 1.38;
   background: rgb(var(--v-theme-surface));
-  box-shadow: 0 1px 1px rgba(3, 4, 94, 0.08);
+  box-shadow: 0 1px 1px rgba(16, 24, 40, 0.08);
 }
 .msg--bot {
   background: rgba(var(--v-theme-primary), 0.1);

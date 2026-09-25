@@ -2,7 +2,7 @@
 import type { IssueOut } from '@/api/types'
 import StatusChip from './StatusChip.vue'
 import VoteProgress from './VoteProgress.vue'
-import { formatRelative, plural } from '@/utils/format'
+import { formatRelative, orgTitleCap, plural } from '@/utils/format'
 import { ISSUE_STATUS_TITLES, issueCategoryIcon } from '@/utils/labels'
 
 defineProps<{ issue: IssueOut }>()
@@ -12,6 +12,7 @@ defineProps<{ issue: IssueOut }>()
   <router-link
     :to="`/issues/${issue.id}`"
     class="card-soft tap-card flex gap-3 p-3 text-inherit no-underline"
+    :class="{ 'issue-card--overdue': issue.is_overdue }"
     :aria-label="`${issue.title}. ${issue.is_overdue ? 'Просрочено' : ISSUE_STATUS_TITLES[issue.status]}`"
   >
     <div
@@ -27,23 +28,31 @@ defineProps<{ issue: IssueOut }>()
       <v-icon v-else :icon="issueCategoryIcon(issue.category)" size="34" color="primary" />
     </div>
     <div class="min-w-0 flex-1">
-      <div class="mb-1 flex flex-wrap items-center gap-1.5">
+      <div class="mb-1">
         <StatusChip :status="issue.status" :overdue="issue.is_overdue" />
-        <span class="text-muted text-sm">{{ issue.category_title }}</span>
       </div>
       <h3 class="line-clamp-2 m-0 text-base leading-snug font-semibold">{{ issue.title }}</h3>
       <div v-if="issue.status === 'voting'" class="mt-2">
         <VoteProgress :count="issue.votes_count" :needed="issue.votes_needed" compact />
+        <!-- категория всегда первой в нижней строке: не обрезается и не скачет между строками -->
         <div class="text-muted mt-1 text-sm">
-          {{ issue.votes_count }} из {{ issue.votes_needed }}
+          {{ issue.category_title }} · {{ issue.votes_count }} из {{ issue.votes_needed }}
           {{ plural(issue.votes_needed, ['голоса', 'голосов', 'голосов']) }}
-          <span v-if="issue.voted_by_me" class="font-semibold text-primary"> · вы поддержали</span>
+          <span v-if="issue.voted_by_me" class="font-semibold text-success"> · вы поддержали</span>
         </div>
       </div>
       <div v-else class="text-muted mt-1 text-sm">
-        <span v-if="issue.responsible_org">{{ issue.responsible_org.name }} · </span>
+        {{ issue.category_title }} ·
+        <span v-if="issue.responsible_org">{{ orgTitleCap(issue.responsible_org.name) }} · </span>
         <span class="whitespace-nowrap">{{ formatRelative(issue.created_at) }}</span>
       </div>
     </div>
   </router-link>
 </template>
+
+<style scoped>
+/* Просрочка видна в списке сразу: красная полоса слева, помимо чипа со статусом */
+.issue-card--overdue {
+  border-left: 4px solid rgb(var(--v-theme-deep));
+}
+</style>

@@ -30,6 +30,8 @@ useDirtyGuard(dirty)
 const saving = ref(false)
 const geoLoading = ref(false)
 const geoResults = ref<GeoResult[]>([])
+/** Координаты уже выбраны: дом настроен раньше или админ выбрал адрес из поиска. */
+const geoPicked = ref(house.setup_done !== false)
 const syncing = ref(false)
 const botIsAdmin = ref(house.bot_is_admin ?? null)
 
@@ -66,6 +68,7 @@ async function findAddress(): Promise<void> {
 function pickGeo(r: GeoResult): void {
   form.lat = r.lat
   form.lon = r.lon
+  geoPicked.value = true
   geoResults.value = []
   notify.success('Координаты дома заданы', 'Кузя покажет ближайшие укрытия')
 }
@@ -163,9 +166,18 @@ async function save(): Promise<void> {
           <span class="block leading-snug whitespace-normal">{{ r.title }}</span>
         </v-list-item>
       </v-list>
-      <p class="text-muted m-0 text-sm">
-        <v-icon icon="mdi-crosshairs-gps" size="18" aria-hidden="true" />
-        Координаты: {{ form.lat.toFixed(5) }}, {{ form.lon.toFixed(5) }}
+      <p class="m-0 flex items-center gap-2 text-sm" :class="geoPicked ? '' : 'text-muted'">
+        <v-icon
+          :icon="geoPicked ? 'mdi-check-circle' : 'mdi-map-marker-question-outline'"
+          :color="geoPicked ? 'success' : undefined"
+          size="20"
+          aria-hidden="true"
+        />
+        {{
+          geoPicked
+            ? 'Дом отмечен на карте: Кузя покажет ближайшие укрытия'
+            : 'Нажмите «Найти дом на карте», чтобы Кузя знал, где укрытия рядом'
+        }}
       </p>
 
       <v-textarea
@@ -178,7 +190,7 @@ async function save(): Promise<void> {
       />
 
       <h2 class="section-title">Управляющая компания</h2>
-      <v-text-field v-model="form.uk_name" label="Название УК" maxlength="256" />
+      <v-text-field v-model="form.uk_name" label="Название управляющей компании" maxlength="256" />
       <v-text-field
         v-model="form.uk_email"
         label="E-mail для обращений"
@@ -193,7 +205,7 @@ async function save(): Promise<void> {
         inputmode="tel"
       />
       <p class="text-muted m-0 text-sm">
-        Пока это модельная интеграция: обращение уходит на тестовый адрес, а не в УК.
+        Сейчас обращения уходят на проверочный адрес (тестовый режим), а не на эту почту.
       </p>
 
       <h2 class="section-title">Голосование</h2>

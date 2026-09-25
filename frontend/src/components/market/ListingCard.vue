@@ -30,15 +30,16 @@ defineProps<{ listing: ListingOut }>()
       <v-chip
         v-if="listing.status !== 'active'"
         class="!absolute top-2 right-2"
-        color="deep"
+        :color="LISTING_STATUS_META[listing.status].color"
         variant="flat"
         size="small"
+        :prepend-icon="LISTING_STATUS_META[listing.status].icon"
       >
         {{ LISTING_STATUS_META[listing.status].title }}
       </v-chip>
     </div>
     <div class="flex flex-1 flex-col p-3">
-      <div class="flex items-center gap-1 text-lg leading-tight font-bold text-primary">
+      <div class="flex items-center gap-1 text-lg leading-tight font-bold">
         <v-icon v-if="listing.is_free" icon="mdi-gift-outline" size="20" />
         {{ formatPrice(listing.price, listing.is_free) }}
       </div>

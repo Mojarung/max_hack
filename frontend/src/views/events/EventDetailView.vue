@@ -135,7 +135,10 @@ async function send(): Promise<void> {
     />
 
     <article v-else-if="event">
-      <header class="event-hero">
+      <header
+        class="event-hero"
+        :style="{ '--kind': `var(--v-theme-${eventKindMeta(event.kind).color})` }"
+      >
         <v-icon :icon="eventKindMeta(event.kind).icon" size="44" />
         <div class="mt-2 text-sm font-semibold opacity-90">{{ event.kind_title }}</div>
         <h2 class="m-0 text-[22px] leading-tight font-bold">{{ event.title }}</h2>
@@ -298,8 +301,13 @@ async function send(): Promise<void> {
 .event-hero {
   padding: 20px 16px;
   border-radius: var(--radius-card);
-  color: rgb(var(--v-theme-on-primary));
-  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-surface));
+  /* тональная шапка цвета типа события: заливка остаётся только у тревоги и главной кнопки */
+  background: rgba(var(--kind), 0.14);
+  border: 1px solid rgba(var(--kind), 0.3);
+}
+.event-hero :deep(.v-icon) {
+  color: rgb(var(--kind));
 }
 .bubble {
   max-width: 78%;
@@ -312,17 +320,6 @@ async function send(): Promise<void> {
   border-radius: 16px 16px 4px 16px;
   background: rgba(var(--v-theme-primary), 0.12);
   border-color: transparent;
-}
-.joined {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface));
-  background: rgba(var(--v-theme-primary), 0.12);
 }
 .composer {
   display: flex;

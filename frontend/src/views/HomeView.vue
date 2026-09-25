@@ -334,8 +334,8 @@ watch(
 
 <style scoped>
 .setup {
-  color: rgb(var(--v-theme-on-deep));
-  background: rgb(var(--v-theme-deep));
+  color: rgb(var(--v-theme-on-primary));
+  background: rgb(var(--v-theme-primary));
   border-color: transparent;
 }
 .section-head {
@@ -380,8 +380,8 @@ watch(
 }
 /* Есть просрочка: плитка заливная, чтобы её было видно сразу в обеих темах */
 .tile--alert {
-  color: rgb(var(--v-theme-on-primary));
-  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-deep));
+  background: rgb(var(--v-theme-deep));
   border-color: transparent;
 }
 .bubble__link {

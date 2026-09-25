@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { ApiError, errorMessage } from '@/api/client'
 import { houseApi, peopleApi } from '@/api/endpoints'
 import type { ProfileOut } from '@/api/types'
@@ -43,7 +44,7 @@ const stats = computed(() => {
     {
       icon: 'mdi-storefront-outline',
       value: s.listings_active,
-      label: plural(s.listings_active, ['объявление', 'объявления', 'объявлений']),
+      label: `${plural(s.listings_active, ['вещь', 'вещи', 'вещей'])} в «Вещах»`,
     },
   ]
 })
@@ -63,7 +64,17 @@ async function load(): Promise<void> {
 }
 onMounted(load)
 
+const aptChanged = computed(
+  () => !!profile.value?.is_me && apartment.value.trim() !== (profile.value.user.apartment ?? ''),
+)
+
+// «Назад» не должен молча терять введённый номер квартиры: сохраняем сами
+onBeforeRouteLeave(async () => {
+  if (aptChanged.value) await saveApartment()
+})
+
 async function saveApartment(): Promise<void> {
+  if (!aptChanged.value) return
   savingApt.value = true
   try {
     session.me = await houseApi.update({ apartment: apartment.value.trim() })
@@ -118,12 +129,40 @@ function writeInMax(): void {
             ><span class="text-lg font-bold">{{ profile.level }}</span></v-avatar
           >
           <div class="min-w-0 flex-1">
-            <div class="font-semibold">«{{ profile.user.level_title }}»</div>
+            <div class="font-semibold">
+              Уровень {{ profile.level }} · «{{ profile.user.level_title }}»
+            </div>
             <div class="text-muted text-sm tabular-nums">
               {{ profile.user.points }} {{ plural(profile.user.points, ['очко', 'очка', 'очков']) }}
             </div>
           </div>
         </div>
+      </section>
+
+      <section v-if="profile.is_me" class="card-soft mt-3 p-4" aria-labelledby="apt-title">
+        <h2 id="apt-title" class="m-0 text-base font-bold">Моя квартира</h2>
+        <p class="text-muted mt-1 mb-3 text-sm">По номеру квартиры соседям проще узнать вас</p>
+        <form class="flex flex-col gap-2" @submit.prevent="saveApartment">
+          <v-text-field
+            v-model="apartment"
+            label="Номер квартиры"
+            inputmode="numeric"
+            maxlength="16"
+            hint="Можно не указывать"
+            persistent-hint
+            @blur="saveApartment"
+          />
+          <v-btn
+            type="submit"
+            block
+            color="primary"
+            size="large"
+            :variant="aptChanged ? 'flat' : 'tonal'"
+            :loading="savingApt"
+          >
+            Сохранить
+          </v-btn>
+        </form>
       </section>
 
       <h2 class="section-title">Помощь дому</h2>
@@ -151,29 +190,8 @@ function writeInMax(): void {
         </div>
       </template>
 
-      <template v-if="profile.is_me">
-        <h2 class="section-title">Моя квартира</h2>
-        <form class="flex gap-2" @submit.prevent="saveApartment">
-          <v-text-field
-            v-model="apartment"
-            label="Номер квартиры"
-            inputmode="numeric"
-            maxlength="16"
-            hint="Необязательно. Соседям проще узнать вас"
-          />
-          <v-btn
-            type="submit"
-            color="primary"
-            size="x-large"
-            variant="tonal"
-            :loading="savingApt"
-            aria-label="Сохранить квартиру"
-            icon="mdi-check"
-          />
-        </form>
-      </template>
       <v-btn
-        v-else-if="profile.username"
+        v-if="!profile.is_me && profile.username"
         block
         size="x-large"
         color="primary"

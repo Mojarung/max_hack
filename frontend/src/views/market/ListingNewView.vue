@@ -70,7 +70,9 @@ async function submit(): Promise<void> {
   <div class="page">
     <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
       <section>
-        <h2 class="mt-0 mb-2 text-base font-bold">Фото</h2>
+        <h2 class="mt-0 mb-2 text-base font-bold">
+          Фото <span class="text-muted font-normal">(необязательно)</span>
+        </h2>
         <PhotoPicker v-model="photos" />
       </section>
 
@@ -94,7 +96,7 @@ async function submit(): Promise<void> {
       <div class="card-soft px-4 py-2">
         <v-switch
           v-model="isFree"
-          color="secondary"
+          color="primary"
           inset
           hide-details
           label="Отдам даром"

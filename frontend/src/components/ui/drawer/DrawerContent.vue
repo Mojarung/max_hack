@@ -8,12 +8,12 @@ const props = defineProps<{ class?: HTMLAttributes['class'] }>()
 
 <template>
   <DrawerPortal to=".v-application">
-    <DrawerOverlay class="fixed inset-0 z-[2400] bg-black/45" />
+    <DrawerOverlay class="fixed inset-0 z-[2400] bg-black/60" />
     <DrawerContent
       :class="
         cn(
           'fixed inset-x-0 bottom-0 z-[2401] mx-auto flex max-h-[92dvh] w-full max-w-[640px] flex-col rounded-t-[24px] bg-surface text-on-surface outline-none',
-          'pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_40px_-12px_rgba(3,4,94,0.35)]',
+          'pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_40px_-12px_rgba(16,24,40,0.35)]',
           props.class,
         )
       "

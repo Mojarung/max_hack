@@ -69,7 +69,7 @@ watchDebounced(
 </script>
 
 <template>
-  <div class="page">
+  <div class="page page--with-fab">
     <v-text-field
       v-model="search"
       placeholder="Поиск по проблемам"
@@ -175,13 +175,3 @@ watchDebounced(
     </v-btn>
   </div>
 </template>
-
-<style scoped>
-.fab {
-  position: fixed;
-  right: max(16px, calc((100vw - var(--app-max-width)) / 2 + 16px));
-  bottom: calc(var(--app-nav-height) + 16px + env(safe-area-inset-bottom));
-  z-index: 900;
-  box-shadow: 0 8px 24px -6px rgba(var(--v-theme-primary), 0.6);
-}
-</style>

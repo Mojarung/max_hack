@@ -20,7 +20,7 @@ const isFiltered = computed(
 const SCOPES = [
   { value: 'active', title: 'В продаже', icon: 'mdi-storefront-outline' },
   { value: 'mine', title: 'Мои', icon: 'mdi-account-outline' },
-  { value: 'closed', title: 'Завершённые', icon: 'mdi-archive-outline' },
+  { value: 'closed', title: 'Закрытые', icon: 'mdi-archive-outline' },
 ] as const
 const emptyText = computed(() => {
   if (store.scope === 'mine')
@@ -59,7 +59,7 @@ watchDebounced(
 </script>
 
 <template>
-  <div class="page">
+  <div class="page page--with-fab">
     <v-text-field
       v-model="search"
       placeholder="Что ищете?"
@@ -172,12 +172,5 @@ watchDebounced(
 <style scoped>
 .scope-toggle {
   height: 48px;
-}
-.fab {
-  position: fixed;
-  right: max(16px, calc((100vw - var(--app-max-width)) / 2 + 16px));
-  bottom: calc(var(--app-nav-height) + 16px + env(safe-area-inset-bottom));
-  z-index: 900;
-  box-shadow: 0 8px 24px -6px rgba(var(--v-theme-primary), 0.6);
 }
 </style>

@@ -136,3 +136,52 @@ export function haversine(lat1: number, lon1: number, lat2: number, lon2: number
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
   return 2 * R * Math.asin(Math.sqrt(a))
 }
+
+/**
+ * Название организации словами жителя: без «УК», «ТКО» и «ГЖИ».
+ * «УК «Уютный дом»» → «управляющая компания «Уютный дом»»,
+ * «Регоператор ТКО «Гринта»» → «оператор вывоза мусора «Гринта»».
+ */
+export function orgTitle(name: string | null | undefined): string {
+  if (!name) return ''
+  return plainOrgWords(name).trim()
+}
+
+const NOT_LETTER = '(^|[^А-Яа-яЁё])'
+
+/** Раскрывает сокращения в любом месте текста: «УК: бригада на месте» → «управляющая компания: …». */
+export function plainOrgWords(text: string): string {
+  return text
+    .replace(new RegExp(`${NOT_LETTER}УК(?![А-Яа-яЁё])`, 'g'), '$1управляющая компания')
+    .replace(/Рег(иональный)?\s*оператор(\s+по\s+обращению\s+с)?\s+ТКО/gi, 'оператор вывоза мусора')
+    .replace(new RegExp(`${NOT_LETTER}ГЖИ(?![А-Яа-яЁё])`, 'g'), '$1Госжилинспекция')
+}
+
+/** Первая буква заглавная. */
+export function capitalize(text: string): string {
+  return text ? text[0]!.toUpperCase() + text.slice(1) : text
+}
+
+/** Винительный падеж: «обязать управляющую компанию «Уютный дом»». */
+export function orgAccusative(name: string | null | undefined): string {
+  return orgTitle(name)
+    .replace(/^управляющая компания/, 'управляющую компанию')
+    .replace(/^оператор вывоза мусора/, 'оператора вывоза мусора')
+    .replace(/^Госжилинспекция/, 'Госжилинспекцию')
+}
+
+/** Куда уходит обращение: «Кузя отправит его в управляющую компанию …» / «… оператору вывоза мусора …». */
+export function orgRecipient(name: string | null | undefined): string {
+  const t = orgTitle(name)
+  if (!t) return ''
+  if (t.startsWith('оператор вывоза мусора')) return t.replace(/^оператор/, 'оператору')
+  if (/^(управляющая компания|Госжилинспекция)/.test(t)) return `в ${orgAccusative(name)}`
+  // название без вида организации: не угадываем падеж
+  return `в организацию ${t}`
+}
+
+/** То же с заглавной буквы: для начала строки и заголовков. */
+export function orgTitleCap(name: string | null | undefined): string {
+  const t = orgTitle(name)
+  return t ? t[0]!.toUpperCase() + t.slice(1) : t
+}

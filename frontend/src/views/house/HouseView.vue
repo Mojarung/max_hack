@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { openLink } from '@/max/bridge'
 import { useSessionStore } from '@/stores/session'
-import { plural } from '@/utils/format'
+import { orgTitleCap, plural } from '@/utils/format'
 
 const session = useSessionStore()
 const house = computed(() => session.me?.house)
@@ -54,34 +54,41 @@ function mail(email: string): void {
       </p>
     </section>
 
-    <h2 class="section-title">Управляющая компания</h2>
+    <h2 class="section-title">Кто обслуживает дом</h2>
     <section class="card-soft p-4">
-      <div class="font-semibold">{{ house.uk_name || 'Не указана' }}</div>
-      <div class="mt-2 flex flex-wrap gap-2">
-        <v-btn
-          v-if="house.uk_phone"
-          size="large"
-          variant="tonal"
-          color="primary"
-          prepend-icon="mdi-phone-outline"
-          @click="call(house.uk_phone)"
-        >
-          {{ house.uk_phone }}
-        </v-btn>
-        <v-btn
-          v-if="house.uk_email"
-          size="large"
-          variant="tonal"
-          color="primary"
-          prepend-icon="mdi-email-outline"
-          @click="mail(house.uk_email)"
-        >
-          Написать
-        </v-btn>
+      <div class="text-lg leading-snug font-semibold">
+        {{ orgTitleCap(house.uk_name) || 'Управляющая компания не указана' }}
       </div>
+      <div v-if="house.uk_phone" class="text-muted mt-1 tabular-nums">{{ house.uk_phone }}</div>
+      <!-- Одно главное действие - позвонить; почта второстепенна -->
+      <v-btn
+        v-if="house.uk_phone"
+        block
+        size="x-large"
+        color="primary"
+        class="mt-3"
+        prepend-icon="mdi-phone-outline"
+        @click="call(house.uk_phone)"
+      >
+        Позвонить
+      </v-btn>
+      <v-btn
+        v-if="house.uk_email"
+        block
+        size="large"
+        variant="text"
+        color="primary"
+        class="mt-1"
+        prepend-icon="mdi-email-outline"
+        @click="mail(house.uk_email)"
+      >
+        Написать на почту
+      </v-btn>
       <p class="text-muted mt-3 mb-0 text-sm">
-        Обращения, которые набрали голоса, Кузя готовит для УК сам. Сейчас письмо уходит на тестовый
-        адрес: это модельная интеграция, в пилоте получателем станет e-mail УК.
+        Когда соседи наберут голоса, Кузя сам отправит сюда обращение.
+        <template v-if="session.isAdmin">
+          Сейчас тестовый режим: письма уходят на проверочный адрес.</template
+        >
       </p>
     </section>
 
@@ -109,6 +116,7 @@ function mail(email: string): void {
       block
       size="x-large"
       color="primary"
+      variant="tonal"
       class="mt-4"
       prepend-icon="mdi-home-edit-outline"
     >

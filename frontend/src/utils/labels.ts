@@ -23,7 +23,7 @@ export const ISSUE_STATUS_META: Record<IssueStatus, { color: string; icon: strin
   sent: { color: 'info', icon: 'mdi-email-fast-outline' },
   in_progress: { color: 'secondary', icon: 'mdi-hammer-wrench' },
   resolved: { color: 'success', icon: 'mdi-check-circle' },
-  rejected: { color: 'grey', icon: 'mdi-close-circle-outline' },
+  rejected: { color: 'on-surface-variant', icon: 'mdi-close-circle-outline' },
 }
 
 export const ISSUE_CATEGORY_ICONS: Record<string, string> = {
@@ -73,19 +73,22 @@ export const LISTING_CATEGORY_ICONS: Record<string, string> = {
   other: 'mdi-shape-outline',
 }
 
-export const LISTING_STATUS_META: Record<ListingStatus, { title: string; color: string }> = {
-  active: { title: 'Активно', color: 'success' },
-  reserved: { title: 'Забронировано', color: 'warning' },
-  closed: { title: 'Закрыто', color: 'muted' },
+export const LISTING_STATUS_META: Record<
+  ListingStatus,
+  { title: string; color: string; icon: string }
+> = {
+  active: { title: 'В продаже', color: 'success', icon: 'mdi-tag-outline' },
+  reserved: { title: 'Забронировано', color: 'warning', icon: 'mdi-clock-outline' },
+  closed: { title: 'Закрыто', color: 'on-surface-variant', icon: 'mdi-check' },
 }
 
 export const EVENT_KINDS: { value: EventKind; title: string; icon: string; color: string }[] = [
-  { value: 'subbotnik', title: 'Субботник', icon: 'mdi-broom', color: 'success' },
+  { value: 'subbotnik', title: 'Субботник', icon: 'mdi-broom', color: 'secondary' },
   { value: 'meeting', title: 'Собрание', icon: 'mdi-account-group', color: 'info' },
-  { value: 'holiday', title: 'Праздник', icon: 'mdi-party-popper', color: 'primary' },
-  { value: 'sport', title: 'Спорт', icon: 'mdi-soccer', color: 'secondary' },
+  { value: 'holiday', title: 'Праздник', icon: 'mdi-party-popper', color: 'tertiary' },
+  { value: 'sport', title: 'Спорт', icon: 'mdi-soccer', color: 'primary' },
   { value: 'kids', title: 'Для детей', icon: 'mdi-teddy-bear', color: 'tertiary' },
-  { value: 'other', title: 'Другое', icon: 'mdi-calendar-star', color: 'muted' },
+  { value: 'other', title: 'Другое', icon: 'mdi-calendar-star', color: 'primary' },
 ]
 
 export function eventKindMeta(kind: string): { title: string; icon: string; color: string } {

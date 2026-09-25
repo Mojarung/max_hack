@@ -115,7 +115,7 @@ function remove(file: File): void {
         <v-btn
           icon="mdi-close"
           size="small"
-          color="deep"
+          color="ink"
           class="!absolute top-1 right-1 opacity-80"
           :aria-label="`Убрать фото ${i + 1}`"
           @click="remove(p.file)"

@@ -5,13 +5,14 @@ import { useRouter } from 'vue-router'
 import { issuesApi } from '@/api/endpoints'
 import type { Classification, IssueDetail, IssueOut } from '@/api/types'
 import PhotoPicker from '@/components/common/PhotoPicker.vue'
+import { Drawer, DrawerContent, DrawerHeader } from '@/components/ui/drawer'
 import KuzyaMascot from '@/components/kuzya/KuzyaMascot.vue'
 import { useDirtyGuard } from '@/composables/useDirtyGuard'
 import { confetti, pageEnter } from '@/composables/useMotion'
 import { notify } from '@/lib/notify'
 import { haptic } from '@/max/bridge'
 import { useIssuesStore } from '@/stores/issues'
-import { formatHours, plural } from '@/utils/format'
+import { formatHours, orgRecipient, orgTitle, plural } from '@/utils/format'
 import { ISSUE_STATUS_TITLES } from '@/utils/labels'
 
 const MIN_TEXT = 10
@@ -34,43 +35,73 @@ const progress = ref(0)
 const created = ref<IssueDetail | null>(null)
 const successBox = ref<HTMLElement | null>(null)
 
-/** «УК «Уютный дом»» → «управляющая компания «Уютный дом»»: без сокращений при первом упоминании. */
-function orgTitle(name: string): string {
-  return name.replace(/^УК\s/, 'управляющая компания ')
-}
-
 const textOk = computed(() => description.value.trim().length >= MIN_TEXT)
 const dirty = computed(
   () => !created.value && (description.value.trim().length > 0 || photos.value.length > 0),
 )
 useDirtyGuard(dirty)
 
-let analyzeController: AbortController | null = null
+/** Похожие заявки ищем отдельно от классификации: поиск быстрый, классификация ждёт ИИ. */
+const similarFor = ref('')
+const advancing = ref(false)
+const similarOpen = ref(false)
+let similarController: AbortController | null = null
+let classifyController: AbortController | null = null
+const SIMILAR_WAIT_MS = 3000
+
+function openSimilar(list: IssueOut[]): IssueOut[] {
+  return list
+    .filter((i) => i.status === 'voting' || i.status === 'sent' || i.status === 'in_progress')
+    .slice(0, 3)
+}
+
+let pendingSimilar: { text: string; promise: Promise<void> } | null = null
+
+/** Один запрос на один текст: «Дальше» и поиск при вводе ждут один и тот же ответ, а не отменяют друг друга. */
+function findSimilar(text: string): Promise<void> {
+  if (similarFor.value === text) return Promise.resolve()
+  if (pendingSimilar?.text === text) return pendingSimilar.promise
+  similarController?.abort()
+  const controller = new AbortController()
+  similarController = controller
+  const promise = (async () => {
+    try {
+      const found = await issuesApi.similar(text, controller.signal)
+      if (controller.signal.aborted) return
+      similar.value = openSimilar(found)
+      similarFor.value = text
+    } catch {
+      if (!controller.signal.aborted) similarFor.value = text
+    } finally {
+      if (similarController === controller) pendingSimilar = null
+    }
+  })()
+  pendingSimilar = { text, promise }
+  return promise
+}
 
 watchDebounced(
   description,
   async (text) => {
-    analyzeController?.abort()
+    classifyController?.abort()
     const trimmed = text.trim()
     if (trimmed.length < 8) {
       classification.value = null
       similar.value = []
+      similarFor.value = ''
       return
     }
+    void findSimilar(trimmed)
     const controller = new AbortController()
-    analyzeController = controller
+    classifyController = controller
     classifying.value = true
-    const [cls, sim] = await Promise.allSettled([
-      issuesApi.classify(trimmed, controller.signal),
-      issuesApi.similar(trimmed, controller.signal),
-    ])
-    if (controller.signal.aborted) return
-    classifying.value = false
-    if (cls.status === 'fulfilled') classification.value = cls.value
-    if (sim.status === 'fulfilled') {
-      similar.value = sim.value
-        .filter((i) => i.status === 'voting' || i.status === 'sent' || i.status === 'in_progress')
-        .slice(0, 3)
+    try {
+      const cls = await issuesApi.classify(trimmed, controller.signal)
+      if (!controller.signal.aborted) classification.value = cls
+    } catch {
+      // без подсказки Кузи форма всё равно работает
+    } finally {
+      if (classifyController === controller) classifying.value = false
     }
   },
   { debounce: 600 },
@@ -88,7 +119,7 @@ async function support(issue: IssueOut): Promise<void> {
     store.storeDetail(detail)
     description.value = ''
     photos.value = []
-    notify.success('Голос учтён!', 'Вместе быстрее: Кузя учтёт вас в обращении')
+    notify.success('Голос учтён')
     await router.replace(`/issues/${issue.id}`)
   } catch (e) {
     notify.error(e, 'Не удалось проголосовать')
@@ -97,9 +128,32 @@ async function support(issue: IssueOut): Promise<void> {
   }
 }
 
-function next(): void {
-  if (!textOk.value) return
+/**
+ * «Дальше»: сначала убеждаемся, что такой заявки ещё нет. Иначе житель, нажавший быстро,
+ * создал бы дубль вместо того, чтобы поддержать соседа.
+ */
+async function next(): Promise<void> {
+  if (!textOk.value || advancing.value) return
   haptic.impact('light')
+  // загрузка на кнопке сразу: без неё житель решит, что не сработало, и нажмёт ещё раз
+  advancing.value = true
+  const text = description.value.trim()
+  try {
+    if (similarFor.value !== text) {
+      await Promise.race([findSimilar(text), new Promise((r) => setTimeout(r, SIMILAR_WAIT_MS))])
+    }
+  } finally {
+    advancing.value = false
+  }
+  if (similar.value.length && similarFor.value === text) {
+    similarOpen.value = true
+    return
+  }
+  goStep2()
+}
+
+function goStep2(): void {
+  similarOpen.value = false
   step.value = 2
   window.scrollTo({ top: 0 })
 }
@@ -147,8 +201,8 @@ async function submit(): Promise<void> {
         <template v-if="created.status === 'voting'">
           Соседи увидят проблему и смогут её поддержать. Нужно
           {{ created.votes_needed }}
-          {{ plural(created.votes_needed, ['голос', 'голоса', 'голосов']) }}, и обращение уйдёт в
-          {{ created.responsible_org?.name ?? 'управляющую компанию' }}.
+          {{ plural(created.votes_needed, ['голос', 'голоса', 'голосов']) }}, и обращение уйдёт
+          {{ orgRecipient(created.responsible_org?.name) || 'в управляющую компанию' }}.
         </template>
         <template v-else>Обращение уже отправлено ответственной организации.</template>
       </p>
@@ -190,7 +244,7 @@ async function submit(): Promise<void> {
           placeholder="Например: на 9 этаже во втором подъезде течёт крыша, вода капает на лестницу"
           rows="4"
           auto-grow
-          counter="2000"
+          persistent-placeholder
           maxlength="2000"
           :hint="
             description.trim().length && !textOk
@@ -200,18 +254,13 @@ async function submit(): Promise<void> {
           persistent-hint
         />
 
-        <div class="mt-2 min-h-[36px]" aria-live="polite">
-          <v-chip
-            v-if="classifying"
-            color="secondary"
-            variant="tonal"
-            prepend-icon="mdi-head-cog-outline"
-          >
+        <!-- место под подсказку занято заранее: кнопка «Дальше» не съезжает, когда она появляется -->
+        <div class="mt-2 min-h-[84px]" aria-live="polite">
+          <v-chip v-if="classifying" variant="tonal" prepend-icon="mdi-head-cog-outline">
             Кузя думает...
           </v-chip>
           <v-chip
             v-else-if="classification"
-            color="secondary"
             variant="tonal"
             prepend-icon="mdi-lightbulb-on-outline"
             class="h-auto! py-1.5! whitespace-normal!"
@@ -222,87 +271,86 @@ async function submit(): Promise<void> {
           </v-chip>
         </div>
 
-        <section v-if="similar.length" class="card-soft mt-3 p-4" aria-labelledby="similar-title">
-          <h3 id="similar-title" class="m-0 flex items-center gap-2 text-lg font-bold">
-            <v-icon icon="mdi-account-group-outline" color="primary" />
-            Похоже, об этом уже сообщили
-          </h3>
-          <p class="mt-1 mb-1">
-            {{
-              similar.every((i) => i.voted_by_me)
-                ? 'Вы уже поддержали эту заявку, новую создавать не нужно. Кузя сообщит, когда её отправят.'
-                : 'Поддержите эту заявку: так обращение уйдёт быстрее.'
-            }}
-          </p>
-          <div v-for="item in similar" :key="item.id" class="similar">
-            <router-link :to="`/issues/${item.id}`" class="similar__link">
-              <span class="font-semibold">{{ item.title }}</span>
-              <span class="text-muted text-sm">
-                {{ ISSUE_STATUS_TITLES[item.status] }} · {{ item.votes_count }} из
-                {{ item.votes_needed }}
-                {{ plural(item.votes_needed, ['голоса', 'голосов', 'голосов']) }}
-              </span>
-            </router-link>
-            <template v-if="item.status !== 'voting' || item.voted_by_me">
-              <div v-if="item.voted_by_me" class="voted mt-2" role="status">
-                <v-icon icon="mdi-check-circle" size="22" /> Вы уже поддержали эту заявку
-              </div>
-              <v-btn
-                class="mt-2"
-                color="primary"
-                variant="tonal"
-                size="large"
-                block
-                prepend-icon="mdi-eye-outline"
-                :to="`/issues/${item.id}`"
-              >
-                {{ item.status === 'voting' ? 'Открыть заявку' : 'Уже отправлено, посмотреть' }}
-              </v-btn>
-            </template>
-            <v-btn
-              v-else
-              class="mt-2"
-              color="primary"
-              size="x-large"
-              block
-              :loading="supporting === item.id"
-              prepend-icon="mdi-hand-back-right-outline"
-              @click="support(item)"
-            >
-              Поддержать эту заявку
-            </v-btn>
-          </div>
-        </section>
-
         <h3 class="mt-5 mb-2 text-base font-bold">
           Фото <span class="text-muted font-normal">(необязательно)</span>
         </h3>
         <PhotoPicker v-model="photos" />
 
-        <!-- Если нашлась похожая заявка, главное действие - поддержать её, а не создать дубль -->
+        <!-- подсказка скрывается, но место остаётся: кнопка не прыгает под пальцем -->
+        <p class="text-muted mt-6 mb-2 text-center text-sm" :class="{ invisible: textOk }">
+          Опишите проблему, чтобы продолжить
+        </p>
         <v-btn
-          v-if="similar.length"
-          block
-          size="large"
-          variant="text"
-          class="mt-6"
-          :disabled="!textOk"
-          @click="next"
-        >
-          Нет, у меня другая проблема
-        </v-btn>
-        <v-btn
-          v-else
           block
           size="x-large"
           color="primary"
-          class="sticky-cta mt-6"
+          class="sticky-cta"
           :disabled="!textOk"
+          :loading="advancing"
           append-icon="mdi-arrow-right"
           @click="next"
         >
           Дальше
+          <template #loader>Кузя ищет похожие...</template>
         </v-btn>
+
+        <!-- Нашлась похожая заявка: главное действие - поддержать её, а не создать дубль -->
+        <Drawer v-model:open="similarOpen">
+          <DrawerContent>
+            <DrawerHeader
+              title="Похоже, об этом уже сообщили"
+              description="Поддержите заявку соседа: так обращение уйдёт быстрее"
+            />
+            <section aria-label="Похожие заявки">
+              <p v-if="similar.every((i) => i.voted_by_me)" class="mt-0 mb-1">
+                Вы уже поддержали эту заявку, новую создавать не нужно. Кузя сообщит, когда её
+                отправят.
+              </p>
+              <div v-for="item in similar" :key="item.id" class="similar">
+                <router-link :to="`/issues/${item.id}`" class="similar__link">
+                  <span class="font-semibold">{{ item.title }}</span>
+                  <span class="text-muted text-sm">
+                    {{ ISSUE_STATUS_TITLES[item.status] }} · {{ item.votes_count }} из
+                    {{ item.votes_needed }}
+                    {{ plural(item.votes_needed, ['голоса', 'голосов', 'голосов']) }}
+                  </span>
+                </router-link>
+                <template v-if="item.status !== 'voting' || item.voted_by_me">
+                  <div v-if="item.voted_by_me" class="voted mt-2" role="status">
+                    <v-icon icon="mdi-check-circle" size="22" /> Вы уже поддержали эту заявку
+                  </div>
+                  <v-btn
+                    class="mt-2"
+                    color="primary"
+                    variant="tonal"
+                    size="large"
+                    block
+                    prepend-icon="mdi-eye-outline"
+                    :to="`/issues/${item.id}`"
+                  >
+                    {{ item.status === 'voting' ? 'Открыть заявку' : 'Уже отправлено, посмотреть' }}
+                  </v-btn>
+                </template>
+                <v-btn
+                  v-else
+                  class="mt-2"
+                  color="primary"
+                  size="x-large"
+                  block
+                  :loading="supporting === item.id"
+                  prepend-icon="mdi-hand-back-right-outline"
+                  @click="support(item)"
+                >
+                  Поддержать эту заявку
+                </v-btn>
+              </div>
+            </section>
+
+            <v-btn block size="large" variant="text" class="mt-2" @click="goStep2">
+              Нет, у меня другая проблема
+            </v-btn>
+          </DrawerContent>
+        </Drawer>
       </section>
 
       <!-- Шаг 2: уточнить и отправить -->
@@ -335,8 +383,8 @@ async function submit(): Promise<void> {
             <v-chip size="small" prepend-icon="mdi-image-multiple-outline">
               {{ photos.length }} фото
             </v-chip>
-            <v-chip v-if="classification" size="small" color="secondary" prepend-icon="mdi-domain">
-              {{ classification.org_name }}
+            <v-chip v-if="classification" size="small" prepend-icon="mdi-domain">
+              {{ orgTitle(classification.org_name) }}
             </v-chip>
           </div>
         </div>
@@ -393,16 +441,6 @@ async function submit(): Promise<void> {
 .similar {
   padding: 10px 0;
   border-top: 1px solid rgba(var(--v-border-color), 0.12);
-}
-.voted {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 12px;
-  border-radius: 12px;
-  font-weight: 600;
-  background: rgba(var(--v-theme-primary), 0.14);
 }
 .similar__link {
   display: flex;

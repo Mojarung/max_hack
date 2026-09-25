@@ -83,6 +83,11 @@ function select(id: number): void {
   document.getElementById(`shelter-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
+function openRoute(s: ShelterOut): void {
+  notify.info('Открываю карту с маршрутом...')
+  openLink(s.yandex_url)
+}
+
 async function testAlert(): Promise<void> {
   alertBusy.value = true
   try {
@@ -147,29 +152,26 @@ async function endAlert(): Promise<void> {
     >
       Найти ближайшее укрытие
     </v-btn>
-    <p class="text-muted mt-2 mb-0 text-center text-sm">
-      <template v-if="position?.source === 'house'">
+    <p v-if="position" class="text-muted mt-2 mb-0 text-center text-sm">
+      <template v-if="position.source === 'house'">
         Не удалось узнать, где вы: считаем расстояние от дома.
       </template>
-      <template v-else-if="position">Расстояние посчитано от того места, где вы сейчас.</template>
-      <template v-else
-        >Разрешите доступ к геопозиции. Если не получится, посчитаем от дома.</template
-      >
+      <template v-else>Расстояние посчитано от того места, где вы сейчас.</template>
     </p>
 
-    <details class="card-soft rules mt-3" :open="!!alerts.active">
-      <summary>
-        <v-icon icon="mdi-shield-alert-outline" color="primary" />
-        <span class="flex-1">Что делать при тревоге</span>
-        <v-icon icon="mdi-chevron-down" class="rules__chevron" />
-      </summary>
+    <!-- Инструкция короткая и важная: всегда раскрыта, читать в стрессе без лишних нажатий -->
+    <section class="card-soft rules mt-3" aria-labelledby="rules-title">
+      <h2 id="rules-title" class="m-0 flex items-center gap-2 text-base font-bold">
+        <v-icon icon="mdi-shield-alert-outline" color="deep" />
+        Что делать при тревоге
+      </h2>
       <ol class="m-0 flex list-none flex-col gap-2 p-0 pt-2">
         <li v-for="item in ALERT_INSTRUCTIONS" :key="item.text" class="flex items-center gap-3">
           <v-icon :icon="item.icon" color="primary" size="24" />
           <span>{{ item.text }}</span>
         </li>
       </ol>
-    </details>
+    </section>
 
     <h2 class="section-title">Укрытия рядом</h2>
     <ListSkeleton v-if="loading && !shelters.length" :count="3" />
@@ -210,7 +212,7 @@ async function endAlert(): Promise<void> {
             size="large"
             prepend-icon="mdi-walk"
             aria-label="Маршрут пешком в Яндекс Картах"
-            @click="openLink(s.yandex_url)"
+            @click="openRoute(s)"
           >
             Маршрут
           </v-btn>
@@ -226,6 +228,7 @@ async function endAlert(): Promise<void> {
       <div class="flex gap-2">
         <v-btn
           class="flex-1"
+          size="large"
           color="error"
           variant="flat"
           prepend-icon="mdi-alarm-light-outline"
@@ -237,6 +240,7 @@ async function endAlert(): Promise<void> {
         </v-btn>
         <v-btn
           class="flex-1"
+          size="large"
           color="success"
           variant="tonal"
           prepend-icon="mdi-check"
@@ -280,21 +284,6 @@ async function endAlert(): Promise<void> {
   outline: 3px solid rgb(var(--v-theme-primary));
 }
 .rules {
-  padding: 4px 16px 14px;
-}
-.rules summary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  list-style: none;
-  min-height: 48px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.rules summary::-webkit-details-marker {
-  display: none;
-}
-.rules[open] .rules__chevron {
-  transform: rotate(180deg);
+  padding: 14px 16px;
 }
 </style>

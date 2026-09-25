@@ -54,11 +54,12 @@ export function pageEnter(el: Element, done: () => void): void {
   }
   gsap.fromTo(
     el,
-    { opacity: 0, y: 14 },
+    { opacity: 0, y: 8 },
     {
       opacity: 1,
       y: 0,
-      duration: 0.3,
+      // короткий переход: вкладки переключаются без ощущения задержки
+      duration: 0.18,
       ease: 'power2.out',
       clearProps: 'transform',
       onComplete: done,
@@ -73,8 +74,8 @@ export function pageLeave(el: Element, done: () => void): void {
   }
   gsap.to(el, {
     opacity: 0,
-    y: -8,
-    duration: 0.14,
+    y: -4,
+    duration: 0.08,
     ease: 'power1.in',
     onComplete: done,
   })
@@ -86,7 +87,7 @@ export function pop(el: Element | null | undefined): void {
   gsap.fromTo(el, { scale: 0.92 }, { scale: 1, duration: 0.5, ease: 'elastic.out(1, 0.45)' })
 }
 
-const CONFETTI_COLORS = ['#023E8A', '#0077B6', '#0096C7', '#00B4D8', '#48CAE4', '#90E0EF']
+const CONFETTI_COLORS = ['#1F5FAF', '#0F766E', '#7B4FA0', '#1E7B45', '#F4C15D', '#7FB3F5']
 
 /** Конфетти из центра контейнера. Элементы удаляются после анимации. */
 export function confetti(container: HTMLElement | null, count = 42): void {

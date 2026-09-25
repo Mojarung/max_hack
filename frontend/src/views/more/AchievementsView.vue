@@ -124,27 +124,30 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
 
       <h2 class="section-title">Рейтинг соседей</h2>
       <ol class="card-soft m-0 list-none p-0">
-        <li
-          v-for="row in data.leaderboard"
-          :key="row.user.id"
-          class="leader"
-          :class="{ 'leader--me': isMe(row) }"
-        >
-          <span class="leader__rank">
-            <v-icon v-if="row.rank <= 3" icon="mdi-medal" :color="MEDALS[row.rank - 1]" size="26" />
-            <template v-else>{{ row.rank }}</template>
-          </span>
-          <UserAvatar :user="row.user" :size="36" />
-          <div class="min-w-0 flex-1">
-            <router-link
-              :to="`/people/${row.user.id}`"
-              class="block truncate font-semibold text-inherit no-underline"
-            >
-              {{ fullName(row.user) }}<span v-if="isMe(row)" class="text-primary"> (вы)</span>
-            </router-link>
-            <div class="text-muted text-sm">{{ row.level_title }}</div>
-          </div>
-          <strong class="tabular-nums">{{ row.points }}</strong>
+        <li v-for="row in data.leaderboard" :key="row.user.id">
+          <router-link
+            :to="`/people/${row.user.id}`"
+            class="leader text-inherit no-underline"
+            :class="{ 'leader--me': isMe(row) }"
+          >
+            <span class="leader__rank">
+              <v-icon
+                v-if="row.rank <= 3"
+                icon="mdi-medal"
+                :color="MEDALS[row.rank - 1]"
+                size="26"
+              />
+              <template v-else>{{ row.rank }}</template>
+            </span>
+            <UserAvatar :user="row.user" :size="36" />
+            <div class="min-w-0 flex-1">
+              <div class="truncate font-semibold">
+                {{ fullName(row.user) }}<span v-if="isMe(row)" class="text-primary"> (вы)</span>
+              </div>
+              <div class="text-muted text-sm">{{ row.level_title }}</div>
+            </div>
+            <strong class="tabular-nums">{{ row.points }}</strong>
+          </router-link>
         </li>
       </ol>
     </template>
@@ -213,6 +216,7 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
 .badge--locked .badge__title {
   color: rgba(var(--v-theme-on-surface), 0.72);
 }
+/* вся строка рейтинга открывает профиль соседа */
 .leader {
   display: flex;
   align-items: center;
@@ -220,7 +224,7 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
   padding: 10px 14px;
   border-bottom: 1px solid rgba(var(--v-border-color), 0.08);
 }
-.leader:last-child {
+li:last-child > .leader {
   border-bottom: 0;
 }
 .leader--me {

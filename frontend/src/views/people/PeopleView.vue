@@ -67,20 +67,16 @@ onMounted(load)
         >
           <UserAvatar :user="p" :size="44" />
           <span class="min-w-0 flex-1">
-            <span class="block truncate font-semibold">{{ fullName(p) }}</span>
-            <span class="text-muted block truncate text-sm">
-              <template v-if="p.apartment">Кв. {{ p.apartment }} · </template>{{ p.level_title }}
+            <span class="line-clamp-2 leading-snug font-semibold">{{ fullName(p) }}</span>
+            <span class="text-muted block text-sm">
+              <template v-if="p.role === 'admin'">
+                <v-icon icon="mdi-shield-account-outline" size="16" aria-hidden="true" />
+                администратор ·
+              </template>
+              <template v-if="p.apartment">кв. {{ p.apartment }} · </template>{{ p.level_title }}
             </span>
           </span>
-          <v-chip
-            v-if="p.role === 'admin'"
-            size="small"
-            color="primary"
-            variant="tonal"
-            prepend-icon="mdi-shield-account-outline"
-          >
-            Админ
-          </v-chip>
+
           <v-icon icon="mdi-chevron-right" aria-hidden="true" />
         </router-link>
       </li>

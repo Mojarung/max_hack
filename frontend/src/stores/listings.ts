@@ -16,7 +16,7 @@ export const useListingsStore = defineStore('listings', () => {
   const query = ref('')
   const category = ref<string | null>(null)
   const freeOnly = ref(false)
-  /** Закрытые объявления не пропадают: они в «Мои» и «Завершённые». */
+  /** Закрытые объявления не пропадают: они в «Мои» и «Закрытые». */
   const scope = ref<ListingScope>('active')
   const categories = ref<Category[]>(normalizeCategories(null, LISTING_CATEGORY_TITLES))
   const details = ref<Record<number, ListingOut>>({})
