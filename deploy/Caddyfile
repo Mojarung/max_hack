@@ -1,0 +1,17 @@
+# HTTPS для мини-приложения: Caddy сам получает и продлевает сертификат Let's Encrypt.
+# Нужно: A-запись домена указывает на сервер, порты 80 и 443 открыты.
+{$DOMAIN} {
+	encode zstd gzip
+	# SSE-поток обновлений нельзя буферизовать
+	@sse path /api/v1/realtime/stream
+	reverse_proxy @sse frontend:80 {
+		flush_interval -1
+	}
+	reverse_proxy frontend:80
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}

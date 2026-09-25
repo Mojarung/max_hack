@@ -1,0 +1,10 @@
+# Серверный оверрайд: наружу не торчит ничего, кроме фронта (за reverse-proxy)
+services:
+  postgres: { ports: !reset [] }
+  rabbitmq: { ports: !reset [] }
+  minio:    { ports: !reset [] }
+  mcp:      { ports: !reset [] }
+  api:      { ports: !reset [] }
+  frontend:
+    ports: !override
+      - "127.0.0.1:8180:80"

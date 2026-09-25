@@ -14,6 +14,10 @@ x-backend: &backend
     S3_ACCESS_KEY: ${MINIO_ROOT_USER:-domovoy}
     S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-domovoy-secret}
     INTERNAL_MCP_URL: http://mcp:8765/mcp
+    # Модельная отправка обращений: письма ловит Mailpit (http://localhost:8025), в УК ничего не уходит
+    SMTP_HOST: ${SMTP_HOST:-mailpit}
+    SMTP_PORT: ${SMTP_PORT:-1025}
+    APPEAL_TEST_EMAIL: ${APPEAL_TEST_EMAIL:-uk-test@domovoy.local}
   restart: unless-stopped
   depends_on:
     postgres:
@@ -73,6 +77,15 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+
+  mailpit:
+    # Тестовый почтовый ящик: сюда приходят обращения (модельная интеграция вместо e-mail УК)
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: 2000
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
 
   api:
     <<: *backend

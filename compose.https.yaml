@@ -1,0 +1,57 @@
+# Сервер с HTTPS (MAX открывает мини-приложения только по HTTPS):
+#   DOMAIN=kuzya.example.ru docker compose -f compose.yaml -f compose.https.yaml up -d --build
+#
+# Наружу открыты только 80/443 (Caddy). Базы, очередь, MinIO, API и MCP доступны лишь внутри сети compose.
+# Лимиты памяти рассчитаны на сервер с 2 ГБ RAM (1 vCPU). Сервер меньше 2 ГБ не подходит: сборка и Postgres не влезут.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?укажите DOMAIN, например kuzya.example.ru}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    mem_limit: 64m
+
+  postgres:
+    ports: !reset []
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=60", "-c", "work_mem=4MB"]
+    mem_limit: 384m
+  rabbitmq:
+    ports: !reset []
+    mem_limit: 256m
+  minio:
+    ports: !reset []
+    mem_limit: 192m
+  mailpit:
+    # только для себя: ssh -L 8025:127.0.0.1:8025 user@server, затем http://localhost:8025
+    ports: !override
+      - "127.0.0.1:8025:8025"
+    mem_limit: 48m
+  mcp:
+    ports: !reset []
+    mem_limit: 160m
+  api:
+    ports: !reset []
+    environment:
+      PUBLIC_APP_URL: https://${DOMAIN}
+    mem_limit: 384m
+  bot:
+    mem_limit: 256m
+  worker:
+    mem_limit: 192m
+  frontend:
+    ports: !reset []
+    mem_limit: 32m
+
+volumes:
+  caddy_data:
+  caddy_config:

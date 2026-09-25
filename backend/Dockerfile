@@ -20,6 +20,10 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
+# platform-api2.max.ru подписан российским корневым CA: httpx берёт certifi, а не системное хранилище.
+COPY russian_trusted_root_ca.crt /usr/local/share/ca-certificates/russian_trusted_root_ca.crt
+RUN cat /usr/local/share/ca-certificates/russian_trusted_root_ca.crt >> "$(python -c 'import certifi; print(certifi.where())')"
+
 RUN useradd --create-home --uid 10001 domovoy
 USER domovoy
 
