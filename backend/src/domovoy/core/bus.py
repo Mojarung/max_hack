@@ -4,7 +4,8 @@
 - `rt.<тип>`: события реального времени, их получает каждый экземпляр API и отдаёт в SSE;
 - `bot.send`: команда боту отправить сообщение (из API и воркера);
 - `bot.inbound`: входящие апдейты эмулятора чата (мок-режим);
-- `issue.dispatch`: заявка набрала порог голосов, воркер формирует обращение.
+- `issue.dispatch`: заявка набрала порог голосов, воркер формирует обращение;
+- `bot.issue_refresh`: обновить счётчик голосов в сообщении заявки в чате (голосовали из приложения).
 """
 
 from functools import lru_cache
@@ -22,6 +23,7 @@ EXCHANGE = RabbitExchange("domovoy", type=ExchangeType.TOPIC, durable=True)
 Q_BOT_SEND = RabbitQueue("bot.send", durable=True, routing_key="bot.send")
 Q_BOT_INBOUND = RabbitQueue("bot.inbound", durable=True, routing_key="bot.inbound")
 Q_ISSUE_DISPATCH = RabbitQueue("issue.dispatch", durable=True, routing_key="issue.dispatch")
+Q_BOT_ISSUE_REFRESH = RabbitQueue("bot.issue_refresh", durable=True, routing_key="bot.issue_refresh")
 
 
 @lru_cache
@@ -48,9 +50,24 @@ async def bot_send(
     chat_id: int | None = None,
     user_id: int | None = None,
     buttons: list[list[dict[str, str]]] | None = None,
+    photos: list[str] | None = None,
+    pin: bool = False,
+    ref: dict[str, int] | None = None,
 ) -> None:
-    """Просит процесс бота отправить сообщение в чат или в личку."""
+    """Просит процесс бота отправить сообщение в чат или в личку.
+
+    photos: ключи фото в MinIO; pin: закрепить в чате; ref: к чему привязать id сообщения
+    ({"issue_id": 5} - потом бот обновит в нём счётчик голосов).
+    """
     await publish(
         "bot.send",
-        {"chat_id": chat_id, "user_id": user_id, "text": text, "buttons": buttons or []},
+        {
+            "chat_id": chat_id,
+            "user_id": user_id,
+            "text": text,
+            "buttons": buttons or [],
+            "photos": photos or [],
+            "pin": pin,
+            "ref": ref or {},
+        },
     )

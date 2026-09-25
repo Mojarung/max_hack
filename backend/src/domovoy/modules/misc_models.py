@@ -74,5 +74,37 @@ class MockChatMessage(TimestampMixin, Base):
     from_name: Mapped[str | None] = mapped_column(String(256))
     text: Mapped[str] = mapped_column(Text, default="")
     buttons: Mapped[list[list[dict[str, str]]]] = mapped_column(JSONB, default=list)
+    photos: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default="[]")
     notice: Mapped[str | None] = mapped_column(String(256))
     deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class Announcement(TimestampMixin, Base):
+    """Объявление дома: доска в приложении + сообщение Кузи в чате (субботник, отключение воды, собрание)."""
+
+    __tablename__ = "announcements"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    house_id: Mapped[int] = mapped_column(ForeignKey("houses.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    title: Mapped[str] = mapped_column(String(120))
+    text: Mapped[str] = mapped_column(Text, default="")
+    event_id: Mapped[int | None] = mapped_column(ForeignKey("events.id", ondelete="SET NULL"))
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class Document(TimestampMixin, Base):
+    """Документ дома (виден всем жителям) или личный документ жителя (виден только ему)."""
+
+    __tablename__ = "documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    house_id: Mapped[int] = mapped_column(ForeignKey("houses.id", ondelete="CASCADE"), index=True)
+    # None: документ дома; иначе личный документ этого жителя
+    owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    title: Mapped[str] = mapped_column(String(200))
+    filename: Mapped[str] = mapped_column(String(256))
+    content_type: Mapped[str] = mapped_column(String(128))
+    size: Mapped[int] = mapped_column(Integer)
+    key: Mapped[str] = mapped_column(String(256))

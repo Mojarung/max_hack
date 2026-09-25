@@ -5,6 +5,8 @@ from domovoy.modules.issues.models import Issue, IssueUpdate, IssueVote
 from domovoy.modules.market.models import Listing
 from domovoy.modules.misc_models import (
     Alert,
+    Announcement,
+    Document,
     McpServer,
     MockChatMessage,
     ModerationLog,
@@ -15,6 +17,8 @@ from domovoy.modules.users.models import House, Membership, Organization, Points
 
 __all__ = [
     "Alert",
+    "Announcement",
+    "Document",
     "Event",
     "EventComment",
     "EventParticipant",

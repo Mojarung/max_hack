@@ -22,7 +22,15 @@ NAME_RE = re.compile(r"Собеседник:\s*([^\n(]+)")
 SPEAKER_RE = re.compile(r"^\[([^\]]+)\]:\s*")
 
 # (ключевые корни, имя инструмента); порядок важен: сначала более конкретные намерения.
-CREATE_EVENT_WORDS = ("созда", "организ", "устро", "запланир", "собер", "проведем", "давайте")
+CREATE_EVENT_WORDS = ("созда", "организ", "устро", "запланир", "собер", "проведем", "давайте", "сдела")
+ANNOUNCE_WORDS = ("объявлени", "оповест", "напиши всем", "сообщи всем", "предупреди всех", "анонс")
+ANNOUNCE_VERBS = ("сдела", "созда", "напиш", "опубликуй", "размест", "дай", "оповест", "предупреди", "сообщи")
+ANNOUNCE_PREFIX_RE = re.compile(
+    r"^(?:@\S+\s*|кузя[,!]?\s*)*(?:пожалуйста\s*)?"
+    r"(?:(?:сделай|создай|напиши|опубликуй|размести|дай|оповести|предупреди|сообщи)\w*\s+)?"
+    r"(?:всех\s+|всем\s+|соседей\s+|жителей\s+)?(?:объявлени\w*\s*)?(?:об?\s+|про\s+|что\s+)?",
+    re.IGNORECASE,
+)
 EVENT_WORDS = ("субботник", "мероприят", "событи", "праздник", "встреч", "собрани", "пикник", "турнир")
 INTENTS: tuple[tuple[tuple[str, ...], str], ...] = (
     # инструменты MCP-сервера «Жилищный навигатор» (подключается к агенту по MCP)
@@ -40,7 +48,7 @@ INTENTS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("ачивк", "очк", "уровень", "рейтинг", "мой профиль", "награ"), "my_profile"),
     (("как дела", "как дом", "статус дома", "настроени", "как ты", "пульс"), "house_status"),
 )
-ACTION_TOOLS = frozenset({"create_event", "create_issue", "vote_issue"})
+ACTION_TOOLS = frozenset({"create_event", "create_issue", "vote_issue", "create_announcement"})
 GREETINGS = ("привет", "здравств", "добрый", "доброе", "hello", "/start", "хай", "салют")
 THANKS = ("спасибо", "благодар", "спс")
 
@@ -110,6 +118,9 @@ def _speaker(messages: Sequence[BaseMessage]) -> str:
 
 def pick_intent(text: str, tool_names: set[str] | frozenset[str]) -> tuple[str, dict[str, Any]] | None:
     low = text.lower().replace("ё", "е")
+    wants_announce = any(w in low for w in ANNOUNCE_WORDS) and any(v in low for v in ANNOUNCE_VERBS)
+    if wants_announce and "create_announcement" in tool_names:
+        return "create_announcement", _announcement_args(text, low)
     wants_event = any(w in low for w in CREATE_EVENT_WORDS) and any(w in low for w in EVENT_WORDS)
     if wants_event and "create_event" in tool_names:
         return "create_event", {"title": _event_title(low), "when": text, "place": _place(text)}
@@ -123,6 +134,19 @@ def pick_intent(text: str, tool_names: set[str] | frozenset[str]) -> tuple[str, 
     if "search_house" in tool_names and len(low) > 12 and not any(g in low for g in GREETINGS):
         return "search_house", {"query": text}
     return None
+
+
+def _announcement_args(text: str, low: str) -> dict[str, Any]:
+    """Заголовок и текст объявления из просьбы «Кузя, сделай объявление о субботнике в субботу в 11»."""
+    from domovoy.agent.timeparse import parse_when
+
+    if any(w in low for w in EVENT_WORDS):
+        has_date = parse_when(text) is not None
+        return {"title": _event_title(low), "text": "", "when": text if has_date else "", "place": _place(text)}
+    body = ANNOUNCE_PREFIX_RE.sub("", text.strip()).strip(" .!,:")
+    body = body[:1].upper() + body[1:] if body else "Важная информация для жителей"
+    title = body if len(body) <= 60 else body[:57].rsplit(" ", 1)[0] + "..."
+    return {"title": title, "text": body if body != title else "", "when": "", "place": ""}
 
 
 def _event_title(low: str) -> str:

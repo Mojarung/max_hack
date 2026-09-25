@@ -20,8 +20,10 @@ from domovoy.core.db import init_db
 from domovoy.core.realtime import hub
 from domovoy.core.storage import ensure_bucket
 from domovoy.modules.achievements.router import router as achievements_router
+from domovoy.modules.announcements.router import router as announcements_router
 from domovoy.modules.assistant.router import router as assistant_router
 from domovoy.modules.devchat.router import router as devchat_router
+from domovoy.modules.documents.router import router as documents_router
 from domovoy.modules.events.router import router as events_router
 from domovoy.modules.issues.router import router as issues_router
 from domovoy.modules.market.router import router as market_router
@@ -81,6 +83,8 @@ def create_app() -> FastAPI:
         market_router,
         events_router,
         achievements_router,
+        announcements_router,
+        documents_router,
         safety_router,
         search_router,
         assistant_router,

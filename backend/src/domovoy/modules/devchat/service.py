@@ -24,6 +24,7 @@ class ChatMessageOut(BaseModel):
     from_: ChatFrom | None = None
     text: str
     buttons: list[list[dict[str, str]]]
+    photos: list[str] = []
     deleted: bool
     notice: str | None
     created_at: datetime
@@ -55,6 +56,7 @@ def to_out(m: MockChatMessage) -> ChatMessageOut:
         from_=sender,
         text=m.text,
         buttons=m.buttons or [],
+        photos=m.photos or [],
         deleted=m.deleted,
         notice=m.notice,
         created_at=m.created_at,
@@ -69,9 +71,15 @@ async def store(
     from_user_max_id: int | None = None,
     from_name: str | None = None,
     buttons: list[list[dict[str, str]]] | None = None,
+    photos: list[str] | None = None,
 ) -> MockChatMessage:
     msg = MockChatMessage(
-        chat_id=chat_id, text=text, from_user_max_id=from_user_max_id, from_name=from_name, buttons=buttons or []
+        chat_id=chat_id,
+        text=text,
+        from_user_max_id=from_user_max_id,
+        from_name=from_name,
+        buttons=buttons or [],
+        photos=photos or [],
     )
     session.add(msg)
     await session.commit()

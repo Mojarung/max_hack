@@ -52,11 +52,28 @@ async def lock_row(session: AsyncSession, model: type[Any], row_id: int) -> None
     await session.execute(select(model.id).where(model.id == row_id).with_for_update())
 
 
+# create_all не добавляет колонки в существующие таблицы. Пока нет Alembic, новые колонки
+# дописываются сюда идемпотентно, чтобы уже развёрнутая база обновлялась без потери данных.
+ADD_COLUMNS = (
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS active_house_id INTEGER REFERENCES houses(id) ON DELETE SET NULL",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarded BOOLEAN NOT NULL DEFAULT false",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS chats_checked_at TIMESTAMPTZ",
+    "ALTER TABLE houses ADD COLUMN IF NOT EXISTS info TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE houses ADD COLUMN IF NOT EXISTS setup_done BOOLEAN NOT NULL DEFAULT true",
+    "ALTER TABLE houses ADD COLUMN IF NOT EXISTS bot_is_admin BOOLEAN",
+    "ALTER TABLE memberships ADD COLUMN IF NOT EXISTS checked_at TIMESTAMPTZ",
+    "ALTER TABLE issues ADD COLUMN IF NOT EXISTS appeal_channel VARCHAR(256)",
+    "ALTER TABLE mock_chat_messages ADD COLUMN IF NOT EXISTS photos JSONB NOT NULL DEFAULT '[]'::jsonb",
+)
+
+
 async def init_db() -> None:
-    """Создаёт расширение pgvector и таблицы. Для MVP вместо миграций используется create_all."""
+    """Создаёт расширение pgvector, таблицы и недостающие колонки. Вместо миграций MVP использует create_all."""
     import domovoy.modules.models  # noqa: F401  регистрирует все модели в metadata
 
     async with get_engine().begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.execute(text("SELECT pg_advisory_xact_lock(424242)"))
         await conn.run_sync(Base.metadata.create_all)
+        for ddl in ADD_COLUMNS:
+            await conn.execute(text(ddl))

@@ -78,5 +78,46 @@ async def read_object(key: str) -> bytes:
         response.close()
 
 
+DOC_TYPES = {
+    "application/pdf": "pdf",
+    "application/msword": "doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/vnd.ms-excel": "xls",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+    "application/vnd.oasis.opendocument.text": "odt",
+    "text/plain": "txt",
+}
+DOC_MAX_BYTES = 20 * 1024 * 1024
+
+
+async def save_document(prefix: str, upload: UploadFile) -> tuple[str, str, int]:
+    """Сохраняет документ: PDF, Word, Excel, текст или фото (фото без EXIF). Возвращает ключ, тип и размер."""
+    raw = await upload.read(DOC_MAX_BYTES + 1)
+    if len(raw) > DOC_MAX_BYTES:
+        raise HTTPException(422, "Файл больше 20 МБ, выберите файл поменьше")
+    if not raw:
+        raise HTTPException(422, "Файл пустой")
+    content_type = (upload.content_type or "").split(";")[0].strip()
+    if content_type in ALLOWED_TYPES:
+        try:
+            raw, content_type, ext = _normalize_image(raw), "image/jpeg", "jpg"
+        except Exception as exc:
+            raise HTTPException(422, "Не удалось прочитать изображение") from exc
+    elif content_type in DOC_TYPES:
+        ext = DOC_TYPES[content_type]
+    else:
+        raise HTTPException(422, "Поддерживаются PDF, Word, Excel, текст и фото")
+    key = f"{prefix}/{uuid.uuid4().hex}.{ext}"
+    await get_minio().put_object(get_settings().s3_bucket, key, io.BytesIO(raw), len(raw), content_type=content_type)
+    return key, content_type, len(raw)
+
+
+async def remove_object(key: str) -> None:
+    try:
+        await get_minio().remove_object(get_settings().s3_bucket, key)
+    except Exception:
+        log.warning("storage.remove_failed", key=key, exc_info=True)
+
+
 def media_url(key: str) -> str:
     return f"/api/v1/media/{key}"

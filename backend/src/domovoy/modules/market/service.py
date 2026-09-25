@@ -81,6 +81,9 @@ async def get_listing(session: AsyncSession, listing_id: int, house_id: int) -> 
     return item
 
 
+ListingScope = Literal["active", "mine", "closed"]
+
+
 async def list_listings(
     session: AsyncSession,
     house_id: int,
@@ -89,8 +92,16 @@ async def list_listings(
     category: str | None = None,
     free: bool | None = None,
     limit: int = 60,
+    scope: ListingScope = "active",
 ) -> list[ListingOut]:
-    where = [Listing.house_id == house_id, Listing.status != "closed"]
+    """scope: active - в продаже и забронированные; mine - все свои, включая закрытые; closed - завершённые."""
+    where = [Listing.house_id == house_id]
+    if scope == "mine":
+        where.append(Listing.author_id == user_id)
+    elif scope == "closed":
+        where.append(Listing.status == "closed")
+    else:
+        where.append(Listing.status != "closed")
     if category:
         where.append(Listing.category == category)
     if free:

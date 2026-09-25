@@ -38,10 +38,39 @@ def vote_buttons(issue: Issue) -> list[list[dict[str, str]]]:
     ]
 
 
+def issue_chat_text(issue: Issue) -> str:
+    """Текст сообщения заявки в чате дома. Им же бот обновляет сообщение после каждого голоса."""
+    org = issue.responsible_org.name if issue.responsible_org else "исполнителю"
+    head = f"🏠 Проблема: **{issue.title}**\n{issue.author.full_name}: {issue.description[:300]}"
+    if issue.status == "voting":
+        left = max(issue.votes_needed - issue.votes_count, 0)
+        return (
+            f"{head}\n\nПоддержали {issue.votes_count} из {issue.votes_needed}, нужно ещё {left}. "
+            f"Когда голосов хватит, я сам отправлю обращение: {org}."
+        )
+    if issue.status in ("resolved", "rejected"):
+        return f"{head}\n\n{STATUS_TITLES.get(issue.status, issue.status)}. Спасибо всем, кто поддержал!"
+    return f"{head}\n\n✅ Голоса собраны ({issue.votes_count}). Обращение отправлено: {org}. Слежу за сроком."
+
+
 async def responsible_org(session: AsyncSession, house: House, org_kind: str) -> Organization | None:
     if org_kind == "uk" and house.uk_org_id:
         return await session.get(Organization, house.uk_org_id)
     return await session.scalar(select(Organization).where(Organization.kind == org_kind).limit(1))
+
+
+def status_buttons(issue: Issue) -> list[list[dict[str, str]]]:
+    return [[app_button("Статус заявки", f"issue_{issue.id}")]]
+
+
+def chat_buttons(issue: Issue) -> list[list[dict[str, str]]]:
+    return vote_buttons(issue) if issue.status == "voting" else status_buttons(issue)
+
+
+async def refresh_chat_message(issue: Issue) -> None:
+    """Счётчик голосов в сообщении заявки в чате должен совпадать с приложением."""
+    if issue.chat_message_id and issue.house.max_chat_id:
+        await bus.publish("bot.issue_refresh", {"issue_id": issue.id})
 
 
 async def get_issue(session: AsyncSession, issue_id: int, house_id: int) -> Issue:
@@ -123,12 +152,10 @@ async def create_issue(
         else:
             await bus.bot_send(
                 chat_id=house.max_chat_id,
-                text=(
-                    f"🏠 Новая проблема: **{issue.title}**\n{user.full_name}: {issue.description[:300]}\n\n"
-                    f"Нужно {issue.votes_needed} голосов, и я сам отправлю обращение: "
-                    f"{org.name if org else 'исполнителю'}."
-                ),
-                buttons=vote_buttons(issue),
+                text=issue_chat_text(issue),
+                buttons=vote_buttons(issue) if issue.status == "voting" else status_buttons(issue),
+                photos=issue.photos,
+                ref={"issue_id": issue.id},
             )
     if issue.status == "sent":
         await bus.publish("issue.dispatch", {"issue_id": issue.id})
@@ -143,7 +170,7 @@ def _mark_sent(session: AsyncSession, issue: Issue, note: str) -> None:
     session.add(IssueUpdate(issue_id=issue.id, status="sent", note=note))
 
 
-async def vote(session: AsyncSession, issue: Issue, user: User) -> tuple[Issue, bool]:
+async def vote(session: AsyncSession, issue: Issue, user: User, *, from_chat: bool = False) -> tuple[Issue, bool]:
     """Голос за заявку. Возвращает заявку и признак «порог только что набран».
 
     Строка заявки блокируется (SELECT ... FOR UPDATE), поэтому одновременные голоса соседей
@@ -172,6 +199,9 @@ async def vote(session: AsyncSession, issue: Issue, user: User) -> tuple[Issue, 
     if reached and author_awarded:
         await achievements.announce(issue.house_id, issue.author, author_awarded)
     await bus.emit(issue.house_id, "issue.updated", issue_out(issue, False).model_dump(mode="json"))
+    if not from_chat:
+        # голос из приложения или от агента: обновляем кнопку «Поддерживаю (N/M)» в чате
+        await refresh_chat_message(issue)
     if reached:
         await bus.publish("issue.dispatch", {"issue_id": issue.id})
         await bus.emit(issue.house_id, "pulse.changed", {})
@@ -194,6 +224,7 @@ async def unvote(session: AsyncSession, issue: Issue, user: User) -> Issue:
     await session.commit()
     await session.refresh(issue)
     await bus.emit(issue.house_id, "issue.updated", issue_out(issue, False).model_dump(mode="json"))
+    await refresh_chat_message(issue)
     return issue
 
 
@@ -218,6 +249,7 @@ async def set_status(session: AsyncSession, issue: Issue, user: User, is_admin: 
     await achievements.announce(issue.house_id, issue.author, awarded)
     await bus.emit(issue.house_id, "issue.updated", issue_out(issue, False).model_dump(mode="json"))
     await bus.emit(issue.house_id, "pulse.changed", {})
+    await refresh_chat_message(issue)
     if status == "resolved" and issue.house.max_chat_id:
         await bus.bot_send(
             chat_id=issue.house.max_chat_id,

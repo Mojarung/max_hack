@@ -1,4 +1,6 @@
-from sqlalchemy import BigInteger, Boolean, Float, ForeignKey, Integer, String, UniqueConstraint
+from datetime import datetime
+
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from domovoy.core.db import Base, TimestampMixin
@@ -16,6 +18,11 @@ class User(TimestampMixin, Base):
     apartment: Mapped[str | None] = mapped_column(String(16))
     points: Mapped[int] = mapped_column(Integer, default=0)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Дом, который житель выбрал последним: его видят и мини-приложение, и личка с ботом
+    active_house_id: Mapped[int | None] = mapped_column(ForeignKey("houses.id", ondelete="SET NULL"))
+    onboarded: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Когда последний раз сверяли, в каких чатах с Кузей состоит житель
+    chats_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     @property
     def full_name(self) -> str:
@@ -48,6 +55,12 @@ class House(TimestampMixin, Base):
     vote_threshold_pct: Mapped[int] = mapped_column(Integer, default=15)
     uk_org_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id"))
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Свободная информация о доме от администратора: диспетчерская, председатель, коды, правила
+    info: Mapped[str] = mapped_column(Text, default="", server_default="")
+    # Администратор ещё не прошёл первичную настройку (дом создан из чата с пустым адресом)
+    setup_done: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # Кузя администратор чата: может удалять сообщения и видеть участников
+    bot_is_admin: Mapped[bool | None] = mapped_column(Boolean)
 
     uk_org: Mapped[Organization | None] = relationship(lazy="joined")
 
@@ -61,6 +74,8 @@ class Membership(TimestampMixin, Base):
     house_id: Mapped[int] = mapped_column(ForeignKey("houses.id", ondelete="CASCADE"), index=True)
     role: Mapped[str] = mapped_column(String(16), default="resident")
     strikes: Mapped[int] = mapped_column(Integer, default=0)
+    # Когда роль последний раз сверяли с участниками и администраторами чата MAX
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class PointsLog(TimestampMixin, Base):

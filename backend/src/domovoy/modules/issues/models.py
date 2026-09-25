@@ -38,6 +38,8 @@ class Issue(TimestampMixin, Base):
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     chat_message_id: Mapped[str | None] = mapped_column(String(64))
+    # Куда фактически ушло обращение, например «test_email:uk-test@…» (модельная интеграция)
+    appeal_channel: Mapped[str | None] = mapped_column(String(256))
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM))
     search: Mapped[str] = mapped_column(
         TSVECTOR,

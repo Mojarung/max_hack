@@ -54,6 +54,17 @@ class Settings(BaseSettings):
     upload_max_bytes: int = 10 * 1024 * 1024
     upload_max_files: int = 5
 
+    # Отправка обращений на ТЕСТОВЫЙ e-mail (модельная интеграция: настоящей УК письмо не уходит).
+    # Пусто APPEAL_TEST_EMAIL или SMTP_HOST = обращение только сохраняется в карточке заявки.
+    appeal_test_email: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 1025
+    smtp_user: str = ""
+    smtp_password: SecretStr = SecretStr("")
+    smtp_ssl: bool = False
+    smtp_starttls: bool = False
+    smtp_from: str = "Домовой Кузя <kuzya@domovoy.local>"
+
     # Дополнительные MCP-серверы для агента в формате JSON:
     # [{"name": "weather", "transport": "streamable_http", "url": "http://..."}]
     extra_mcp_servers: str = "[]"
@@ -64,12 +75,21 @@ class Settings(BaseSettings):
     # Житель без членства в доме (открыл приложение из лички) подключается к первому (пилотному) дому
     pilot_house_fallback: bool = True
 
+    # Подпись временных ссылок на документы. Пусто = выводится из токена бота и ключа MinIO.
+    files_secret: SecretStr = SecretStr("")
+    files_link_ttl_seconds: int = 15 * 60
+
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
     public_app_url: str = "http://localhost:8080"
 
     @property
     def bot_token(self) -> str:
         return self.max_bot_token.get_secret_value()
+
+    @property
+    def files_signing_key(self) -> bytes:
+        raw = self.files_secret.get_secret_value() or f"{self.bot_token}:{self.s3_secret_key.get_secret_value()}"
+        return raw.encode()
 
     @property
     def has_max_token(self) -> bool:

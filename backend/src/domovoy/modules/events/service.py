@@ -139,7 +139,8 @@ def join_buttons(ev: Event) -> list[list[dict[str, str]]]:
     ]
 
 
-async def create_event(session: AsyncSession, *, user: User, house: House, data: EventIn) -> Event:
+async def create_event(session: AsyncSession, *, user: User, house: House, data: EventIn, pin: bool = False) -> Event:
+    """pin: закрепить анонс в чате (объявление от администратора)."""
     starts_at = data.starts_at if data.starts_at.tzinfo else data.starts_at.replace(tzinfo=UTC)
     if starts_at < datetime.now(UTC):
         raise HTTPException(422, "Дата события уже прошла, выберите будущую")
@@ -177,6 +178,7 @@ async def create_event(session: AsyncSession, *, user: User, house: House, data:
                 + f"\nОрганизатор: {user.full_name}. Жмите «Иду», я напомню за пару часов!"
             ),
             buttons=join_buttons(ev),
+            pin=pin,
         )
     return ev
 

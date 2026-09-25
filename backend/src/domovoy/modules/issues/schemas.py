@@ -48,6 +48,8 @@ class IssueDetail(IssueOut):
     legal_basis: str
     deadline_hours: int
     appeal_text: str | None
+    # model - только текст в карточке; test_email:<адрес> - письмо на тестовый адрес (модельная интеграция)
+    appeal_channel: str | None = None
     location_hint: str | None
     timeline: list[TimelineItem]
 
@@ -118,6 +120,7 @@ def issue_detail(issue: Issue, voted_by_me: bool, timeline: list[IssueUpdate]) -
         legal_basis=issue.legal_basis,
         deadline_hours=issue.deadline_hours,
         appeal_text=issue.appeal_text,
+        appeal_channel=issue.appeal_channel,
         location_hint=issue.location_hint,
         timeline=[
             TimelineItem(

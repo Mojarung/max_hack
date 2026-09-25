@@ -19,9 +19,15 @@ async def categories() -> list[dict[str, str]]:
 
 @router.get("", response_model=list[ListingOut])
 async def list_listings(
-    session: SessionDep, ctx: CtxDep, q: str | None = None, category: str | None = None, free: bool | None = None
+    session: SessionDep,
+    ctx: CtxDep,
+    q: str | None = None,
+    category: str | None = None,
+    free: bool | None = None,
+    scope: service.ListingScope = "active",
 ) -> list[ListingOut]:
-    return await service.list_listings(session, ctx.house.id, ctx.user.id, q, category, free)
+    """scope=mine показывает свои объявления вместе с закрытыми: их можно вернуть в продажу."""
+    return await service.list_listings(session, ctx.house.id, ctx.user.id, q, category, free, scope=scope)
 
 
 @router.get("/{listing_id}", response_model=ListingOut)

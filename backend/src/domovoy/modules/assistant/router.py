@@ -71,7 +71,7 @@ async def chat(body: ChatIn, ctx: CtxDep) -> ChatOut:
             reply=f"Давай общаться вежливо 🙏 Я не могу ответить на такое ({verdict.human_reason()}).", tools_used=[]
         )
     reply = await run_agent(
-        ctx=AgentContext(user_id=ctx.user.id, house_id=ctx.house.id),
+        ctx=AgentContext(user_id=ctx.user.id, house_id=ctx.house.id, is_admin=ctx.is_admin),
         thread_id=f"app:{ctx.house.id}:{ctx.user.id}",
         speaker=ctx.user.full_name,
         house_title=ctx.house.title,

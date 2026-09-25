@@ -15,12 +15,14 @@ from domovoy.modules.events.models import Event, EventComment, EventParticipant
 from domovoy.modules.issues.catalog import category
 from domovoy.modules.issues.models import Issue, IssueUpdate, IssueVote
 from domovoy.modules.market.models import Listing
-from domovoy.modules.misc_models import MockChatMessage, Shelter, UserAchievement
+from domovoy.modules.misc_models import Announcement, MockChatMessage, Shelter, UserAchievement
 from domovoy.modules.users.models import House, Membership, Organization, User
 
 log = structlog.get_logger(__name__)
 
 DEMO_CHAT_ID = -100
+SECOND_CHAT_ID = -101
+SECOND_HOUSE_TITLE = "Дом 9 на Примерной"
 HOUSE_LAT, HOUSE_LON = 55.78874, 49.12214
 
 ORGS = [
@@ -52,6 +54,72 @@ SHELTERS = [
 
 
 async def seed_demo() -> None:
+    await _seed_base()
+    await _seed_extras()
+
+
+async def _seed_extras() -> None:
+    """Добавки к демо-данным, которые появились позже: доезжают и в уже развёрнутую базу."""
+    async with get_sessionmaker()() as session:
+        first = await session.scalar(select(House).where(House.max_chat_id == DEMO_CHAT_ID))
+        if first is None:
+            return
+        users = {u.max_user_id: u for u in await session.scalars(select(User).where(User.is_demo.is_(True)))}
+        if not await session.scalar(select(func.count()).select_from(Announcement)):
+            anna = users.get(1001)
+            session.add_all(
+                [
+                    Announcement(
+                        house_id=first.id,
+                        author_id=anna.id if anna else None,
+                        title="Отключение горячей воды 1-3 октября",
+                        text="Плановые работы на теплотрассе. Воду дадут 3 октября к 18:00 (по данным УК).",
+                        pinned=True,
+                    ),
+                    Announcement(
+                        house_id=first.id,
+                        author_id=anna.id if anna else None,
+                        title="Покраска подъезда 2",
+                        text="С понедельника красят стены на 1-4 этажах. Пожалуйста, не ставьте велосипеды у стен.",
+                    ),
+                ]
+            )
+        if not await session.scalar(select(House).where(House.max_chat_id == SECOND_CHAT_ID)):
+            # второй дом у Анны и Олега: видно переключение между домами
+            second = House(
+                max_chat_id=SECOND_CHAT_ID,
+                title=SECOND_HOUSE_TITLE,
+                address="г. Казань, ул. Примерная, д. 9 (демо-адрес)",
+                lat=HOUSE_LAT + 0.004,
+                lon=HOUSE_LON - 0.006,
+                members_count=24,
+                vote_threshold_pct=get_settings().default_vote_threshold_pct,
+                uk_org_id=first.uk_org_id,
+                is_demo=True,
+                info="Председатель совета дома: Анна Иванова, кв. 3.",
+            )
+            session.add(second)
+            await session.flush()
+            for max_id, role in ((1001, "admin"), (1002, "resident")):
+                if max_id in users:
+                    session.add(Membership(user_id=users[max_id].id, house_id=second.id, role=role))
+            session.add(
+                MockChatMessage(
+                    chat_id=SECOND_CHAT_ID,
+                    text="Всем привет! Я Домовой Кузя, живу и в этом доме 🏠",
+                    buttons=[[{"type": "open_app", "text": "🏠 Открыть приложение дома", "payload": "home"}]],
+                )
+            )
+        if not first.info:
+            first.info = (
+                "Диспетчерская УК (демо): +7 (843) 000-00-01, круглосуточно.\n"
+                "Председатель совета дома: Анна Иванова, кв. 12.\n"
+                "Вывоз крупногабарита: по средам, площадка у 3 подъезда."
+            )
+        await session.commit()
+
+
+async def _seed_base() -> None:
     async with get_sessionmaker()() as session:
         if await session.scalar(select(func.count()).select_from(Organization)):
             return

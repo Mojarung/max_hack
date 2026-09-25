@@ -10,13 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from domovoy.core.config import get_settings
 from domovoy.core.db import get_session
 from domovoy.core.max_auth import InitDataError, validate_init_data
+from domovoy.modules.users.membership import check_access, current_house, discover_houses, set_active
 from domovoy.modules.users.models import House, Membership, User
-from domovoy.modules.users.service import (
-    ensure_membership,
-    first_house_of,
-    house_by_chat,
-    upsert_user,
-)
+from domovoy.modules.users.service import ensure_membership, house_by_chat, upsert_user
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -46,7 +42,7 @@ async def resolve_ctx(
         except InitDataError as exc:
             raise HTTPException(401, str(exc)) from exc
         user = await upsert_user(session, data.user)
-        if data.chat and data.chat.get("type") == "CHAT":
+        if data.chat and str(data.chat.get("type", "")).upper() == "CHAT":
             chat_id = int(data.chat["id"])
     elif dev_user is not None and settings.mock_max:
         found = await session.scalar(select(User).where(User.max_user_id == dev_user))
@@ -56,30 +52,39 @@ async def resolve_ctx(
     else:
         raise HTTPException(401, "Откройте приложение из MAX")
 
-    # Дом из заголовка принимается только если житель уже в нём состоит: заголовок присылает клиент.
+    # Дом из заголовка присылает клиент: пускаем, только если житель состоит в этом доме (сверяем с чатом MAX).
     if house_id is not None:
-        role = await member_role(session, user.id, house_id)
-        chosen = await session.get(House, house_id) if role else None
+        chosen = await session.get(House, house_id)
+        role = await check_access(session, user, chosen) if chosen else None
         if chosen is None or role is None:
+            await session.commit()
             raise HTTPException(403, "Вы не состоите в этом доме")
+        set_active(user, chosen)
         await session.commit()
         return Ctx(user=user, house=chosen, role=role)
 
-    # Доверенные источники дома: чат из подписанного initData, затем существующее членство.
+    # Приложение открыто из чата дома: подписанный initData - доверенный источник членства.
     house: House | None = None
     if chat_id is not None:
         house = await house_by_chat(session, chat_id)
+        if house is not None:
+            await ensure_membership(session, user, house)
     if house is None:
-        house = await first_house_of(session, user)
+        # Открыли из лички или по ссылке: тот же дом, что видит бот в личке (активный)
+        await discover_houses(session, user)
+        house = await current_house(session, user)
     if house is None and settings.pilot_house_fallback:
-        # Житель открыл приложение из лички, ещё не написав в чат дома: подключаем к пилотному дому.
+        # Житель ещё не в чате с Кузей: показываем пилотный дом, чтобы было что посмотреть
         house = await session.scalar(select(House).order_by(House.id).limit(1))
+        if house is not None:
+            await ensure_membership(session, user, house)
     if house is None:
         raise HTTPException(404, "Дом ещё не подключён: добавьте Кузю в чат дома и откройте приложение оттуда")
 
-    member = await ensure_membership(session, user, house)
+    role = await check_access(session, user, house) or (await ensure_membership(session, user, house)).role
+    set_active(user, house)
     await session.commit()
-    return Ctx(user=user, house=house, role=member.role)
+    return Ctx(user=user, house=house, role=role)
 
 
 async def get_ctx(

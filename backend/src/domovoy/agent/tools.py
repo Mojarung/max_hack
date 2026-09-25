@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from domovoy.agent.timeparse import parse_when
 from domovoy.core.db import get_sessionmaker
 from domovoy.modules.achievements.catalog import level_for
+from domovoy.modules.announcements import service as announcements
 from domovoy.modules.events import service as events
 from domovoy.modules.events.models import Event
 from domovoy.modules.issues import service as issues
@@ -33,6 +34,7 @@ MSK = ZoneInfo("Europe/Moscow")
 class AgentContext:
     user_id: int
     house_id: int
+    is_admin: bool = False
 
 
 KIND_WORDS = (
@@ -187,6 +189,66 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
         )
 
     @tool
+    async def create_announcement(title: str, text: str = "", when: str = "", place: str = "") -> str:
+        """Сделать объявление для всех жителей: сообщение Кузи в чате дома и запись на доске объявлений.
+
+        Используй, когда просят «сделай объявление», «оповести соседей», «напиши всем».
+        title: короткий заголовок («Субботник во дворе», «Отключение горячей воды»).
+        text: текст объявления, вежливо, 1-4 предложения; можно пусто.
+        when: только для мероприятия жителей (субботник, собрание, праздник) - дата и время словами
+        («в субботу в 11»); тогда создаётся ещё и событие с кнопкой «Иду» и напоминанием.
+        place: место мероприятия.
+        """
+        starts_at = parse_when(when) if when else None
+        async with sm() as session:
+            user, house = await load(session)
+            event_id: int | None = None
+            try:
+                if starts_at is not None:
+                    ev = await events.create_event(
+                        session,
+                        user=user,
+                        house=house,
+                        data=events.EventIn(
+                            title=title[:120],
+                            description=text[:2000],
+                            kind=infer_kind(title),
+                            starts_at=starts_at,
+                            place=(place or "Во дворе")[:200],
+                        ),
+                        pin=ctx.is_admin,
+                    )
+                    event_id = ev.id
+                    if not text:
+                        text = (
+                            f"Приглашаем всех соседей! Когда: {_fmt_dt(ev.starts_at)} (МСК). Место: {ev.place}. "
+                            "Жмите «Иду», я напомню заранее."
+                        )
+                item = await announcements.create_announcement(
+                    session,
+                    user=user,
+                    house=house,
+                    title=title,
+                    text=text,
+                    pin=ctx.is_admin,
+                    event_id=event_id,
+                    # у события свой анонс в чате с кнопкой «Иду»: второе сообщение было бы лишним
+                    post_to_chat=event_id is None,
+                )
+            except HTTPException as exc:
+                return str(exc.detail)
+        where = "в чате и на доске объявлений" + (" (закрепил в чате)" if ctx.is_admin else "")
+        if event_id:
+            return (
+                f"Готово! Объявление «{item.title}» опубликовано {where}, событие №{event_id} создано: "
+                "соседи могут нажать «Иду», я напомню им заранее."
+            )
+        return (
+            f"Готово! Объявление «{item.title}» опубликовано {where}. "
+            "Если это мероприятие, скажите дату и время, и я заведу событие с кнопкой «Иду»."
+        )
+
+    @tool
     async def list_listings(query: str = "") -> str:
         """Объявления барахолки дома. query: что ищем (необязательно)."""
         async with sm() as session:
@@ -240,6 +302,7 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
         vote_issue,
         list_events,
         create_event,
+        create_announcement,
         list_listings,
         nearest_shelters,
         my_profile,

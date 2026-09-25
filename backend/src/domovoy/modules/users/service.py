@@ -51,18 +51,15 @@ async def house_by_chat(session: AsyncSession, chat_id: int) -> House | None:
 async def ensure_house_for_chat(
     session: AsyncSession, chat_id: int, title: str | None, members_count: int | None = None
 ) -> House:
-    """Бот добавлен в новый чат: заводим дом с УК по умолчанию из демо-справочника."""
+    """Бот добавлен в новый чат: заводим дом. Адрес, УК и координаты задаёт администратор в настройках дома."""
     house = await house_by_chat(session, chat_id)
     if house is None:
-        template = await session.scalar(select(House).order_by(House.id).limit(1))
         house = House(
             max_chat_id=chat_id,
             title=title or "Мой дом",
-            address=template.address if template else "",
-            lat=template.lat if template else 55.7963,
-            lon=template.lon if template else 49.1088,
-            uk_org_id=template.uk_org_id if template else None,
+            address="",
             vote_threshold_pct=get_settings().default_vote_threshold_pct,
+            setup_done=False,
         )
         session.add(house)
     if members_count:
@@ -71,12 +68,6 @@ async def ensure_house_for_chat(
         house.title = title
     await session.flush()
     return house
-
-
-async def first_house_of(session: AsyncSession, user: User) -> House | None:
-    return await session.scalar(
-        select(House).join(Membership, Membership.house_id == House.id).where(Membership.user_id == user.id).limit(1)
-    )
 
 
 def votes_needed(house: House) -> int:
