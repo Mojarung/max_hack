@@ -28,6 +28,11 @@ export function deepLinkToPath(raw: string | null | undefined): string | null {
     market: '/market',
     listings: '/market',
     achievements: '/more/achievements',
+    announcements: '/announcements',
+    documents: '/more/documents',
+    house: '/more/house',
+    house_setup: '/more/house/edit',
+    people: '/people',
     home: '/',
   }
   return simple[value] ?? null

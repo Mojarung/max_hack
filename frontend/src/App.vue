@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import BootScreen from '@/components/layout/BootScreen.vue'
 import BottomNav from '@/components/layout/BottomNav.vue'
+import OnboardingSheet from '@/components/onboarding/OnboardingSheet.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { pageEnter, pageLeave } from '@/composables/useMotion'
 import { installAutoReveal } from '@/composables/useReveal'
@@ -74,6 +75,7 @@ watch(
         </router-view>
       </main>
       <BottomNav :inert="alertOpen" />
+      <OnboardingSheet v-if="!alertOpen" />
     </template>
     <DroneAlertOverlay v-if="alerts.active" />
     <Toaster />

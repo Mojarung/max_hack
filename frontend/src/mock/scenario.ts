@@ -8,6 +8,8 @@
  *   ?latency=1500            задержка ответов в мс (скелетоны, спиннеры)
  *   ?motion=1                включить анимации (по умолчанию выключены ради стабильных скриншотов)
  *   ?theme=dark|light        тема независимо от системной
+ *   ?onboarding=1            показать обучалку первого входа (по умолчанию житель её уже прошёл)
+ *   ?setup=1                 дом только что создан из чата: админ ещё не настроил адрес и УК
  *   ?reset=1                 сбросить запомненные параметры
  */
 
@@ -21,6 +23,8 @@ export interface MockScenario {
   latency: number
   motion: boolean
   theme: 'dark' | 'light' | null
+  onboarding: boolean
+  setup: boolean
 }
 
 const KEY = 'kuzya.mockScenario'
@@ -42,6 +46,8 @@ function read(): MockScenario {
     latency: 250,
     motion: false,
     theme: null,
+    onboarding: false,
+    setup: false,
   }
   let saved: Partial<MockScenario> = {}
   try {
@@ -54,6 +60,8 @@ function read(): MockScenario {
     if (role === 'admin' || role === 'resident') saved.role = role
     if (params.has('max')) saved.inMax = params.get('max') !== '0'
     if (params.has('motion')) saved.motion = params.get('motion') !== '0'
+    if (params.has('onboarding')) saved.onboarding = params.get('onboarding') !== '0'
+    if (params.has('setup')) saved.setup = params.get('setup') !== '0'
     const theme = params.get('theme')
     if (theme === 'dark' || theme === 'light') saved.theme = theme
     if (theme === 'system') saved.theme = null

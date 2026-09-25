@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { errorMessage } from '@/api/client'
 import { listingsApi, normalizeCategories } from '@/api/endpoints'
-import type { Category, ListingOut, ListingStatus } from '@/api/types'
+import type { Category, ListingOut, ListingScope, ListingStatus } from '@/api/types'
 import { hasNumericId, onRealtime } from '@/realtime/sse'
 import { LISTING_CATEGORY_TITLES } from '@/utils/labels'
 import { registerReset, removeById, upsertById } from './helpers'
@@ -16,6 +16,8 @@ export const useListingsStore = defineStore('listings', () => {
   const query = ref('')
   const category = ref<string | null>(null)
   const freeOnly = ref(false)
+  /** Закрытые объявления не пропадают: они в «Мои» и «Завершённые». */
+  const scope = ref<ListingScope>('active')
   const categories = ref<Category[]>(normalizeCategories(null, LISTING_CATEGORY_TITLES))
   const details = ref<Record<number, ListingOut>>({})
   let categoriesLoaded = false
@@ -29,7 +31,12 @@ export const useListingsStore = defineStore('listings', () => {
     error.value = null
     try {
       const data = await listingsApi.list(
-        { q: query.value.trim() || undefined, category: category.value, free: freeOnly.value },
+        {
+          q: query.value.trim() || undefined,
+          category: category.value,
+          free: freeOnly.value,
+          scope: scope.value,
+        },
         current.signal,
       )
       if (current.signal.aborted) return
@@ -74,6 +81,7 @@ export const useListingsStore = defineStore('listings', () => {
   async function setStatus(id: number, status: ListingStatus): Promise<ListingOut> {
     const data = await listingsApi.setStatus(id, status)
     storeDetail(data)
+    if (!matchesFilter(data)) items.value = removeById(items.value, id)
     return data
   }
 
@@ -86,7 +94,9 @@ export const useListingsStore = defineStore('listings', () => {
   }
 
   function matchesFilter(listing: ListingOut): boolean {
-    if (listing.status === 'closed') return false
+    if (scope.value === 'mine' && !listing.is_mine) return false
+    if (scope.value === 'closed' && listing.status !== 'closed') return false
+    if (scope.value === 'active' && listing.status === 'closed') return false
     if (category.value && listing.category !== category.value) return false
     if (freeOnly.value && !listing.is_free) return false
     const q = query.value.trim().toLowerCase()
@@ -113,7 +123,9 @@ export const useListingsStore = defineStore('listings', () => {
       return
     }
     const listing = withMine(data as ListingOut)
-    items.value = upsertById(items.value, listing, { onlyExisting: true })
+    items.value = matchesFilter(listing)
+      ? upsertById(items.value, listing, { onlyExisting: true })
+      : removeById(items.value, listing.id)
     if (details.value[listing.id]) details.value = { ...details.value, [listing.id]: listing }
   })
 
@@ -136,6 +148,7 @@ export const useListingsStore = defineStore('listings', () => {
     query,
     category,
     freeOnly,
+    scope,
     categories,
     details,
     load,

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import DemoUserSwitcher from './DemoUserSwitcher.vue'
+import HouseSwitcher from '@/components/house/HouseSwitcher.vue'
 import { realtimeStatus } from '@/realtime/sse'
 import { goBack } from '@/router'
 import { useSessionStore } from '@/stores/session'
@@ -9,6 +10,8 @@ import { useSessionStore } from '@/stores/session'
 const route = useRoute()
 const session = useSessionStore()
 const inner = computed(() => !!route.meta.inner)
+/** На главной название дома - кнопка выбора дома, если домов несколько. */
+const showSwitcher = computed(() => route.name === 'home' && session.houses.length > 1)
 const title = computed(() =>
   route.name === 'home' ? (session.me?.house.title ?? 'Домовой Кузя') : route.meta.title,
 )
@@ -33,7 +36,8 @@ const title = computed(() =>
       >
         <img src="/kuzya.svg" alt="" width="36" height="40" />
       </router-link>
-      <h1 class="app-header__title">{{ title }}</h1>
+      <h1 v-if="showSwitcher" class="app-header__title flex"><HouseSwitcher /></h1>
+      <h1 v-else class="app-header__title">{{ title }}</h1>
       <v-chip
         v-if="realtimeStatus === 'reconnecting'"
         size="small"

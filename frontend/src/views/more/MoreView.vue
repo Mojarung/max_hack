@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import HouseSwitcher from '@/components/house/HouseSwitcher.vue'
 import { useStagger } from '@/composables/useMotion'
 import { openMaxLink } from '@/max/bridge'
 import { useSessionStore } from '@/stores/session'
@@ -20,6 +21,34 @@ interface Entry {
 
 const entries = computed<Entry[]>(() => {
   const list: Entry[] = [
+    {
+      to: '/more/house',
+      title: 'О доме',
+      subtitle: 'Адрес, управляющая компания, контакты',
+      icon: 'mdi-home-city-outline',
+      color: 'primary',
+    },
+    {
+      to: '/announcements',
+      title: 'Объявления',
+      subtitle: 'Отключения, работы, собрания',
+      icon: 'mdi-bullhorn-variant-outline',
+      color: 'primary',
+    },
+    {
+      to: '/more/documents',
+      title: 'Документы',
+      subtitle: 'Документы дома и ваши личные',
+      icon: 'mdi-file-document-multiple-outline',
+      color: 'primary',
+    },
+    {
+      to: '/people',
+      title: 'Соседи',
+      subtitle: 'Профили жителей дома',
+      icon: 'mdi-account-group-outline',
+      color: 'primary',
+    },
     {
       to: '/more/safety',
       title: 'Безопасность',
@@ -78,7 +107,13 @@ function openBot(): void {
 
 <template>
   <div ref="root" class="page">
-    <section v-if="session.me" class="card-soft flex items-center gap-3 p-4" data-stagger>
+    <router-link
+      v-if="session.me"
+      :to="`/people/${session.me.user.id}`"
+      class="card-soft tap-card flex items-center gap-3 p-4 text-inherit no-underline"
+      aria-label="Мой профиль"
+      data-stagger
+    >
       <UserAvatar :user="session.me.user" :size="56" />
       <div class="min-w-0 flex-1">
         <div class="text-lg font-bold">{{ fullName(session.me.user) }}</div>
@@ -93,7 +128,24 @@ function openBot(): void {
       <v-chip color="primary" variant="tonal" prepend-icon="mdi-star-circle-outline">
         {{ session.me.user.points }}
       </v-chip>
-    </section>
+    </router-link>
+
+    <HouseSwitcher v-if="session.houses.length">
+      <template #trigger="{ open }">
+        <v-btn
+          block
+          size="large"
+          variant="tonal"
+          color="primary"
+          class="mt-3"
+          prepend-icon="mdi-home-switch-outline"
+          data-stagger
+          @click="open"
+        >
+          {{ session.houses.length > 1 ? `Сменить дом (${session.houses.length})` : 'Мои дома' }}
+        </v-btn>
+      </template>
+    </HouseSwitcher>
 
     <nav class="mt-3 flex flex-col gap-2" aria-label="Разделы">
       <router-link

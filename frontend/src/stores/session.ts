@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { errorMessage, setDevUser, setHouseId } from '@/api/client'
-import { meApi } from '@/api/endpoints'
-import type { DevUser, MeOut } from '@/api/types'
+import { ApiError, errorMessage, setDevUser, setHouseId } from '@/api/client'
+import { houseApi, meApi } from '@/api/endpoints'
+import type { DevUser, HouseBrief, MeOut } from '@/api/types'
 import { notify } from '@/lib/notify'
 import { isInMax, ready } from '@/max/bridge'
 import { connectRealtime, onRealtime } from '@/realtime/sse'
@@ -37,6 +37,8 @@ export const useSessionStore = defineStore('session', () => {
   const me = ref<MeOut | null>(null)
   const devUsers = ref<DevUser[]>([])
   const devUserId = ref<number | null>(null)
+  const houses = ref<HouseBrief[]>([])
+  const housesLoading = ref(false)
   /** Меняется при смене жителя: страницы по нему перемонтируются и перезагружают данные. */
   const userKey = ref(0)
   let listenersReady = false
@@ -45,6 +47,9 @@ export const useSessionStore = defineStore('session', () => {
   const isAdmin = computed(() => me.value?.role === 'admin')
   const canUseDevTools = computed(() => !!me.value?.mock)
   const canManageMcp = computed(() => isAdmin.value || !!me.value?.mock)
+  /** Дом только что подключили из чата: администратор должен указать адрес и УК. */
+  const needsSetup = computed(() => isAdmin.value && me.value?.house.setup_done === false)
+  const needsOnboarding = computed(() => !!me.value && me.value.user.onboarded === false)
   const currentDevUser = computed(
     () => devUsers.value.find((u) => u.max_user_id === devUserId.value) ?? null,
   )
@@ -64,9 +69,54 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   async function refreshMe(): Promise<void> {
-    const data = await meApi.me()
+    let data: MeOut
+    try {
+      data = await meApi.me()
+    } catch (error) {
+      // житель вышел из чата выбранного дома: сервер сам подберёт доступный дом
+      if (!(error instanceof ApiError && error.status === 403)) throw error
+      setHouseId(null)
+      data = await meApi.me()
+    }
     me.value = data
     setHouseId(data.house?.id ?? null)
+  }
+
+  /** Дома жителя. refresh: Кузя заново проверит, в каких чатах с ним состоит житель. */
+  async function loadHouses(refresh = false): Promise<void> {
+    housesLoading.value = true
+    try {
+      houses.value = await houseApi.list(refresh)
+    } finally {
+      housesLoading.value = false
+    }
+  }
+
+  /** Переключить дом: все экраны перезагружают данные нового дома. Бот в личке тоже переключится. */
+  async function switchHouse(id: number): Promise<void> {
+    if (id === me.value?.house.id) return
+    const previous = me.value?.house.id ?? null
+    setHouseId(id)
+    try {
+      await refreshMe()
+      resetAllStores()
+      connectRealtime()
+      userKey.value += 1
+      houses.value = houses.value.map((h) => ({ ...h, is_current: h.id === id }))
+      notify.success(`Дом: ${me.value?.house.title ?? ''}`)
+    } catch (error) {
+      setHouseId(previous)
+      notify.error(error, 'Не удалось переключить дом')
+    }
+  }
+
+  async function completeOnboarding(): Promise<void> {
+    if (me.value) me.value = { ...me.value, user: { ...me.value.user, onboarded: true } }
+    try {
+      me.value = await meApi.onboarded()
+    } catch {
+      // не критично: покажем обучалку ещё раз при следующем входе
+    }
   }
 
   async function init(): Promise<void> {
@@ -80,6 +130,7 @@ export const useSessionStore = defineStore('session', () => {
       setupListeners()
       connectRealtime()
       status.value = 'ready'
+      void loadHouses().catch(() => undefined)
     } catch (error) {
       bootError.value = inMax.value
         ? errorMessage(error)
@@ -104,10 +155,12 @@ export const useSessionStore = defineStore('session', () => {
     setDevUser(id)
     saveDevUser(id)
     try {
+      setHouseId(null)
       await refreshMe()
       resetAllStores()
       connectRealtime()
       userKey.value += 1
+      void loadHouses().catch(() => undefined)
       notify.success(`Теперь вы: ${me.value?.user.first_name ?? 'житель'}`)
     } catch (error) {
       devUserId.value = previous
@@ -123,7 +176,11 @@ export const useSessionStore = defineStore('session', () => {
     me,
     devUsers,
     devUserId,
+    houses,
+    housesLoading,
     userKey,
+    needsSetup,
+    needsOnboarding,
     isMock,
     isAdmin,
     canUseDevTools,
@@ -132,5 +189,8 @@ export const useSessionStore = defineStore('session', () => {
     init,
     refreshMe,
     switchUser,
+    loadHouses,
+    switchHouse,
+    completeOnboarding,
   }
 })

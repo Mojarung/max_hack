@@ -72,6 +72,13 @@ const parts = computed(() => {
 })
 
 const root = ref<SVGSVGElement | null>(null)
+/**
+ * Два слоя трансформаций, чтобы анимации не спорили за один узел:
+ * `bounce` - разовые движения (появление настроения, прыжок, покачивание по нажатию),
+ * `figure` - бесконечное «дыхание» в покое. Раньше всё крутилось на `figure`,
+ * и после прыжка или смены настроения Кузя застревал уменьшенным или «висел» в воздухе.
+ */
+const bounce = ref<SVGGElement | null>(null)
 const figure = ref<SVGGElement | null>(null)
 const hair = ref<SVGGElement | null>(null)
 const eyes = ref<SVGGElement | null>(null)
@@ -79,6 +86,9 @@ const armRight = ref<SVGGElement | null>(null)
 const glow = ref<SVGCircleElement | null>(null)
 
 let ctx: gsap.Context | null = null
+/** Первые данные о доме приходят сразу после появления: смену настроения тогда не анимируем. */
+let mountedAt = 0
+const SETTLE_MS = 1500
 let alarmTween: gsap.core.Tween | null = null
 let blinkCall: gsap.core.Tween | null = null
 
@@ -147,6 +157,7 @@ function startIdle(): void {
 }
 
 onMounted(() => {
+  mountedAt = performance.now()
   ctx = gsap.context(() => {
     startAlarm()
     if (!props.still && !prefersReducedMotion()) startIdle()
@@ -159,11 +170,18 @@ watch(
     ctx?.add(() => {
       startAlarm()
       if (!props.still && !prefersReducedMotion()) scheduleBlink()
-      if (!prefersReducedMotion() && figure.value) {
+      const settling = performance.now() - mountedAt < SETTLE_MS
+      if (!prefersReducedMotion() && !settling && bounce.value) {
         gsap.fromTo(
-          figure.value,
+          bounce.value,
           { scale: 0.94 },
-          { scale: 1, duration: 0.6, ease: 'elastic.out(1, 0.5)', svgOrigin: '100 210' },
+          {
+            scale: 1,
+            duration: 0.6,
+            ease: 'elastic.out(1, 0.5)',
+            svgOrigin: '100 210',
+            overwrite: 'auto',
+          },
         )
       }
     })
@@ -176,14 +194,37 @@ onBeforeUnmount(() => {
   ctx?.revert()
 })
 
-/** Помахать рукой по нажатию. */
+/** Помахать рукой по нажатию. В позах «руки у лица» рука занята: Кузя покачивается. */
 function wave(): void {
   if (!props.interactive) return
   haptic.impact('light')
   emit('tap')
-  if (!armRight.value || !figure.value) return
+  if (!bounce.value) return
   ctx?.add(() => {
     const reduced = prefersReducedMotion()
+    if (!reduced) {
+      gsap.fromTo(
+        bounce.value,
+        { y: 0 },
+        { y: -12, duration: 0.2, yoyo: true, repeat: 1, ease: 'power2.out', overwrite: 'auto' },
+      )
+    }
+    if (parts.value.armsFront || !armRight.value) {
+      if (!reduced) {
+        gsap.fromTo(
+          bounce.value,
+          { rotation: 0 },
+          {
+            keyframes: [{ rotation: -5 }, { rotation: 5 }, { rotation: -3 }, { rotation: 0 }],
+            duration: 0.7,
+            ease: 'sine.inOut',
+            svgOrigin: '100 210',
+          },
+        )
+      }
+      return
+    }
+    gsap.killTweensOf(armRight.value)
     gsap
       .timeline()
       .to(armRight.value, {
@@ -198,13 +239,6 @@ function wave(): void {
         ease: 'sine.inOut',
       })
       .to(armRight.value, { rotation: 0, duration: 0.35, ease: 'back.out(2)' })
-    if (!reduced) {
-      gsap.fromTo(
-        figure.value,
-        { y: 0 },
-        { y: -12, duration: 0.2, yoyo: true, repeat: 1, ease: 'power2.out' },
-      )
-    }
   })
 }
 </script>
@@ -232,22 +266,24 @@ function wave(): void {
       <circle ref="glow" cx="100" cy="110" r="100" :fill="`url(#${ids.glow})`" opacity="0" />
       <ellipse cx="100" cy="210" rx="52" ry="6" fill="#03045E" opacity="0.14" />
 
-      <g ref="figure">
-        <g ref="hair" v-html="parts.hair" />
-        <g v-html="parts.boots" />
-        <g v-html="parts.dress" />
-        <template v-if="!parts.armsFront">
-          <g v-html="parts.armLeft" />
-          <g ref="armRight" v-html="parts.armRight" />
-        </template>
-        <g v-html="parts.head" />
-        <g ref="eyes" v-html="parts.eyes" />
-        <g v-html="parts.face" />
-        <g v-html="parts.fringe" />
-        <template v-if="parts.armsFront">
-          <g v-html="parts.armLeft" />
-          <g ref="armRight" v-html="parts.armRight" />
-        </template>
+      <g ref="bounce">
+        <g ref="figure">
+          <g ref="hair" v-html="parts.hair" />
+          <g v-html="parts.boots" />
+          <g v-html="parts.dress" />
+          <template v-if="!parts.armsFront">
+            <g v-html="parts.armLeft" />
+            <g ref="armRight" v-html="parts.armRight" />
+          </template>
+          <g v-html="parts.head" />
+          <g ref="eyes" v-html="parts.eyes" />
+          <g v-html="parts.face" />
+          <g v-html="parts.fringe" />
+          <template v-if="parts.armsFront">
+            <g v-html="parts.armLeft" />
+            <g ref="armRight" v-html="parts.armRight" />
+          </template>
+        </g>
       </g>
       <!-- eslint-enable vue/no-v-html -->
     </svg>

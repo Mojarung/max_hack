@@ -1,6 +1,16 @@
 import { api, upload } from './client'
 import type {
   AchievementsOut,
+  AnnouncementOut,
+  DocumentOut,
+  DocumentScope,
+  GeoResult,
+  HouseBrief,
+  HouseIn,
+  ListingScope,
+  Neighbour,
+  ProfileOut,
+  SyncOut,
   AlertOut,
   AssistantReply,
   Category,
@@ -31,6 +41,42 @@ export const meApi = {
   me: () => api<MeOut>('/me'),
   pulse: () => api<PulseOut>('/house/pulse'),
   devUsers: () => api<DevUser[]>('/dev/users', { timeoutMs: 6000 }),
+  onboarded: () => api<MeOut>('/me/onboarded', { method: 'POST' }),
+}
+
+export const houseApi = {
+  /** refresh=true: Кузя заново ищет чаты, где состоит житель, и добавляет дома. */
+  list: (refresh = false) =>
+    api<HouseBrief[]>('/houses', {
+      query: { refresh: refresh ? 'true' : undefined },
+      timeoutMs: 30_000,
+    }),
+  update: (body: HouseIn) => api<MeOut>('/house', { method: 'PATCH', body }),
+  sync: () => api<SyncOut>('/house/sync', { method: 'POST', timeoutMs: 60_000 }),
+  geocode: (q: string, signal?: AbortSignal) =>
+    api<GeoResult[]>('/house/geocode', { query: { q }, signal, timeoutMs: 12_000 }),
+}
+
+export const announcementsApi = {
+  list: () => api<AnnouncementOut[]>('/announcements'),
+  create: (body: { title: string; text: string; pin: boolean }) =>
+    api<AnnouncementOut>('/announcements', { method: 'POST', body }),
+  pin: (id: number, pinned: boolean) =>
+    api<AnnouncementOut>(`/announcements/${id}`, { method: 'PATCH', body: { pinned } }),
+  remove: (id: number) => api<void>(`/announcements/${id}`, { method: 'DELETE' }),
+}
+
+export const documentsApi = {
+  list: (scope?: DocumentScope) => api<DocumentOut[]>('/documents', { query: { scope } }),
+  upload: (form: FormData, onProgress?: (fraction: number) => void) =>
+    upload<DocumentOut>('/documents', form, onProgress),
+  link: (id: number) => api<{ url: string; expires_at: number }>(`/documents/${id}/link`),
+  remove: (id: number) => api<void>(`/documents/${id}`, { method: 'DELETE' }),
+}
+
+export const peopleApi = {
+  list: () => api<Neighbour[]>('/people'),
+  profile: (id: number) => api<ProfileOut>(`/people/${id}`),
 }
 
 export const issuesApi = {
@@ -50,9 +96,17 @@ export const issuesApi = {
 }
 
 export const listingsApi = {
-  list: (params: { q?: string; category?: string | null; free?: boolean }, signal?: AbortSignal) =>
+  list: (
+    params: { q?: string; category?: string | null; free?: boolean; scope?: ListingScope },
+    signal?: AbortSignal,
+  ) =>
     api<ListingOut[]>('/listings', {
-      query: { q: params.q, category: params.category, free: params.free ? 'true' : undefined },
+      query: {
+        q: params.q,
+        category: params.category,
+        free: params.free ? 'true' : undefined,
+        scope: params.scope && params.scope !== 'active' ? params.scope : undefined,
+      },
       signal,
     }),
   get: (id: number) => api<ListingOut>(`/listings/${id}`),

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { issuesApi } from '@/api/endpoints'
 import type { IssueOut } from '@/api/types'
+import AnnouncementCard from '@/components/announcements/AnnouncementCard.vue'
 import AnimatedNumber from '@/components/common/AnimatedNumber.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import HealthRing from '@/components/common/HealthRing.vue'
@@ -11,6 +12,7 @@ import KuzyaMascot from '@/components/kuzya/KuzyaMascot.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { pageEnter, pageLeave, staggerIn } from '@/composables/useMotion'
 import { hasNumericId, onRealtime } from '@/realtime/sse'
+import { useAnnouncementsStore } from '@/stores/announcements'
 import { useEventsStore } from '@/stores/events'
 import { usePulseStore } from '@/stores/pulse'
 import { useSessionStore } from '@/stores/session'
@@ -20,6 +22,9 @@ import { MOOD_TITLES } from '@/utils/labels'
 const session = useSessionStore()
 const pulseStore = usePulseStore()
 const events = useEventsStore()
+const announcements = useAnnouncementsStore()
+/** На главной одно объявление: закреплённое или самое свежее. */
+const topAnnouncement = computed(() => announcements.items[0] ?? null)
 
 const root = ref<HTMLElement | null>(null)
 const votingIssues = ref<IssueOut[]>([])
@@ -135,11 +140,12 @@ onBeforeUnmount(() => {
 onMounted(() => {
   if (!pulseStore.pulse) void pulseStore.load()
   if (!events.scopes.upcoming.loaded) void events.load('upcoming')
+  if (!announcements.loaded) void announcements.load()
   void loadVoting()
 })
 
 watch(
-  () => [pulse.value, hotIssue.value, nextEvent.value],
+  () => [pulse.value, hotIssue.value, nextEvent.value, topAnnouncement.value],
   () => requestAnimationFrame(() => staggerIn(root.value)),
   { immediate: true, flush: 'post' },
 )
@@ -159,6 +165,23 @@ watch(
     />
 
     <template v-else>
+      <!-- Дом только что подключили из чата: без адреса не найти укрытия, без УК некуда слать обращения -->
+      <router-link
+        v-if="session.needsSetup"
+        to="/more/house/edit"
+        class="setup card-soft tap-card mb-3 flex items-center gap-3 p-4 no-underline"
+        data-stagger
+      >
+        <v-icon icon="mdi-home-edit-outline" size="32" aria-hidden="true" />
+        <span class="min-w-0 flex-1">
+          <span class="block text-base font-bold">Настройте дом</span>
+          <span class="block text-sm">
+            Укажите адрес и управляющую компанию: так Кузя найдёт укрытия и отправит обращения
+          </span>
+        </span>
+        <v-icon icon="mdi-chevron-right" aria-hidden="true" />
+      </router-link>
+
       <!-- Кузя и его фраза -->
       <section class="hero card-soft" data-stagger>
         <div class="flex items-end gap-2">
@@ -202,6 +225,21 @@ watch(
       >
         Сообщить о проблеме
       </v-btn>
+
+      <template v-if="topAnnouncement">
+        <div class="section-head">
+          <h2 class="section-title">Объявления</h2>
+          <router-link to="/announcements" class="section-more">
+            Все<template v-if="announcements.items.length > 1">
+              ({{ announcements.items.length }})</template
+            >
+            <v-icon icon="mdi-chevron-right" size="20" />
+          </router-link>
+        </div>
+        <div data-stagger>
+          <AnnouncementCard :item="topAnnouncement" clamp />
+        </div>
+      </template>
 
       <template v-if="hotIssue">
         <h2 class="section-title">Нужны голоса</h2>
@@ -295,6 +333,25 @@ watch(
 </template>
 
 <style scoped>
+.setup {
+  color: rgb(var(--v-theme-on-deep));
+  background: rgb(var(--v-theme-deep));
+  border-color: transparent;
+}
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.section-more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  color: rgb(var(--v-theme-primary));
+  text-decoration: none;
+}
 .hero {
   padding: 16px 16px 14px;
   background:

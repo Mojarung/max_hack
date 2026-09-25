@@ -32,6 +32,11 @@ const voteBlock = ref<HTMLElement | null>(null)
 const complaintOpen = ref(false)
 
 const issue = computed(() => store.details[props.id] ?? null)
+/** Куда ушло письмо с обращением: тестовый адрес (модельная интеграция) или никуда. */
+const appealEmail = computed(() => {
+  const channel = issue.value?.appeal_channel ?? ''
+  return channel.startsWith('test_email:') ? channel.slice('test_email:'.length) : null
+})
 const remaining = computed(() =>
   issue.value ? Math.max(0, issue.value.votes_needed - issue.value.votes_count) : 0,
 )
@@ -178,10 +183,14 @@ async function share(text: string | null | undefined): Promise<void> {
         </v-chip>
       </div>
       <h2 class="mt-2 mb-1 text-[22px] leading-tight font-bold">{{ issue.title }}</h2>
-      <div class="text-muted flex items-center gap-2 text-sm">
+      <router-link
+        :to="issue.author ? `/people/${issue.author.id}` : '/people'"
+        class="text-muted flex min-h-[44px] items-center gap-2 text-sm no-underline"
+        :aria-label="`Автор: ${fullName(issue.author)}. Открыть профиль`"
+      >
         <UserAvatar :user="issue.author" :size="28" />
         <span>{{ fullName(issue.author) }} · {{ formatRelative(issue.created_at) }}</span>
-      </div>
+      </router-link>
       <p v-if="issue.location_hint" class="mt-2 mb-0 flex items-center gap-1 font-semibold">
         <v-icon icon="mdi-map-marker-outline" size="20" color="primary" />
         {{ issue.location_hint }}
@@ -320,6 +329,20 @@ async function share(text: string | null | undefined): Promise<void> {
             </span>
           </v-expansion-panel-title>
           <v-expansion-panel-text>
+            <!-- ТЗ: имитацию нельзя выдавать за настоящую интеграцию, поэтому говорим прямо -->
+            <div class="model-note mb-3" role="note">
+              <v-icon icon="mdi-flask-outline" size="22" class="shrink-0" aria-hidden="true" />
+              <p class="m-0 text-sm">
+                <strong>Модельная интеграция.</strong>
+                <template v-if="appealEmail">
+                  Письмо ушло на тестовый адрес {{ appealEmail }}, а не в управляющую компанию.
+                </template>
+                <template v-else>
+                  Текст обращения сохранён здесь, исполнителю он автоматически не отправлялся.
+                </template>
+                В пилоте получателем станет e-mail УК из настроек дома.
+              </p>
+            </div>
             <p class="pre-wrap mt-0 text-[15px] leading-relaxed">{{ issue.appeal_text }}</p>
             <div class="flex gap-2">
               <v-btn
@@ -403,6 +426,13 @@ async function share(text: string | null | undefined): Promise<void> {
 </template>
 
 <style scoped>
+.model-note {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(var(--v-theme-primary), 0.1);
+}
 .sla {
   display: flex;
   align-items: center;

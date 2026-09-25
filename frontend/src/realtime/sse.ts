@@ -15,6 +15,8 @@ export const REALTIME_EVENTS = [
   'pulse.changed',
   'chat.message',
   'chat.notice',
+  'announcement.created',
+  'announcement.updated',
 ] as const
 
 export type RealtimeEvent = (typeof REALTIME_EVENTS)[number] | 'resync'

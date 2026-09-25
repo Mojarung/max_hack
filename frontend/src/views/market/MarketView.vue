@@ -14,7 +14,23 @@ const store = useListingsStore()
 const grid = ref<HTMLElement | null>(null)
 const search = ref(store.query)
 
-const isFiltered = computed(() => !!store.category || store.freeOnly || !!store.query.trim())
+const isFiltered = computed(
+  () => !!store.category || store.freeOnly || !!store.query.trim() || store.scope !== 'active',
+)
+const SCOPES = [
+  { value: 'active', title: 'В продаже', icon: 'mdi-storefront-outline' },
+  { value: 'mine', title: 'Мои', icon: 'mdi-account-outline' },
+  { value: 'closed', title: 'Завершённые', icon: 'mdi-archive-outline' },
+] as const
+const emptyText = computed(() => {
+  if (store.scope === 'mine')
+    return 'Вы ещё ничего не размещали. Закрытые объявления тоже будут здесь'
+  if (store.scope === 'closed')
+    return 'Когда соседи отдадут или продадут вещи, объявления появятся здесь'
+  return isFiltered.value
+    ? 'Попробуйте другую категорию или слова'
+    : 'Отдайте ненужное соседям или продайте: Кузя расскажет всему дому'
+})
 
 useStagger(grid, () => store.items.length)
 
@@ -29,7 +45,7 @@ function pickCategory(code: string | null): void {
 }
 
 watch(
-  () => [store.category, store.freeOnly],
+  () => [store.category, store.freeOnly, store.scope],
   () => void store.load(),
 )
 watchDebounced(
@@ -53,6 +69,20 @@ watchDebounced(
       aria-label="Поиск по объявлениям"
       class="mb-2"
     />
+
+    <v-btn-toggle
+      v-model="store.scope"
+      mandatory
+      divided
+      color="primary"
+      variant="outlined"
+      class="scope-toggle mb-2 w-full"
+      aria-label="Какие объявления показать"
+    >
+      <v-btn v-for="s in SCOPES" :key="s.value" :value="s.value" class="flex-1 px-1">
+        {{ s.title }}
+      </v-btn>
+    </v-btn-toggle>
 
     <div class="chips-scroll" role="toolbar" aria-label="Категории">
       <v-chip
@@ -112,12 +142,8 @@ watchDebounced(
       />
       <EmptyState
         v-else-if="store.loaded && store.items.length === 0"
-        :title="isFiltered ? 'Ничего не нашлось' : 'Пока пусто'"
-        :text="
-          isFiltered
-            ? 'Попробуйте другую категорию или слова'
-            : 'Отдайте ненужное соседям или продайте: Кузя расскажет всему дому'
-        "
+        :title="isFiltered && store.scope === 'active' ? 'Ничего не нашлось' : 'Пока пусто'"
+        :text="emptyText"
       >
         <v-btn color="primary" size="large" to="/market/new" prepend-icon="mdi-plus"
           >Разместить</v-btn
@@ -144,6 +170,9 @@ watchDebounced(
 </template>
 
 <style scoped>
+.scope-toggle {
+  height: 48px;
+}
 .fab {
   position: fixed;
   right: max(16px, calc((100vw - var(--app-max-width)) / 2 + 16px));

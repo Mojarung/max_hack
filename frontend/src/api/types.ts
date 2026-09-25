@@ -19,6 +19,8 @@ export interface UserFull extends UserShort {
   level: number
   level_title: string
   next_level_points: number | null
+  /** Житель прошёл обучалку при первом входе. */
+  onboarded?: boolean
 }
 
 export interface House {
@@ -31,6 +33,105 @@ export interface House {
   vote_threshold_pct: number
   /** Название управляющей компании дома. */
   uk_name?: string | null
+  uk_email?: string | null
+  uk_phone?: string | null
+  /** Информация о доме от администратора: диспетчерская, председатель, правила. */
+  info?: string
+  /** false: дом создан из чата, администратор ещё не заполнил адрес и УК. */
+  setup_done?: boolean
+  is_demo?: boolean
+  /** Кузя живёт в чате этого дома. */
+  has_chat?: boolean
+  /** Кузя администратор чата (может удалять спам и видеть участников); null - неизвестно. */
+  bot_is_admin?: boolean | null
+}
+
+/** Дом в списке домов жителя (переключатель). */
+export interface HouseBrief {
+  id: number
+  title: string
+  address: string
+  role: Role
+  is_demo: boolean
+  is_current: boolean
+}
+
+export interface HouseIn {
+  title?: string
+  address?: string
+  lat?: number
+  lon?: number
+  vote_threshold_pct?: number
+  info?: string
+  uk_name?: string
+  uk_email?: string | null
+  uk_phone?: string | null
+  setup_done?: boolean
+  apartment?: string
+}
+
+export interface GeoResult {
+  title: string
+  lat: number
+  lon: number
+}
+
+export interface SyncOut {
+  members: number
+  bot_is_admin: boolean | null
+}
+
+export interface AnnouncementOut {
+  id: number
+  title: string
+  text: string
+  pinned: boolean
+  event_id: number | null
+  author: UserShort | null
+  is_mine: boolean
+  created_at: string
+}
+
+export type DocumentScope = 'house' | 'personal'
+
+export interface DocumentOut {
+  id: number
+  title: string
+  filename: string
+  content_type: string
+  size: number
+  scope: DocumentScope
+  author: UserShort | null
+  can_delete: boolean
+  created_at: string
+}
+
+export interface Neighbour {
+  id: number
+  first_name: string
+  last_name: string
+  photo_url: string | null
+  apartment: string | null
+  role: Role
+  points: number
+  level_title: string
+}
+
+export interface ProfileOut {
+  user: Neighbour
+  is_me: boolean
+  username: string | null
+  member_since: string
+  level: number
+  next_level_points: number | null
+  stats: {
+    issues_created: number
+    issues_open: number
+    votes: number
+    events_joined: number
+    listings_active: number
+  }
+  achievements: { code: string; title: string; icon: string; awarded_at: string }[]
 }
 
 export interface MeOut {
@@ -111,6 +212,8 @@ export interface IssueDetail extends IssueOut {
   legal_basis: string | null
   deadline_hours: number | null
   appeal_text: string | null
+  /** `model` - только текст в карточке; `test_email:<адрес>` - письмо на тестовый адрес (модельная интеграция). */
+  appeal_channel?: string | null
   location_hint: string | null
   timeline: TimelineEntry[]
 }
@@ -127,6 +230,8 @@ export interface Classification {
 }
 
 export type ListingStatus = 'active' | 'reserved' | 'closed'
+/** active - в продаже и забронированные, mine - свои вместе с закрытыми, closed - завершённые. */
+export type ListingScope = 'active' | 'mine' | 'closed'
 
 export interface ListingOut {
   id: number
@@ -252,6 +357,7 @@ export interface ChatMessage {
   from: { user_id: number; name: string } | null
   text: string
   buttons: ChatButton[][] | null
+  photos?: string[]
   deleted: boolean
   notice: string | null
   created_at: string

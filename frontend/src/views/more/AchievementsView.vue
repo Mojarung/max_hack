@@ -136,9 +136,12 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
           </span>
           <UserAvatar :user="row.user" :size="36" />
           <div class="min-w-0 flex-1">
-            <div class="truncate font-semibold">
+            <router-link
+              :to="`/people/${row.user.id}`"
+              class="block truncate font-semibold text-inherit no-underline"
+            >
               {{ fullName(row.user) }}<span v-if="isMe(row)" class="text-primary"> (вы)</span>
-            </div>
+            </router-link>
             <div class="text-muted text-sm">{{ row.level_title }}</div>
           </div>
           <strong class="tabular-nums">{{ row.points }}</strong>

@@ -4,9 +4,15 @@
  * новая заявка) меняют состояние до перезагрузки страницы, так что сценарии
  * можно пройти целиком, не трогая настоящую базу и домовой чат.
  */
-import { ApiError } from '@/api/client'
+import { ApiError, getHouseId } from '@/api/client'
 import type {
   AchievementsOut,
+  AnnouncementOut,
+  DocumentOut,
+  House,
+  HouseBrief,
+  Neighbour,
+  ProfileOut,
   AlertOut,
   Classification,
   CommentOut,
@@ -41,7 +47,80 @@ const users = buildUsers(scenario)
 const me = scenario.role === 'admin' ? users[1]! : users[0]!
 const needed = Math.max(3, Math.ceil((HOUSE.members_count * HOUSE.vote_threshold_pct) / 100))
 
+/** Второй дом того же жителя: видно переключение домов. */
+const HOUSE2: House = {
+  ...HOUSE,
+  id: 2,
+  title: 'Декабристов, 81',
+  address: 'Казань, ул. Декабристов, 81',
+  members_count: 24,
+  info: '',
+  setup_done: true,
+}
+const houses: House[] = [
+  {
+    ...HOUSE,
+    info: 'Диспетчерская УК: +7 (843) 000-00-01, круглосуточно.\nПредседатель совета дома: Анна Петрова, кв. 12.',
+    uk_email: 'uk@example.org',
+    uk_phone: '+7 (843) 000-00-01',
+    setup_done: !scenario.setup,
+    has_chat: true,
+    bot_is_admin: true,
+    is_demo: true,
+  },
+  HOUSE2,
+]
+if (scenario.setup) Object.assign(houses[0]!, { address: '', uk_name: null, info: '' })
+me.onboarded = !scenario.onboarding
+const currentHouse = (): House => houses.find((h) => h.id === getHouseId()) ?? houses[0]!
+
 const db = {
+  announcements: [
+    {
+      id: 901,
+      title: 'Отключение горячей воды 1-3 октября',
+      text: 'Плановые работы на теплотрассе. Воду дадут 3 октября к 18:00 (по данным УК).',
+      pinned: true,
+      event_id: null,
+      author: null,
+      is_mine: false,
+      created_at: new Date(Date.now() - 5 * 3_600_000).toISOString(),
+    },
+    {
+      id: 902,
+      title: 'Покраска подъезда 2',
+      text: 'С понедельника красят стены на 1-4 этажах. Не ставьте, пожалуйста, велосипеды у стен.',
+      pinned: false,
+      event_id: null,
+      author: null,
+      is_mine: false,
+      created_at: new Date(Date.now() - 30 * 3_600_000).toISOString(),
+    },
+  ] as AnnouncementOut[],
+  documents: [
+    {
+      id: 801,
+      title: 'Протокол общего собрания от 12.09',
+      filename: 'protokol-12-09.pdf',
+      content_type: 'application/pdf',
+      size: 184_320,
+      scope: 'house',
+      author: null,
+      can_delete: scenario.role === 'admin',
+      created_at: new Date(Date.now() - 9 * 86_400_000).toISOString(),
+    },
+    {
+      id: 802,
+      title: 'Договор управления с УК',
+      filename: 'dogovor-upravleniya.pdf',
+      content_type: 'application/pdf',
+      size: 612_000,
+      scope: 'house',
+      author: null,
+      can_delete: scenario.role === 'admin',
+      created_at: new Date(Date.now() - 60 * 86_400_000).toISOString(),
+    },
+  ] as DocumentOut[],
   issues: buildIssues(scenario, users, needed),
   listings: buildListings(scenario, users, me.id),
   events: buildEvents(scenario, users),
@@ -152,10 +231,61 @@ function pulse(): PulseOut {
   }
 }
 
+function neighbour(u: (typeof users)[number], i: number): Neighbour {
+  return {
+    id: u.id,
+    first_name: u.first_name,
+    last_name: u.last_name ?? '',
+    photo_url: u.photo_url ?? null,
+    apartment: u.apartment ?? null,
+    role: i === 1 ? 'admin' : 'resident',
+    points: u.points,
+    level_title: u.level_title,
+  }
+}
+
+function profile(id: number): ProfileOut {
+  const i = users.findIndex((u) => u.id === id)
+  if (i < 0) throw notFound()
+  const u = users[i]!
+  const mine = db.issues.filter((x) => x.author.id === id)
+  return {
+    user: neighbour(u, i),
+    is_me: u.id === me.id,
+    username: null,
+    member_since: new Date(Date.now() - (120 + i * 30) * 86_400_000).toISOString(),
+    level: u.level,
+    next_level_points: u.next_level_points,
+    stats: {
+      issues_created: mine.length,
+      issues_open: mine.filter((x) => ['voting', 'sent', 'in_progress'].includes(x.status)).length,
+      votes: 3 + i,
+      events_joined: 2,
+      listings_active: db.listings.filter((l) => l.author.id === id && l.status !== 'closed')
+        .length,
+    },
+    achievements: db.achievements
+      .filter((a) => a.earned && u.id === me.id)
+      .map((a) => ({ code: a.code, title: a.title, icon: a.icon, awarded_at: a.awarded_at ?? '' })),
+  }
+}
+
+function housesOut(): HouseBrief[] {
+  const current = currentHouse().id
+  return houses.map((h, i) => ({
+    id: h.id,
+    title: h.title,
+    address: h.address,
+    role: i === 0 ? scenario.role : 'resident',
+    is_demo: false,
+    is_current: h.id === current,
+  }))
+}
+
 function meOut(): MeOut {
   return {
     user: me,
-    house: HOUSE,
+    house: currentHouse(),
     role: scenario.role,
     mock: !scenario.inMax,
     bot_username: 'domovoy_kuzya_bot',
@@ -214,6 +344,105 @@ function classification(text: string): Classification {
 
 const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/me$/, () => meOut()],
+  [
+    'POST',
+    /^\/me\/onboarded$/,
+    () => {
+      me.onboarded = true
+      return meOut()
+    },
+  ],
+  ['GET', /^\/houses$/, () => housesOut()],
+  [
+    'PATCH',
+    /^\/house$/,
+    (_, __, b) => {
+      const { apartment, ...fields } = b as Record<string, unknown>
+      if (Object.keys(fields).length && scenario.role !== 'admin')
+        throw new ApiError('http', 403, 'Настройки дома меняет администратор')
+      Object.assign(currentHouse(), fields)
+      if (typeof apartment === 'string') me.apartment = apartment || null
+      return meOut()
+    },
+  ],
+  [
+    'POST',
+    /^\/house\/sync$/,
+    () => ({ members: currentHouse().members_count, bot_is_admin: true }),
+  ],
+  [
+    'GET',
+    /^\/house\/geocode$/,
+    (_, q) => [
+      { title: `${String(q.q)}, Казань, Республика Татарстан`, lat: 55.8184, lon: 49.1003 },
+      { title: `${String(q.q)}, Зеленодольск, Республика Татарстан`, lat: 55.8466, lon: 48.5161 },
+    ],
+  ],
+  [
+    'GET',
+    /^\/announcements$/,
+    () =>
+      [...db.announcements].sort(
+        (a, b) => Number(b.pinned) - Number(a.pinned) || b.created_at.localeCompare(a.created_at),
+      ),
+  ],
+  [
+    'POST',
+    /^\/announcements$/,
+    (_, __, b) => {
+      const created: AnnouncementOut = {
+        id: db.nextId++,
+        title: String(b.title),
+        text: String(b.text ?? ''),
+        pinned: !!b.pin && scenario.role === 'admin',
+        event_id: null,
+        author: short(me),
+        is_mine: true,
+        created_at: new Date().toISOString(),
+      }
+      db.announcements.unshift(created)
+      return created
+    },
+  ],
+  [
+    'PATCH',
+    /^\/announcements\/(\d+)$/,
+    ([id], _, b) => {
+      const a = db.announcements.find((x) => x.id === Number(id))
+      if (!a) throw notFound()
+      a.pinned = !!b.pinned
+      return a
+    },
+  ],
+  [
+    'DELETE',
+    /^\/announcements\/(\d+)$/,
+    ([id]) => {
+      db.announcements = db.announcements.filter((x) => x.id !== Number(id))
+      return undefined
+    },
+  ],
+  ['GET', /^\/documents$/, (_, q) => db.documents.filter((d) => !q.scope || d.scope === q.scope)],
+  [
+    'GET',
+    /^\/documents\/(\d+)\/link$/,
+    ([id]) => {
+      const d = db.documents.find((x) => x.id === Number(id))
+      if (!d) throw notFound()
+      const blob = new Blob([`Демо-документ «${d.title}»`], { type: 'text/plain;charset=utf-8' })
+      return { url: URL.createObjectURL(blob), expires_at: Date.now() / 1000 + 900 }
+    },
+  ],
+  [
+    'DELETE',
+    /^\/documents\/(\d+)$/,
+    ([id]) => {
+      db.documents = db.documents.filter((x) => x.id !== Number(id))
+      return undefined
+    },
+  ],
+  ['GET', /^\/people$/, () => users.map(neighbour)],
+  ['GET', /^\/people\/(\d+)$/, ([id]) => profile(Number(id))],
   ['GET', /^\/house\/pulse$/, () => pulse()],
   [
     'GET',
@@ -275,7 +504,13 @@ const routes: [string, RegExp, Handler][] = [
     /^\/listings$/,
     (_, q) =>
       db.listings
-        .filter((l) => l.status !== 'closed')
+        .filter((l) =>
+          q.scope === 'mine'
+            ? l.is_mine
+            : q.scope === 'closed'
+              ? l.status === 'closed'
+              : l.status !== 'closed',
+        )
         .filter((l) => !q.category || l.category === q.category)
         .filter((l) => !q.free || l.is_free)
         .filter((l) => matches(q.q, l.title, l.description)),
@@ -495,6 +730,25 @@ export async function mockUpload<T>(
       needed,
     )
     db.issues.unshift(created)
+    return structuredClone(created) as T
+  }
+  if (path === '/documents') {
+    const file = form.get('file')
+    const scope = form.get('scope') === 'house' ? 'house' : 'personal'
+    if (scope === 'house' && scenario.role !== 'admin')
+      throw new ApiError('http', 403, 'Документы дома загружает администратор')
+    const created: DocumentOut = {
+      id: db.nextId++,
+      title: String(form.get('title') ?? ''),
+      filename: file instanceof File ? file.name : 'document',
+      content_type: file instanceof File ? file.type : 'application/octet-stream',
+      size: file instanceof File ? file.size : 0,
+      scope,
+      author: short(me),
+      can_delete: true,
+      created_at: new Date().toISOString(),
+    }
+    db.documents.unshift(created)
     return structuredClone(created) as T
   }
   if (path === '/listings') {

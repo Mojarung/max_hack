@@ -23,6 +23,10 @@ export function getDevUser(): number | null {
   return auth.devUser
 }
 
+export function getHouseId(): number | null {
+  return auth.houseId
+}
+
 export type ApiErrorKind = 'network' | 'http' | 'timeout' | 'aborted'
 
 export class ApiError extends Error {

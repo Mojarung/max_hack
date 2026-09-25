@@ -148,9 +148,13 @@ async function remove(): Promise<void> {
       <h2 class="mt-1 mb-0 text-xl leading-snug font-bold">{{ listing.title }}</h2>
       <p class="pre-wrap mt-3 mb-0 leading-relaxed">{{ listing.description }}</p>
 
-      <div class="card-soft mt-4 flex items-center gap-3 p-3">
+      <router-link
+        :to="`/people/${listing.author.id}`"
+        class="card-soft tap-card mt-4 flex items-center gap-3 p-3 text-inherit no-underline"
+        :aria-label="`Продавец: ${fullName(listing.author)}. Открыть профиль`"
+      >
         <UserAvatar :user="listing.author" :size="44" />
-        <div>
+        <div class="min-w-0 flex-1">
           <div class="font-semibold">{{ fullName(listing.author) }}</div>
           <div class="text-muted text-sm">
             <template v-if="listing.author?.apartment"
@@ -159,7 +163,8 @@ async function remove(): Promise<void> {
             {{ formatRelative(listing.created_at) }}
           </div>
         </div>
-      </div>
+        <v-icon icon="mdi-chevron-right" aria-hidden="true" />
+      </router-link>
 
       <!-- Своё объявление -->
       <section

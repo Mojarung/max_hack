@@ -95,6 +95,10 @@ describe('deepLinkToPath', () => {
     ['listing_2', '/market/2'],
     ['alert', '/more/safety'],
     ['ISSUE_12', '/issues/12'],
+    ['announcements', '/announcements'],
+    ['documents', '/more/documents'],
+    ['house_setup', '/more/house/edit'],
+    ['new_issue', '/issues/new'],
   ])('maps %s to %s', (param, path) => {
     expect(deepLinkToPath(param)).toBe(path)
   })

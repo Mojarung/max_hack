@@ -210,7 +210,19 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
                 <div v-if="m.deleted" class="flex items-center gap-1">
                   <v-icon icon="mdi-cancel" size="16" /> Сообщение удалено модератором Кузей
                 </div>
-                <div v-else class="pre-wrap">{{ m.text }}</div>
+                <template v-else>
+                  <div v-if="m.photos?.length" class="mb-1 flex gap-1">
+                    <img
+                      v-for="src in m.photos"
+                      :key="src"
+                      :src="src"
+                      alt="Фото к сообщению"
+                      class="h-[120px] min-w-0 flex-1 rounded-xl object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div class="pre-wrap">{{ m.text }}</div>
+                </template>
                 <div class="mt-0.5 text-right text-sm opacity-60">
                   {{ formatTime(m.created_at) }}
                 </div>

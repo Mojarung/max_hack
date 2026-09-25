@@ -114,6 +114,43 @@ const routes: RouteRecordRaw[] = [
     meta: { tab: 'more', title: 'Настройки MCP', inner: true, parent: '/more' },
   },
   {
+    path: '/announcements',
+    name: 'announcements',
+    component: () => import('@/views/announcements/AnnouncementsView.vue'),
+    meta: { tab: 'home', title: 'Объявления', inner: true, parent: '/' },
+  },
+  {
+    path: '/more/house',
+    name: 'house',
+    component: () => import('@/views/house/HouseView.vue'),
+    meta: { tab: 'more', title: 'О доме', inner: true, parent: '/more' },
+  },
+  {
+    path: '/more/house/edit',
+    name: 'house-edit',
+    component: () => import('@/views/house/HouseEditView.vue'),
+    meta: { tab: 'more', title: 'Настройки дома', inner: true, parent: '/more/house' },
+  },
+  {
+    path: '/more/documents',
+    name: 'documents',
+    component: () => import('@/views/house/DocumentsView.vue'),
+    meta: { tab: 'more', title: 'Документы', inner: true, parent: '/more' },
+  },
+  {
+    path: '/people',
+    name: 'people',
+    component: () => import('@/views/people/PeopleView.vue'),
+    meta: { tab: 'more', title: 'Соседи', inner: true, parent: '/more' },
+  },
+  {
+    path: '/people/:id(\\d+)',
+    name: 'profile',
+    component: () => import('@/views/people/ProfileView.vue'),
+    props: (route) => ({ id: Number(route.params.id) }),
+    meta: { tab: 'more', title: 'Профиль', inner: true, parent: '/people' },
+  },
+  {
     path: '/dev/chat',
     name: 'dev-chat',
     component: () => import('@/views/dev/ChatEmulatorView.vue'),
