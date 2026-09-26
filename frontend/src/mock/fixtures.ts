@@ -1,5 +1,5 @@
 /**
- * Демо-данные мок-режима: панельная девятиэтажка в Казани.
+ * Демо-данные мок-режима: панельная девятиэтажка в Ульяновске (Новый Город).
  * Всё строится от текущего времени, чтобы таймеры сроков и даты событий выглядели живыми.
  */
 import type {
@@ -36,10 +36,10 @@ export function photo(emoji: string, from: string, to: string): string {
 
 export const HOUSE: House = {
   id: 1,
-  title: 'Чистопольская, 5',
-  address: 'Казань, ул. Чистопольская, 5',
-  lat: 55.8184,
-  lon: 49.1003,
+  title: 'Ленинского Комсомола, 5',
+  address: 'Ульяновск, пр-т Ленинского Комсомола, 5',
+  lat: 54.3857,
+  lon: 48.6072,
   members_count: 40,
   vote_threshold_pct: 15,
   uk_name: 'УК «Уютный дом»',
@@ -382,7 +382,7 @@ export function buildIssues(s: MockScenario, users: UserFull[], needed: number):
     {
       id: 107,
       title: 'Яма на въезде во двор',
-      description: 'На въезде во двор со стороны Чистопольской глубокая яма, машины бьют подвеску.',
+      description: 'На въезде во двор со стороны проспекта глубокая яма, машины бьют подвеску.',
       category: 'road',
       status: 'rejected',
       author: 4,
@@ -574,7 +574,7 @@ export function buildEvents(s: MockScenario, users: UserFull[]): EventDetail[] {
     ev(
       304,
       'Турнир по мини-футболу',
-      'Дом на дом: Чистопольская 5 против Чистопольской 7.',
+      'Дом на дом: Ленинского Комсомола, 5 против дома 7.',
       'sport',
       dayAt(-8, 11),
       'Спортплощадка школы № 39',
@@ -656,39 +656,39 @@ export function buildAchievements(s: MockScenario): AchievementOut[] {
 export const SHELTERS: ShelterOut[] = [
   {
     id: 1,
-    name: 'Подвал школы № 39',
-    address: 'ул. Чистопольская, 9',
-    lat: 55.8195,
-    lon: 49.1021,
+    name: 'Укрытие в подвале школы (демо)',
+    address: 'пр-т Ленинского Комсомола, 9',
+    lat: 54.3868,
+    lon: 48.609,
     capacity: 300,
     kind: 'basement',
     distance_m: 180,
-    yandex_url: 'https://yandex.ru/maps/?rtext=~55.8195,49.1021',
-    osm_url: 'https://www.openstreetmap.org/?mlat=55.8195&mlon=49.1021',
+    yandex_url: 'https://yandex.ru/maps/?rtext=~54.3868,48.609',
+    osm_url: 'https://www.openstreetmap.org/?mlat=54.3868&mlon=48.609',
   },
   {
     id: 2,
-    name: 'Станция метро «Козья слобода»',
-    address: 'пр. Ямашева, 2',
-    lat: 55.8177,
-    lon: 49.0963,
-    capacity: 2000,
-    kind: 'metro',
+    name: 'Цокольный этаж Дома культуры (демо)',
+    address: 'пр-т Созидателей, 2',
+    lat: 54.3846,
+    lon: 48.6031,
+    capacity: 600,
+    kind: 'basement',
     distance_m: 420,
-    yandex_url: 'https://yandex.ru/maps/?rtext=~55.8177,49.0963',
-    osm_url: 'https://www.openstreetmap.org/?mlat=55.8177&mlon=49.0963',
+    yandex_url: 'https://yandex.ru/maps/?rtext=~54.3846,48.6031',
+    osm_url: 'https://www.openstreetmap.org/?mlat=54.3846&mlon=48.6031',
   },
   {
     id: 3,
-    name: 'Паркинг ТЦ «Тандем»',
-    address: 'пр. Ибрагимова, 56',
-    lat: 55.8225,
-    lon: 49.1055,
+    name: 'Подземный паркинг ТЦ (демо)',
+    address: 'пр-т Ленинского Комсомола, 30',
+    lat: 54.3889,
+    lon: 48.6118,
     capacity: 800,
     kind: 'parking',
     distance_m: 650,
-    yandex_url: 'https://yandex.ru/maps/?rtext=~55.8225,49.1055',
-    osm_url: 'https://www.openstreetmap.org/?mlat=55.8225&mlon=49.1055',
+    yandex_url: 'https://yandex.ru/maps/?rtext=~54.3889,48.6118',
+    osm_url: 'https://www.openstreetmap.org/?mlat=54.3889&mlon=48.6118',
   },
 ]
 

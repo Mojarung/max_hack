@@ -140,7 +140,7 @@ async function save(): Promise<void> {
       <v-text-field
         v-model="form.address"
         label="Адрес"
-        placeholder="Казань, ул. Чистопольская, 5"
+        placeholder="Ульяновск, пр-т Ленинского Комсомола, 5"
         :rules="[rules.address]"
         maxlength="512"
       />

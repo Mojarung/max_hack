@@ -51,8 +51,8 @@ const needed = Math.max(3, Math.ceil((HOUSE.members_count * HOUSE.vote_threshold
 const HOUSE2: House = {
   ...HOUSE,
   id: 2,
-  title: 'Декабристов, 81',
-  address: 'Казань, ул. Декабристов, 81',
+  title: 'Созидателей, 34',
+  address: 'Ульяновск, пр-т Созидателей, 34',
   members_count: 24,
   info: '',
   setup_done: true,
@@ -60,9 +60,9 @@ const HOUSE2: House = {
 const houses: House[] = [
   {
     ...HOUSE,
-    info: 'Диспетчерская УК: +7 (843) 000-00-01, круглосуточно.\nПредседатель совета дома: Анна Петрова, кв. 12.',
+    info: 'Диспетчерская УК: +7 (8422) 00-00-01, круглосуточно.\nПредседатель совета дома: Анна Петрова, кв. 12.',
     uk_email: 'uk@example.org',
-    uk_phone: '+7 (843) 000-00-01',
+    uk_phone: '+7 (8422) 00-00-01',
     setup_done: !scenario.setup,
     has_chat: true,
     bot_is_admin: true,
@@ -374,8 +374,8 @@ const routes: [string, RegExp, Handler][] = [
     'GET',
     /^\/house\/geocode$/,
     (_, q) => [
-      { title: `${String(q.q)}, Казань, Республика Татарстан`, lat: 55.8184, lon: 49.1003 },
-      { title: `${String(q.q)}, Зеленодольск, Республика Татарстан`, lat: 55.8466, lon: 48.5161 },
+      { title: `${String(q.q)}, Ульяновск, Ульяновская область`, lat: 54.3857, lon: 48.6072 },
+      { title: `${String(q.q)}, Димитровград, Ульяновская область`, lat: 54.2138, lon: 49.6184 },
     ],
   ],
   [
@@ -666,7 +666,7 @@ const routes: [string, RegExp, Handler][] = [
   [
     'GET',
     /^\/dev\/chats$/,
-    () => [{ chat_id: 1, title: 'Чистопольская, 5 - домовой чат', type: 'chat' }],
+    () => [{ chat_id: 1, title: 'Ленинского Комсомола, 5 - домовой чат', type: 'chat' }],
   ],
   ['GET', /^\/dev\/chat\/messages$/, () => []],
 ]

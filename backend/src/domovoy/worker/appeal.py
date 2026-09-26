@@ -59,9 +59,10 @@ def render_appeal(issue: Issue, description: str) -> str:
     )
 
 
-def render_escalation(issue: Issue) -> str:
+def render_escalation(issue: Issue, inspection: str) -> str:
+    """Жалоба в надзорный орган региона: его название берётся из справочника организаций (kind="gji")."""
     return (
-        "Кому: Государственная жилищная инспекция Республики Татарстан\n"
+        f"Кому: {inspection}\n"
         f"Жалоба на неисполнение обращения № {issue.id} от {_fmt(issue.sent_at)}.\n"
         f"Исполнитель: {issue.responsible_org.name if issue.responsible_org else '-'}. "
         f"Нормативный срок истёк {_fmt(issue.deadline_at)} (МСК), проблема «{issue.title}» не устранена.\n"

@@ -2,6 +2,8 @@
 
 import json
 from datetime import datetime
+from types import SimpleNamespace
+from typing import Any, cast
 from urllib.parse import quote
 
 import pytest
@@ -15,6 +17,7 @@ from domovoy.core.max_auth import InitDataError, sign, validate_init_data
 from domovoy.modules.issues.classifier import classify_rules
 from domovoy.modules.moderation.guardrails import check_rules
 from domovoy.modules.users.pulse import PulseStats, compute_score, mood_for
+from domovoy.worker.appeal import render_escalation
 
 TOKEN = "test-bot-token"
 NOW = 1_790_000_000
@@ -168,3 +171,16 @@ def test_pulse_mood() -> None:
     assert mood_for(compute_score(bad), False) == "sad"
     assert mood_for(90, True) == "alarm"
     assert mood_for(90, False, overdue=1) == "ok"
+
+
+def test_escalation_goes_to_inspection_from_catalog() -> None:
+    issue = SimpleNamespace(
+        id=7,
+        title="Течёт крыша",
+        sent_at=datetime(2026, 9, 20, 10, 0, tzinfo=TZ),
+        deadline_at=datetime(2026, 9, 21, 10, 0, tzinfo=TZ),
+        responsible_org=SimpleNamespace(name="УК «Домсервис» (демо)"),
+    )
+    text = render_escalation(cast(Any, issue), "Агентство государственного строительного и жилищного надзора")
+    assert text.startswith("Кому: Агентство государственного строительного и жилищного надзора\n")
+    assert "№ 7" in text and "УК «Домсервис» (демо)" in text

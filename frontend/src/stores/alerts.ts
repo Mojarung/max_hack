@@ -46,7 +46,7 @@ export const useAlertsStore = defineStore('alerts', () => {
     const house = useSessionStore().me?.house
     nearestLoading.value = true
     try {
-      position.value = await locate(house ?? { lat: 55.7963, lon: 49.1088 })
+      position.value = await locate(house ?? { lat: 54.3142, lon: 48.4031 })
       const list = await safetyApi.shelters(position.value.lat, position.value.lon)
       nearest.value = list[0] ?? null
     } catch {

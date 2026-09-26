@@ -71,8 +71,8 @@ async def house_passport(house_id: int | None = None) -> dict[str, Any]:
 
 @mcp.tool
 async def utility_tariffs() -> dict[str, Any]:
-    """Тарифы на коммунальные услуги и взнос на капремонт (Казань, 2-е полугодие 2026)."""
-    return {"region": "Республика Татарстан, г. Казань", "tariffs": TARIFFS_2026, "source": DATA_NOTE}
+    """Тарифы на коммунальные услуги и взнос на капремонт (Ульяновск, 2-е полугодие 2026)."""
+    return {"region": "Ульяновская область, г. Ульяновск", "tariffs": TARIFFS_2026, "source": DATA_NOTE}
 
 
 @mcp.tool

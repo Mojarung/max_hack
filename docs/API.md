@@ -48,8 +48,8 @@ X-Max-Init-Data: <initData>
   "user": {"id": 1, "max_user_id": 1001, "first_name": "Анна", "last_name": "Иванова",
            "username": "anna", "photo_url": null, "apartment": "12",
            "points": 140, "level": 3, "level_title": "Надёжный сосед", "next_level_points": 200},
-  "house": {"id": 1, "title": "ЖК «Сказочный», дом 7", "address": "Казань, ул. ...",
-            "lat": 55.79, "lon": 49.12, "members_count": 40, "vote_threshold_pct": 15,
+  "house": {"id": 1, "title": "ЖК «Сказочный», дом 7", "address": "Ульяновск, ул. ...",
+            "lat": 54.38, "lon": 48.60, "members_count": 40, "vote_threshold_pct": 15,
             "uk_name": "УК ...", "uk_email": "uk@example.org", "uk_phone": "+7 ...",
             "info": "Диспетчерская ...", "setup_done": true, "is_demo": false,
             "has_chat": true, "bot_is_admin": true},
@@ -183,9 +183,9 @@ X-Max-Init-Data: <initData>
 
 ```jsonc
 // ShelterOut
-{"id": 1, "name": "Укрытие (подвал школы № 12)", "address": "...", "lat": 55.79, "lon": 49.12,
+{"id": 1, "name": "Укрытие (подвал школы № 12)", "address": "...", "lat": 54.38, "lon": 48.60,
  "capacity": 300, "kind": "shelter", "distance_m": 420,
- "yandex_url": "https://yandex.ru/maps/?rtext=55.79,49.12~55.791,49.125&rtt=pd",
+ "yandex_url": "https://yandex.ru/maps/?rtext=54.38,48.60~54.381,48.605&rtt=pd",
  "osm_url": "https://www.openstreetmap.org/?mlat=...&mlon=...#map=18/..."}
 // AlertOut
 {"id": 1, "kind": "drone", "kind_title": "Беспилотная опасность", "message": "...",

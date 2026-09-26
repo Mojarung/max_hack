@@ -39,7 +39,7 @@ class Organization(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(256))
     email: Mapped[str | None] = mapped_column(String(256))
     phone: Mapped[str | None] = mapped_column(String(64))
-    region: Mapped[str] = mapped_column(String(128), default="Республика Татарстан")
+    region: Mapped[str] = mapped_column(String(128), default="Ульяновская область")
 
 
 class House(TimestampMixin, Base):
@@ -49,8 +49,8 @@ class House(TimestampMixin, Base):
     max_chat_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, index=True)
     title: Mapped[str] = mapped_column(String(256))
     address: Mapped[str] = mapped_column(String(512), default="")
-    lat: Mapped[float] = mapped_column(Float, default=55.7963)
-    lon: Mapped[float] = mapped_column(Float, default=49.1088)
+    lat: Mapped[float] = mapped_column(Float, default=54.3142)
+    lon: Mapped[float] = mapped_column(Float, default=48.4031)
     members_count: Mapped[int] = mapped_column(Integer, default=10)
     vote_threshold_pct: Mapped[int] = mapped_column(Integer, default=15)
     uk_org_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id"))

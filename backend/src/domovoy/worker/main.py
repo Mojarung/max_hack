@@ -16,7 +16,7 @@ from domovoy.modules.events.models import Event, EventParticipant
 from domovoy.modules.issues.models import Issue, IssueUpdate
 from domovoy.modules.issues.schemas import issue_out
 from domovoy.modules.issues.service import app_button
-from domovoy.modules.users.models import House
+from domovoy.modules.users.models import House, Organization
 from domovoy.worker import mailer
 from domovoy.worker.appeal import business_description, render_appeal, render_escalation
 
@@ -114,13 +114,20 @@ async def escalate_overdue() -> None:
                 )
             )
         )
+        inspection = (
+            await session.scalar(
+                select(Organization.name).where(Organization.kind == "gji").order_by(Organization.id).limit(1)
+            )
+            or "Государственная жилищная инспекция"
+        )
         for issue in overdue:
             issue.escalated_at = now
             session.add(
                 IssueUpdate(
                     issue_id=issue.id,
                     status=issue.status,
-                    note="Срок истёк. Кузя подготовил жалобу в Госжилинспекцию:\n" + render_escalation(issue),
+                    note="Срок истёк. Кузя подготовил жалобу в Госжилинспекцию:\n"
+                    + render_escalation(issue, inspection),
                 )
             )
         await session.commit()
