@@ -10,6 +10,7 @@
   Не открывай живой бэкенд (`npm run dev`, порт 5173) для экспериментов: там реальный бот.
 - Сценарии: `?scenario=default|empty|overdue|alert|long|error|boot-error`, `?role=admin`, `?theme=dark`, `?latency=2000`.
 - В консоли страницы: `await __ui.audit()` (тач-зоны, мелкий текст, переполнение, axe WCAG AA).
+- Вне MAX на боевом сервере (`GET /api/v1/meta` → `mock: false`) приложение показывает экран «Кузя живёт в MAX» (`BootScreen`, статус `outside`) с диплинком и кнопкой демо. Демо в браузере работает на том же мок-бэкенде `src/mock`: флаг `kuzya.browserDemo` в sessionStorage, переключатель в `src/api/mode.ts` (`MOCK_API`, `BROWSER_DEMO`). Мок знает выбранного демо-жителя: голоса и «Иду» у каждого свои.
 
 ## Проверка
 

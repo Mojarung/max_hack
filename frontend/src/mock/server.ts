@@ -1,10 +1,10 @@
 /**
- * Мок-бэкенд в памяти вкладки. Подключается только при VITE_MOCK_API=true
- * (`npm run dev:mock`), в продовую сборку не попадает. Действия (голос, «Иду»,
- * новая заявка) меняют состояние до перезагрузки страницы, так что сценарии
- * можно пройти целиком, не трогая настоящую базу и домовой чат.
+ * Мок-бэкенд в памяти вкладки. Подключается при VITE_MOCK_API=true (`npm run dev:mock`)
+ * или в демо из браузера (`src/api/mode.ts`); отдельным чанком, который грузится только
+ * в этих режимах. Действия (голос, «Иду», новая заявка) меняют состояние до перезагрузки
+ * страницы, так что сценарии можно пройти целиком, не трогая настоящую базу и домовой чат.
  */
-import { ApiError, getHouseId } from '@/api/client'
+import { ApiError, getDevUser, getHouseId } from '@/api/client'
 import type {
   AchievementsOut,
   AnnouncementOut,
@@ -44,7 +44,7 @@ import { scenario } from './scenario'
 import { LISTING_CATEGORY_TITLES } from '@/utils/labels'
 
 const users = buildUsers(scenario)
-const me = scenario.role === 'admin' ? users[1]! : users[0]!
+let me = scenario.role === 'admin' ? users[1]! : users[0]!
 const needed = Math.max(3, Math.ceil((HOUSE.members_count * HOUSE.vote_threshold_pct) / 100))
 
 /** Второй дом того же жителя: видно переключение домов. */
@@ -156,6 +156,28 @@ const matches = (q: unknown, ...fields: string[]) => {
     .trim()
     .toLowerCase()
   return !needle || fields.some((f) => f.toLowerCase().includes(needle))
+}
+
+/** Кто поддержал заявку: в демо жителей переключают, и голос у каждого свой. */
+const voters = new Map<number, Set<number>>()
+
+function votersOf(i: IssueDetail): Set<number> {
+  let set = voters.get(i.id)
+  if (!set) {
+    set = new Set(i.voted_by_me ? [me.id] : [])
+    voters.set(i.id, set)
+  }
+  return set
+}
+
+/** Житель из переключателя (X-Dev-User) становится «мной»: голоса и «Иду» пересчитываются. */
+function syncMe(): void {
+  const next = users.find((u) => u.max_user_id === getDevUser())
+  if (!next || next === me) return
+  for (const i of db.issues) votersOf(i)
+  me = next
+  for (const i of db.issues) i.voted_by_me = votersOf(i).has(me.id)
+  for (const e of db.events) e.joined_by_me = e.participants.some((p) => p.id === me.id)
 }
 
 function issue(id: string): IssueDetail {
@@ -295,7 +317,10 @@ function meOut(): MeOut {
 function vote(id: string, on: boolean): IssueDetail {
   const i = issue(id)
   if (i.status !== 'voting') throw new ApiError('http', 409, 'Голосование уже закончилось')
-  if (i.voted_by_me === on) return i
+  const set = votersOf(i)
+  if (set.has(me.id) === on) return i
+  if (on) set.add(me.id)
+  else set.delete(me.id)
   i.voted_by_me = on
   i.votes_count += on ? 1 : -1
   if (i.votes_count >= i.votes_needed) {
@@ -679,6 +704,7 @@ export async function mockRequest<T>(
   body: Body = {},
 ): Promise<T> {
   await sleep(scenario.latency)
+  syncMe()
   if (scenario.name === 'boot-error')
     throw new ApiError('network', 0, 'Нет связи с сервером. Проверьте интернет')
   if (scenario.name === 'error' && path !== '/me') {
@@ -702,6 +728,7 @@ export async function mockUpload<T>(
   form: FormData,
   onProgress?: (f: number) => void,
 ): Promise<T> {
+  syncMe()
   for (const f of [0.3, 0.7, 1]) {
     await sleep(scenario.latency / 2)
     onProgress?.(f)
