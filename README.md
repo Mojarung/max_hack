@@ -102,7 +102,7 @@ flowchart LR
 docker compose up -d --build
 ```
 
-Сборка занимает около минуты (без учёта загрузки базовых образов). Файл `.env` необязателен: без него всё стартует в мок-режиме с демо-данными.
+Сборка с нуля занимает около двух с половиной минут (замер 27.09.2026 на чистом клоне с `--no-cache`, без учёта загрузки базовых образов). Файл `.env` необязателен: без него всё стартует в мок-режиме с демо-данными.
 
 | Адрес | Что там |
 |---|---|
@@ -149,7 +149,7 @@ cd ../frontend && npm ci && npm run dev                # http://localhost:5173
 DOMAIN=kuzya.example.ru docker compose -f compose.yaml -f compose.https.yaml up -d --build
 ```
 
-Если `minio/minio` не скачивается (образ убран с Docker Hub), используйте `deploy/dc.sh`: он добавляет `compose.override.yaml` с `bitnamilegacy/minio`. Образ бэкенда собирайте один раз через `./deploy/dc.sh build api`, затем `./deploy/dc.sh up -d`. При ошибке Docker Hub 429 подключите зеркало: `{"registry-mirrors": ["https://mirror.gcr.io"]}` в `/etc/docker/daemon.json`. На сервере с 2 ГБ RAM нужен swap (2 ГБ), иначе сборка фронтенда упирается в память.
+`deploy/dc.sh` - та же команда короче: `./deploy/dc.sh build api` собирает образ бэкенда один раз, затем `./deploy/dc.sh up -d`. При ошибке Docker Hub 429 подключите зеркало: `{"registry-mirrors": ["https://mirror.gcr.io"]}` в `/etc/docker/daemon.json`. На сервере с 2 ГБ RAM нужен swap (2 ГБ), иначе сборка фронтенда упирается в память.
 
 Caddy (`deploy/Caddyfile`) сам получает и продлевает сертификат Let's Encrypt и проксирует на фронтенд, SSE не буферизуется. Наружу открыты только 80/443, у сервисов заданы лимиты памяти под 2 ГБ. Mailpit доступен только через SSH-туннель: `ssh -L 8025:127.0.0.1:8025 user@server`. Адрес `https://<DOMAIN>` указывается в business.max.ru как URL мини-приложения.
 
