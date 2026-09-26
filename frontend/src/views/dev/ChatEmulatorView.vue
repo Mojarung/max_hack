@@ -13,7 +13,7 @@ import { haptic, openLink } from '@/max/bridge'
 import { deepLinkToPath } from '@/max/deeplink'
 import { useDevChatStore } from '@/stores/chat'
 import { useSessionStore } from '@/stores/session'
-import { formatTime } from '@/utils/format'
+import { boldSegments, formatTime } from '@/utils/format'
 
 const store = useDevChatStore()
 const session = useSessionStore()
@@ -221,7 +221,12 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
                       loading="lazy"
                     />
                   </div>
-                  <div class="pre-wrap">{{ m.text }}</div>
+                  <div class="pre-wrap">
+                    <template v-for="(part, i) in boldSegments(m.text)" :key="i">
+                      <b v-if="part.bold">{{ part.text }}</b>
+                      <template v-else>{{ part.text }}</template>
+                    </template>
+                  </div>
                 </template>
                 <div class="mt-0.5 text-right text-sm opacity-60">
                   {{ formatTime(m.created_at) }}

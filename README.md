@@ -182,7 +182,7 @@ Caddy (`deploy/Caddyfile`) сам получает и продлевает се�
 Версии зафиксированы в `backend/uv.lock` и `frontend/package-lock.json`.
 
 - Бэкенд: Python 3.13, FastAPI, SQLAlchemy 2 (asyncpg), pgvector, FastStream (RabbitMQ), miniopy-async, LangChain 1.x, LangGraph 1.x, langgraph-checkpoint-postgres, langchain-ollama, FastMCP 4, sse-starlette, Pillow, structlog.
-- Фронтенд: Vue 3, Vite, TypeScript, Pinia, Vue Router, Vuetify 3 (Material Design), shadcn-vue + Tailwind CSS 4, GSAP, Leaflet.
+- Фронтенд: Vue 3, Vite, TypeScript, Pinia, Vue Router, Vuetify 4 (Material Design 3), shadcn-vue + Tailwind CSS 4, GSAP, Leaflet.
 - Инфраструктура: PostgreSQL 18 + pgvector, RabbitMQ 4, MinIO.
 - Инструменты: uv, ruff, mypy, pytest; ESLint, vue-tsc, Vitest.
 

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { formatCountdown, formatDistance, formatHours, formatPrice, plural } from './format'
+import {
+  boldSegments,
+  formatCountdown,
+  formatDistance,
+  formatHours,
+  formatPrice,
+  plural,
+} from './format'
 
 const MIN = 60_000
 const HOUR = 60 * MIN
@@ -106,5 +113,20 @@ describe('orgTitle', () => {
       'Обращение отправлено: оператор вывоза мусора «Гринта»',
     )
     expect(plainOrgWords('ЖУКОВ и УКРОП')).toBe('ЖУКОВ и УКРОП')
+  })
+})
+
+describe('boldSegments', () => {
+  it('splits bot markdown into plain and bold parts', () => {
+    expect(boldSegments('Заявка **Течёт крыша** набрала голоса')).toEqual([
+      { text: 'Заявка ', bold: false },
+      { text: 'Течёт крыша', bold: true },
+      { text: ' набрала голоса', bold: false },
+    ])
+  })
+
+  it('keeps unpaired asterisks and plain text as is', () => {
+    expect(boldSegments('5 ** 2')).toEqual([{ text: '5 ** 2', bold: false }])
+    expect(boldSegments('')).toEqual([])
   })
 })

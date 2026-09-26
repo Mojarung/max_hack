@@ -6,11 +6,12 @@
 <style>
   @page { size: 1280px 720px; margin: 0; }
   :root {
-    --bg: #CAF0F8; --ink: #03045E; --muted: #023E8A; --accent: #0077B6; --accent-soft: #ADE8F4;
-    --teal: #0096C7; --teal-soft: #90E0EF; --line: #90E0EF; --red: #023E8A;
+    /* палитра мини-приложения: frontend/src/plugins/vuetify.ts */
+    --bg: #F5F7FA; --surface: #FFFFFF; --ink: #1B2533; --muted: #4A5668; --accent: #1F5FAF; --accent-soft: #E4EDF8;
+    --teal: #0F766E; --teal-soft: #DDF1EE; --line: #D5DCE5; --red: #C62828; --red-soft: #FBE9E9; --amber: #8A5300; --amber-soft: #FBF0DC;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: "Segoe UI", "Inter", system-ui, sans-serif; color: var(--ink); background: #ADE8F4; }
+  body { margin: 0; font-family: "Segoe UI", "Inter", system-ui, sans-serif; color: var(--ink); background: #E8ECF1; }
   .slide {
     width: 1280px; height: 720px; padding: 56px 72px; background: var(--bg); position: relative;
     page-break-after: always; overflow: hidden; display: flex; flex-direction: column;
@@ -26,23 +27,24 @@
   .small { font-size: 15px; }
   .tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); margin-right: 6px; }
   .tag.teal { background: var(--teal-soft); color: var(--teal); }
-  .tag.red { background: #90E0EF; color: var(--red); }
+  .tag.red { background: var(--red-soft); color: var(--red); }
+  .tag.amber { background: var(--amber-soft); color: var(--amber); }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; }
   .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-  .card { background: #ADE8F4; border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; }
+  .card { background: var(--surface); border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(27,37,51,.05); border-radius: 18px; padding: 20px 22px; }
   .card p, .card li { font-size: 17px; }
   table { border-collapse: collapse; width: 100%; font-size: 16px; }
   th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { color: var(--muted); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: .4px; }
   .footer { position: absolute; bottom: 22px; left: 72px; right: 72px; display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
   .kuzya { position: absolute; right: 60px; bottom: 50px; width: 260px; }
-  .shot { border-radius: 22px; border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(3,4,94,.18); height: 520px; }
+  .shot { border-radius: 22px; border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(27,37,51,.16); height: 520px; }
   .steps { counter-reset: s; list-style: none; padding: 0; }
   .steps li { counter-increment: s; position: relative; padding-left: 44px; font-size: 18px; margin-bottom: 11px; }
-  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #CAF0F8; font-weight: 700; display: grid; place-items: center; font-size: 15px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #FFFFFF; font-weight: 700; display: grid; place-items: center; font-size: 15px; }
   .big { font-size: 44px; font-weight: 700; color: var(--accent); }
   .tech td:first-child { width: 290px; color: var(--muted); }
-  code { font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; background: #ADE8F4; padding: 1px 6px; border-radius: 6px; }
+  code { font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; }
   .arch { width: 100%; height: 470px; }
 </style>
 </head>
@@ -52,13 +54,13 @@
 <section class="slide">
   <h2>Техническая информация для проверки</h2>
   <table class="tech">
-    <tr><td>Бот в MAX</td><td><b>TODO:</b> https://max.ru/&lt;ник бота&gt; (ник фиксируется после выдачи токена)</td></tr>
-    <tr><td>Мини-приложение</td><td>кнопка в чате бота и диплинк <code>https://max.ru/&lt;ник&gt;?startapp=home</code></td></tr>
+    <tr><td>Бот в MAX</td><td><b>https://max.ru/id732818139220_bot</b> (@id732818139220_bot)</td></tr>
+    <tr><td>Мини-приложение</td><td><b>https://linkog.ru</b>, открывается кнопкой в чате бота и диплинком <code>https://max.ru/id732818139220_bot?startapp=home</code></td></tr>
     <tr><td>Репозиторий и commit hash</td><td>https://github.com/Mojarung/max_hack, ветка <code>main</code>; hash сдаваемой версии: последний коммит <code>main</code> на момент дедлайна (<code>git rev-parse HEAD</code>)</td></tr>
     <tr><td>Собственный API</td><td>не требуется для проверки; внутренний REST описан в <code>docs/openapi.json</code></td></tr>
-    <tr><td>Тестовые учётные записи</td><td>в MAX: ваш аккаунт (добавьте бота в групповой чат администратором);<br>без MAX: демо-жители 1001-1008 в переключателе мини-приложения, 1001 администратор</td></tr>
+    <tr><td>Тестовые учётные записи</td><td>в MAX: ваш аккаунт. Личка с ботом: /start → «Открыть приложение». Сценарий в группе: добавьте бота в чат администратором с правом «Читать сообщения»;<br>без MAX: демо-жители 1001-1008 в переключателе мини-приложения, 1001 администратор</td></tr>
     <tr><td>Переменные окружения</td><td><code>MAX_BOT_TOKEN</code> передаётся отдельно; остальное в <code>.env.example</code>, работает без изменений</td></tr>
-    <tr><td>Запуск</td><td><code>docker compose up -d --build</code> → http://localhost:8180 (мини-приложение), http://localhost:8180/dev/chat (эмулятор чата)</td></tr>
+    <tr><td>Запуск</td><td><code>docker compose up -d --build</code> (сборка около минуты) → http://localhost:8180 (мини-приложение), http://localhost:8180/dev/chat (эмулятор чата), http://localhost:8025 (тестовая почта с обращениями)</td></tr>
     <tr><td>Основной сценарий</td><td>«Проблемы» → «Сообщить» → фото и описание → голоса соседей → при пороге Кузя отправляет обращение → статус и срок в карточке</td></tr>
   </table>
 </section>
@@ -68,7 +70,7 @@
   <span class="tag" style="align-self:flex-start">Трек «Умный город»</span>
   <h1 style="font-size:72px;margin-top:18px">Домовой Кузя</h1>
   <p style="font-size:26px;max-width:720px">Хранитель дома в чате MAX: превращает жалобы соседей в коллективные обращения с правильным адресатом и сроком и следит, чтобы проблему решили.</p>
-  <p class="muted" style="margin-top:40px">Команда: <b>TODO</b> (состав и роли)</p>
+  <p class="muted" style="margin-top:40px">Команда: <b>[впишите состав и роли]</b></p>
   <img class="kuzya" src="../../frontend/public/kuzya.png" alt="">
 </section>
 
@@ -83,7 +85,7 @@
   <div class="grid3">
     <div class="card"><h3>Почему MAX</h3><p>С 01.09.2026 УК обязаны работать с жителями через MAX (ПП РФ № 40). Кузя живёт там, где жители уже общаются.</p></div>
     <div class="card"><h3>Эффект</h3><p>Обращение за часы вместо недель, ноль ручных звонков у инициатора, дубли объединяются, просрочки эскалируются в ГЖИ.</p></div>
-    <div class="card"><h3>Готовность</h3><p>Работающий MVP: бот, мини-приложение, агент, модерация, события, барахолка, укрытия. Запуск одной командой.</p></div>
+    <div class="card"><h3>Готовность</h3><p>Работающий MVP в MAX: бот, мини-приложение, агент, модерация, события, барахолка, укрытия, несколько домов из чатов. Запуск одной командой.</p></div>
   </div>
 </section>
 
@@ -175,12 +177,52 @@
   <p class="small muted" style="margin-top:18px">Эти функции дают регулярный повод заходить, поэтому в момент поломки канал уже установлен и соседи голосуют.</p>
 </section>
 
+<!-- 8a. Дом из чата -->
+<section class="slide">
+  <h2>Дом живёт в чате MAX</h2>
+  <div class="grid2" style="grid-template-columns: 1.1fr .9fr">
+    <div>
+      <div class="card" style="margin-bottom:12px"><h3>Дом появляется сам</h3><p>Добавили Кузю в домовой чат: у каждого участника дом уже в приложении, переключатель в шапке, если домов несколько. Вышел из чата - потерял доступ.</p></div>
+      <div class="card" style="margin-bottom:12px"><h3>Права из чата</h3><p>Администратор чата MAX = администратор дома: задаёт адрес, УК, порог голосов, закрепляет объявления. Жителю не нужно ничего настраивать.</p></div>
+      <div class="card"><h3>Объявления и документы</h3><p>«@Кузя, сделай объявление о субботнике в субботу в 11»: закреп в чате, доска объявлений, событие с «Иду». Протоколы и договор УК видят все жители, личные документы только владелец.</p></div>
+    </div>
+    <div style="display:flex;gap:14px;justify-content:center">
+      <img class="shot" style="height:500px" src="shots/chat_reply.png" alt="Объявление в чате">
+      <img class="shot" style="height:500px" src="shots/house.png" alt="О доме">
+    </div>
+  </div>
+</section>
+
+<!-- 8c. Возможности MAX -->
+<section class="slide">
+  <h2>Что берём от MAX сверх минимума</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Бот в групповом чате</h3>
+      <ul>
+        <li>Кнопка «👍 Поддерживаю (4/6)» под заявкой: сообщение переписывается после каждого голоса из чата или приложения</li>
+        <li>Участники и администраторы чата → права в доме и порог голосов от размера чата</li>
+        <li>Закреп объявлений, удаление спама, фото заявки прямо в чате</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Мини-приложение</h3>
+      <ul>
+        <li>Вход по подписи MAX (initData, проверка на сервере): без регистрации и паролей</li>
+        <li>Диплинки <code>?startapp=</code>: из сообщения бота сразу в нужную заявку или событие</li>
+        <li>Системная кнопка «Назад», виброотклик, «Позвать соседей» через шеринг MAX</li>
+      </ul>
+    </div>
+  </div>
+  <p class="small muted" style="margin-top:18px">Всё работает от начала до результата в настоящем MAX и описано в README («Внешние сервисы и интеграции»).</p>
+</section>
+
 <!-- 8b. Экраны -->
 <section class="slide">
   <h2>Как это выглядит</h2>
   <div style="display:flex;gap:22px;justify-content:space-between">
     <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/new_issue.png" alt=""><figcaption class="small muted">Кузя сразу видит категорию и дубль</figcaption></figure>
-    <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/chat_reply.png" alt=""><figcaption class="small muted">Ответ агента в чате дома</figcaption></figure>
+    <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/chat.png" alt=""><figcaption class="small muted">Ответ агента в чате дома</figcaption></figure>
     <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/safety.png" alt=""><figcaption class="small muted">Укрытия и маршрут</figcaption></figure>
     <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/alert.png" alt=""><figcaption class="small muted">Оповещение о БПЛА</figcaption></figure>
   </div>
@@ -204,8 +246,8 @@
 <section class="slide">
   <h2>Архитектура</h2>
   <svg class="arch" viewBox="0 0 1136 470" font-family="Segoe UI, sans-serif" font-size="15">
-    <defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#023E8A"/></marker></defs>
-    <g fill="#ADE8F4" stroke="#90E0EF" stroke-width="2">
+    <defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1F5FAF"/></marker></defs>
+    <g fill="#FFFFFF" stroke="#D5DCE5" stroke-width="2">
       <rect x="10" y="40" width="220" height="80" rx="14"/><rect x="10" y="190" width="220" height="80" rx="14"/>
       <rect x="330" y="40" width="200" height="80" rx="14"/><rect x="330" y="190" width="200" height="80" rx="14"/>
       <rect x="330" y="340" width="200" height="80" rx="14"/>
@@ -214,19 +256,19 @@
       <rect x="920" y="40" width="200" height="80" rx="14"/><rect x="920" y="190" width="200" height="80" rx="14"/>
       <rect x="920" y="340" width="200" height="80" rx="14"/>
     </g>
-    <g fill="#03045E" font-weight="600" text-anchor="middle">
+    <g fill="#1B2533" font-weight="600" text-anchor="middle">
       <text x="120" y="75">Домовой чат MAX</text><text x="120" y="225">Мини-приложение</text>
       <text x="430" y="75">bot</text><text x="430" y="225">api (FastAPI)</text><text x="430" y="375">worker</text>
       <text x="725" y="225">RabbitMQ</text><text x="725" y="75">ReAct-агент</text><text x="725" y="375">Postgres + pgvector</text>
       <text x="1020" y="75">Ollama / stub</text><text x="1020" y="225">MCP-серверы</text><text x="1020" y="375">MinIO (фото)</text>
     </g>
-    <g fill="#023E8A" text-anchor="middle" font-size="13">
+    <g fill="#4A5668" text-anchor="middle" font-size="13">
       <text x="120" y="98">Bot API, long polling</text><text x="120" y="248">Vue 3 + MAX Bridge</text>
       <text x="430" y="98">модерация, агент, отправка</text><text x="430" y="248">REST + SSE</text><text x="430" y="398">обращения, напоминания, ГЖИ</text>
       <text x="725" y="248">topic exchange</text><text x="725" y="98">LangGraph, память в Postgres</text><text x="725" y="398">гибридный RAG-поиск</text>
       <text x="1020" y="98">fallback на stub</text><text x="1020" y="248">Жилищный навигатор + внешние</text><text x="1020" y="398">без EXIF</text>
     </g>
-    <g stroke="#023E8A" stroke-width="2" fill="none" marker-end="url(#a)">
+    <g stroke="#1F5FAF" stroke-width="2" fill="none" marker-end="url(#a)">
       <path d="M230,80 H328"/><path d="M230,230 H328"/><path d="M530,230 H628"/><path d="M530,80 C580,80 580,210 628,215"/>
       <path d="M530,380 C580,380 580,250 628,245"/><path d="M530,70 H628"/><path d="M820,80 H918"/><path d="M820,95 C870,95 870,215 918,220"/>
       <path d="M530,245 C600,300 600,360 628,370"/><path d="M530,260 C700,330 850,380 918,380"/>
@@ -242,7 +284,8 @@
     <tr><th>Интеграция</th><th>Статус в MVP</th><th>Для внедрения</th></tr>
     <tr><td>MAX Bot API и MAX Bridge</td><td><span class="tag teal">реальная</span> подпись initData проверяется на сервере</td><td>токен бота, HTTPS-адрес мини-приложения</td></tr>
     <tr><td>Справочник ответственных и нормативов</td><td><span class="tag teal">реальные нормы</span> справочно</td><td>подтверждение юристом УК, региональные нормы</td></tr>
-    <tr><td>Отправка обращения в УК</td><td><span class="tag">модельная</span> текст в карточке</td><td>e-mail диспетчерской или ГИС ЖКХ</td></tr>
+    <tr><td>Участники и администраторы чата</td><td><span class="tag teal">реальная</span> Bot API, бот - администратор чата</td><td>добавить Кузю в домовой чат</td></tr>
+    <tr><td>Отправка обращения в УК</td><td><span class="tag">модельная</span> письмо на тестовый адрес с пометкой «[ТЕСТ]»</td><td>e-mail диспетчерской УК (уже задаётся в настройках дома) или ГИС ЖКХ</td></tr>
     <tr><td>Паспорт дома, тарифы, капремонт</td><td><span class="tag">модельные данные</span> в MCP</td><td>ГИС ЖКХ, региональный фонд капремонта</td></tr>
     <tr><td>Укрытия</td><td><span class="tag">демо-точки</span></td><td>реестр МЧС или муниципалитета</td></tr>
     <tr><td>Оповещение о БПЛА</td><td><span class="tag">запуск администратором</span></td><td>региональная система оповещения</td></tr>

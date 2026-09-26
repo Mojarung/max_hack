@@ -185,3 +185,19 @@ export function orgTitleCap(name: string | null | undefined): string {
   const t = orgTitle(name)
   return t ? t[0]!.toUpperCase() + t.slice(1) : t
 }
+
+/**
+ * Жирный текст из markdown бота (`**…**`) без v-html: MAX рендерит его сам,
+ * эмулятору чата нужны куски «обычный / жирный». Непарные звёздочки остаются как есть.
+ */
+export function boldSegments(text: string): { text: string; bold: boolean }[] {
+  const parts: { text: string; bold: boolean }[] = []
+  let last = 0
+  for (const m of text.matchAll(/\*\*(.+?)\*\*/gs)) {
+    if (m.index > last) parts.push({ text: text.slice(last, m.index), bold: false })
+    parts.push({ text: m[1]!, bold: true })
+    last = m.index + m[0].length
+  }
+  if (last < text.length) parts.push({ text: text.slice(last), bold: false })
+  return parts
+}
