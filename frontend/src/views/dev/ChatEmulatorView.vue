@@ -173,7 +173,7 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
           >
             <img
               v-if="!m.from"
-              src="/kuzya-avatar.svg"
+              src="/kuzya-avatar.png"
               loading="lazy"
               decoding="async"
               alt=""

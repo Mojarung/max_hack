@@ -34,7 +34,7 @@ const title = computed(() =>
         class="flex h-12 w-12 shrink-0 items-center justify-center"
         aria-label="На главную"
       >
-        <img src="/kuzya.svg" alt="" width="36" height="40" />
+        <img src="/kuzya-head.png" alt="" width="40" height="40" />
       </router-link>
       <h1 v-if="showSwitcher" class="app-header__title flex"><HouseSwitcher /></h1>
       <h1 v-else class="app-header__title">{{ title }}</h1>

@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import KuzyaMascot from '@/components/kuzya/KuzyaMascot.vue'
-import type { KuzyaMood } from '@/components/kuzya/geometry'
+import type { KuzyaMood } from '@/components/kuzya/mood'
 import { DrawerDescription, DrawerTitle } from 'vaul-vue'
 import { Drawer, DrawerContent } from '@/components/ui/drawer'
 import { haptic } from '@/max/bridge'

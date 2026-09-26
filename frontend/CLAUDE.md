@@ -20,5 +20,6 @@
 
 - Цвета только из токенов темы, никаких hex в компонентах. Палитра: синий - главное действие, смысловые цвета только для состояний, красный - только тревога и просрочка (DESIGN.md).
 - Новые примитивы из Vuetify; shadcn-vue только `Drawer`, `Skeleton`, `Sonner`.
-- Анимации через `composables/useMotion` и с учётом `prefersReducedMotion()`.
+- Анимации через `composables/useMotion` и с учётом `prefersReducedMotion()`. В мок-режиме они выключены, включить: `?motion=1`.
+- Кузя нарисован растром: лист поз `art/kuzya-sheet.png` режет `uv run scripts/kuzya_sprites.py` на слои тело/голова/веки в `src/components/kuzya/sprites/` и картинки в `public/`. Слои и `sprites.ts` руками не правим, только перегенерируем.
 - Новые эндпоинты API - сразу добавь обработчик в `src/mock/server.ts`, иначе мок покажет пустоту.

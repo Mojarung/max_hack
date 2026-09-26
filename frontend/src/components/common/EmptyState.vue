@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import KuzyaMascot from '@/components/kuzya/KuzyaMascot.vue'
-import type { KuzyaMood } from '@/components/kuzya/geometry'
+import type { KuzyaMood } from '@/components/kuzya/mood'
 
 withDefaults(defineProps<{ title: string; text?: string; mood?: KuzyaMood; size?: number }>(), {
   mood: 'ok',

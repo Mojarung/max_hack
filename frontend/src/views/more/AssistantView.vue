@@ -57,7 +57,7 @@ async function send(value?: string): Promise<void> {
       >
         <img
           v-if="m.role === 'bot'"
-          src="/kuzya-avatar.svg"
+          src="/kuzya-avatar.png"
           loading="lazy"
           decoding="async"
           alt=""
@@ -85,7 +85,7 @@ async function send(value?: string): Promise<void> {
       </div>
       <div v-if="store.typing" class="flex items-end gap-2" role="status">
         <img
-          src="/kuzya-avatar.svg"
+          src="/kuzya-avatar.png"
           loading="lazy"
           decoding="async"
           alt=""
