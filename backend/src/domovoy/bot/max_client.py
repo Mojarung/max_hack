@@ -47,9 +47,10 @@ class MaxClient:
         for attempt in range(RETRIES):
             try:
                 resp = await self._http.request(method, path, **kwargs)
-            except httpx.TransportError:
+            except httpx.TransportError as exc:
                 if attempt == RETRIES - 1:
-                    raise
+                    # сетевой сбой отдаём как MaxApiError (status 0): его ловят все вызывающие, процесс бота живёт
+                    raise MaxApiError(0, f"{type(exc).__name__}: {exc}") from exc
                 await asyncio.sleep(1 + attempt)
                 continue
             if resp.status_code == 429 and attempt < RETRIES - 1:
@@ -58,7 +59,13 @@ class MaxClient:
                 continue
             if resp.status_code >= 400:
                 raise MaxApiError(resp.status_code, resp.text)
-            return resp.json() if resp.content else {}
+            if not resp.content:
+                return {}
+            try:
+                return resp.json()
+            except ValueError as exc:
+                # прокси или балансировщик вернули HTML вместо JSON
+                raise MaxApiError(resp.status_code, resp.text) from exc
         raise MaxApiError(429, "rate limited")
 
     async def me(self) -> dict[str, Any]:

@@ -57,7 +57,14 @@ class BotRuntime:
 
     async def poll(self) -> None:
         assert self.client is not None
-        me = await self.client.me()
+        while True:
+            # MAX API может быть недоступен при старте: ждём, а не роняем процесс вместе с эмулятором чата
+            try:
+                me = await self.client.me()
+                break
+            except (MaxApiError, OSError) as exc:
+                log.warning("bot.me_failed", error=str(exc))
+                await asyncio.sleep(POLL_ERROR_BACKOFF)
         # ник и id бота нужны, чтобы узнавать упоминания @бота в общем чате
         BOT.user_id = int(me.get("user_id") or 0) or None
         BOT.username = me.get("username") or BOT.username
