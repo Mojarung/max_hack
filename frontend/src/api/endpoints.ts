@@ -1,5 +1,6 @@
 import { api, upload } from './client'
 import type {
+  AppMeta,
   AchievementsOut,
   AnnouncementOut,
   DocumentOut,
@@ -38,6 +39,8 @@ import type {
 } from './types'
 
 export const meApi = {
+  /** Без авторизации: ник бота и мок-режим сервера. */
+  meta: () => api<AppMeta>('/meta', { timeoutMs: 6000 }),
   me: () => api<MeOut>('/me'),
   pulse: () => api<PulseOut>('/house/pulse'),
   devUsers: () => api<DevUser[]>('/dev/users', { timeoutMs: 6000 }),

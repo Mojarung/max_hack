@@ -4780,6 +4780,28 @@
         }
       }
     },
+    "/api/v1/meta": {
+      "get": {
+        "tags": [
+          "Служебное"
+        ],
+        "summary": "Meta",
+        "description": "Без авторизации: по нему мини-приложение вне MAX решает, дать демо-жителей или позвать в MAX.",
+        "operationId": "meta_api_v1_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppMeta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/media/{key}": {
       "get": {
         "tags": [
@@ -5164,6 +5186,24 @@
           "created_at"
         ],
         "title": "AnnouncementOut"
+      },
+      "AppMeta": {
+        "properties": {
+          "bot_username": {
+            "type": "string",
+            "title": "Bot Username"
+          },
+          "mock": {
+            "type": "boolean",
+            "title": "Mock"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bot_username",
+          "mock"
+        ],
+        "title": "AppMeta"
       },
       "Body_create_issue_api_v1_issues_post": {
         "properties": {

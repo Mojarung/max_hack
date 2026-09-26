@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { BROWSER_DEMO } from '@/api/mode'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import HouseSwitcher from '@/components/house/HouseSwitcher.vue'
 import { useStagger } from '@/composables/useMotion'
@@ -71,7 +72,8 @@ const entries = computed<Entry[]>(() => {
       color: 'warning',
     },
   ]
-  if (session.canUseDevTools) {
+  // в демо из браузера бота нет: чат с Кузей живёт в MAX
+  if (session.canUseDevTools && !BROWSER_DEMO) {
     list.push({
       to: '/dev/chat',
       title: 'Эмулятор чата MAX',

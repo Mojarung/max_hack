@@ -7,9 +7,11 @@ from collections.abc import AsyncIterator
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
+from pydantic import BaseModel
 from sse_starlette import EventSourceResponse, ServerSentEvent
 
 from domovoy.api.deps import resolve_ctx
+from domovoy.core.config import get_settings
 from domovoy.core.db import get_sessionmaker
 from domovoy.core.realtime import hub
 from domovoy.core.storage import read_object
@@ -18,6 +20,18 @@ router = APIRouter()
 
 KEY_RE = re.compile(r"^(issues|listings)/[0-9a-f]{32}\.jpg$")
 PING_SECONDS = 15
+
+
+class AppMeta(BaseModel):
+    bot_username: str
+    mock: bool
+
+
+@router.get("/meta", response_model=AppMeta, tags=["Служебное"])
+async def meta() -> AppMeta:
+    """Без авторизации: по нему мини-приложение вне MAX решает, дать демо-жителей или позвать в MAX."""
+    s = get_settings()
+    return AppMeta(bot_username=s.max_bot_username, mock=s.mock_max)
 
 
 @router.get("/media/{key:path}", tags=["Медиа"])

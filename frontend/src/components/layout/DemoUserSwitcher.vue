@@ -19,18 +19,20 @@ async function pick(id: number): Promise<void> {
 <template>
   <v-menu location="bottom end" max-height="70dvh">
     <template #activator="{ props: activator }">
-      <v-chip
+      <!-- кнопка, а не чип: тач-зона 44px и aria-expanded меню допустимы только у button -->
+      <v-btn
         v-bind="activator"
-        size="small"
+        size="large"
         variant="tonal"
         color="secondary"
+        class="demo-switch"
         prepend-icon="mdi-account-switch-outline"
         append-icon="mdi-chevron-down"
-        :disabled="switching"
+        :loading="switching"
         :aria-label="`Демо-режим. Сейчас: ${session.currentDevUser?.first_name ?? 'житель'}. Сменить жителя`"
       >
         Демо: {{ session.currentDevUser?.first_name ?? '...' }}
-      </v-chip>
+      </v-btn>
     </template>
     <v-list density="comfortable" min-width="250" nav>
       <v-list-subheader>Войти как житель (демо)</v-list-subheader>
@@ -54,3 +56,12 @@ async function pick(id: number): Promise<void> {
     </v-list>
   </v-menu>
 </template>
+
+<style scoped>
+.demo-switch {
+  padding-inline: 10px;
+  font-size: 0.875rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+</style>

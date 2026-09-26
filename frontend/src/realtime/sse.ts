@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { API_BASE, authQuery } from '@/api/client'
+import { MOCK_API } from '@/api/mode'
 
 export const REALTIME_EVENTS = [
   'issue.created',
@@ -63,7 +64,7 @@ function parse(raw: string): unknown {
 
 export function connectRealtime(): void {
   disconnectRealtime()
-  if (import.meta.env.VITE_MOCK_API === 'true') {
+  if (MOCK_API) {
     realtimeStatus.value = 'open'
     return
   }

@@ -28,12 +28,15 @@ function saveDevUser(id: number): void {
   }
 }
 
-export type BootStatus = 'booting' | 'ready' | 'error'
+/** outside: открыто в обычном браузере, а сервер работает с настоящим MAX (без демо-жителей). */
+export type BootStatus = 'booting' | 'ready' | 'error' | 'outside'
 
 export const useSessionStore = defineStore('session', () => {
   const status = ref<BootStatus>('booting')
   const bootError = ref<string | null>(null)
   const inMax = ref(false)
+  /** Ник бота для ссылки «Открыть в MAX» на экране outside. */
+  const botUsername = ref<string | null>(null)
   const me = ref<MeOut | null>(null)
   const devUsers = ref<DevUser[]>([])
   const devUserId = ref<number | null>(null)
@@ -125,7 +128,16 @@ export const useSessionStore = defineStore('session', () => {
     ready()
     inMax.value = isInMax()
     try {
-      if (!inMax.value) await pickDevUser()
+      if (!inMax.value) {
+        // старый сервер без /meta: ведём себя как раньше и просим демо-жителей
+        const meta = await meApi.meta().catch(() => null)
+        botUsername.value = meta?.bot_username ?? null
+        if (meta && !meta.mock) {
+          status.value = 'outside'
+          return
+        }
+        await pickDevUser()
+      }
       await refreshMe()
       setupListeners()
       connectRealtime()
@@ -173,6 +185,7 @@ export const useSessionStore = defineStore('session', () => {
     status,
     bootError,
     inMax,
+    botUsername,
     me,
     devUsers,
     devUserId,

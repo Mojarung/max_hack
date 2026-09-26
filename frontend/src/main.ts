@@ -2,18 +2,19 @@ import './styles/main.css'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import App from './App.vue'
+import { MOCK_API } from './api/mode'
 import { vuetify } from './plugins/vuetify'
 import { router } from './router'
 
-if (import.meta.env.VITE_MOCK_API === 'true') {
-  const [{ installMockBridge }, { installAudit }] = await Promise.all([
+if (MOCK_API) {
+  const [{ installMockBridge }, { scenario }] = await Promise.all([
     import('./mock/bridge'),
-    import('./mock/audit'),
+    import('./mock/scenario'),
   ])
   installMockBridge()
-  installAudit()
-  const { scenario } = await import('./mock/scenario')
   if (scenario.theme) void vuetify.theme.change(scenario.theme)
+  // аудит интерфейса нужен только разработке, демо в браузере его не грузит
+  if (import.meta.env.VITE_MOCK_API === 'true') (await import('./mock/audit')).installAudit()
 }
 
 createApp(App).use(createPinia()).use(router).use(vuetify).mount('#app')

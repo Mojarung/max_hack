@@ -3,9 +3,11 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch 
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import BootScreen from '@/components/layout/BootScreen.vue'
+import BrowserDemoBar from '@/components/layout/BrowserDemoBar.vue'
 import BottomNav from '@/components/layout/BottomNav.vue'
 import OnboardingSheet from '@/components/onboarding/OnboardingSheet.vue'
 import { Toaster } from '@/components/ui/sonner'
+import { BROWSER_DEMO } from '@/api/mode'
 import { pageEnter, pageLeave } from '@/composables/useMotion'
 import { installAutoReveal } from '@/composables/useReveal'
 import { backButton, getStartParam } from '@/max/bridge'
@@ -67,6 +69,7 @@ watch(
     <template v-else>
       <!-- Пока открыт экран тревоги, всё под ним недоступно для фокуса и диктора -->
       <AppHeader :inert="alertOpen" />
+      <BrowserDemoBar v-if="BROWSER_DEMO" :inert="alertOpen" />
       <main ref="mainEl" :inert="alertOpen">
         <router-view v-slot="{ Component, route: current }">
           <Transition :css="false" mode="out-in" @enter="pageEnter" @leave="pageLeave">

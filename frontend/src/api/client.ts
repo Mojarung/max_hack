@@ -1,9 +1,7 @@
 import { getInitData, isInMax } from '@/max/bridge'
+import { MOCK_API } from './mode'
 
 export const API_BASE = '/api/v1'
-
-/** Мок-бэкенд в памяти (`npm run dev:mock`). В продовой сборке ветка вырезается. */
-const MOCK_API = import.meta.env.VITE_MOCK_API === 'true'
 
 /** Кто мы для сервера: подпись MAX или демо-житель. */
 const auth = {

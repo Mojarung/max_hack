@@ -162,6 +162,12 @@ export interface PulseOut {
   stats: PulseStats
 }
 
+/** Ответ `GET /meta`: доступен без входа, нужен экрану «Кузя живёт в MAX». */
+export interface AppMeta {
+  bot_username: string
+  mock: boolean
+}
+
 /** Демо-житель для мок-режима. Контракт описывает только max_user_id. */
 export interface DevUser {
   max_user_id: number

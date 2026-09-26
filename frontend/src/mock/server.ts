@@ -343,6 +343,7 @@ function classification(text: string): Classification {
 }
 
 const routes: [string, RegExp, Handler][] = [
+  ['GET', /^\/meta$/, () => ({ bot_username: 'domovoy_kuzya_bot', mock: true })],
   ['GET', /^\/me$/, () => meOut()],
   [
     'POST',

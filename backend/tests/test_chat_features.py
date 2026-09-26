@@ -88,3 +88,12 @@ def test_document_link_signature_depends_on_id_and_expiry() -> None:
     assert _sign(1, 100) == _sign(1, 100)
     assert _sign(1, 100) != _sign(2, 100)
     assert _sign(1, 100) != _sign(1, 101)
+
+
+async def test_meta_reports_bot_and_mock_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    from domovoy.api import system
+    from domovoy.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "mock_max", False)
+    monkeypatch.setattr(get_settings(), "max_bot_username", "id732818139220_bot")
+    assert (await system.meta()).model_dump() == {"bot_username": "id732818139220_bot", "mock": False}
