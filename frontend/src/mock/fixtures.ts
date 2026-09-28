@@ -28,10 +28,9 @@ const dayAt = (days: number, hour: number) => {
   return d.toISOString()
 }
 
-/** Картинка-заглушка вместо фото: градиент и крупный символ, без сети. */
-export function photo(emoji: string, from: string, to: string): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs><rect width="600" height="450" fill="url(#g)"/><text x="300" y="265" font-size="170" text-anchor="middle">${emoji}</text></svg>`
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+/** Фото для демо из public/demo (Unsplash, источники в public/demo/CREDITS.md). */
+export function photo(name: string): string {
+  return `${import.meta.env.BASE_URL}demo/${name}.jpg`
 }
 
 export const HOUSE: House = {
@@ -311,7 +310,7 @@ export function buildIssues(s: MockScenario, users: UserFull[], needed: number):
       author: 3,
       votes: needed - 2,
       createdAgo: 5 * H,
-      photos: [photo('💧', '#5b6b7c', '#a7b4c2'), photo('🏚️', '#6c757d', '#ced4da')],
+      photos: [photo('roof-drip'), photo('roof-stain')],
       location: 'Подъезд 2, 9 этаж',
     },
     {
@@ -338,7 +337,7 @@ export function buildIssues(s: MockScenario, users: UserFull[], needed: number):
       createdAgo: 10 * H,
       sentAgo: 6 * H,
       deadlineIn: s.name === 'overdue' ? -9 * H : 18 * H,
-      photos: [photo('🛗', '#495057', '#adb5bd')],
+      photos: [photo('elevator')],
     },
     {
       id: 104,
@@ -365,7 +364,7 @@ export function buildIssues(s: MockScenario, users: UserFull[], needed: number):
       createdAgo: 3 * D,
       sentAgo: 44 * H,
       deadlineIn: -20 * H,
-      photos: [photo('🗑️', '#3d5a40', '#8fa98f')],
+      photos: [photo('garbage')],
     },
     {
       id: 106,
@@ -428,7 +427,7 @@ export function buildListings(s: MockScenario, users: UserFull[], meId: number):
       'kids',
       'active',
       3,
-      photo('👶', '#8e9aaf', '#cbc0d3'),
+      photo('stroller'),
     ],
     [
       202,
@@ -440,7 +439,7 @@ export function buildListings(s: MockScenario, users: UserFull[], meId: number):
       'furniture',
       'active',
       4,
-      photo('🛋️', '#6d6875', '#b5838d'),
+      photo('sofa'),
     ],
     [
       203,
@@ -450,17 +449,17 @@ export function buildListings(s: MockScenario, users: UserFull[], meId: number):
       'plants',
       'active',
       5,
-      photo('🌱', '#40916c', '#95d5b2'),
+      photo('seedlings'),
     ],
     [
       204,
-      'Дрель Bosch',
-      'Ударная, с набором свёрл. Можно взять на выходные.',
+      'Шуруповёрт Makita',
+      'С двумя аккумуляторами и набором свёрл. Можно взять на выходные.',
       1500,
       'tools',
       'reserved',
       2,
-      photo('🔧', '#495057', '#adb5bd'),
+      photo('drill'),
     ],
     [
       205,
