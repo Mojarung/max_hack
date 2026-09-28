@@ -3,249 +3,360 @@
 <head>
 <meta charset="utf-8">
 <title>Домовой Кузя</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   @page { size: 1280px 720px; margin: 0; }
   :root {
     /* палитра мини-приложения: frontend/src/plugins/vuetify.ts */
-    --bg: #F5F7FA; --surface: #FFFFFF; --ink: #1B2533; --muted: #4A5668; --accent: #1F5FAF; --accent-soft: #E4EDF8;
-    --teal: #0F766E; --teal-soft: #DDF1EE; --line: #D5DCE5; --red: #C62828; --red-soft: #FBE9E9; --amber: #8A5300; --amber-soft: #FBF0DC;
+    --bg: #F5F7FA; --surface: #FFFFFF; --ink: #1B2533; --muted: #4A5668; --faint: #8592A3;
+    --accent: #1F5FAF; --accent-soft: #E4EDF8; --teal: #0F766E; --teal-soft: #DDF1EE;
+    --line: #D5DCE5; --red: #C62828; --red-soft: #FBE9E9; --amber: #8A5300; --amber-soft: #FBF0DC;
+    --bezel: #1B2533; --radius: 16px;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: "Segoe UI", "Inter", system-ui, sans-serif; color: var(--ink); background: #E8ECF1; }
+  body { margin: 0; font-family: "Golos Text", "Segoe UI", system-ui, sans-serif; color: var(--ink); background: #E8ECF1; counter-reset: slide; }
   .slide {
-    width: 1280px; height: 720px; padding: 56px 72px; background: var(--bg); position: relative;
-    page-break-after: always; overflow: hidden; display: flex; flex-direction: column;
+    width: 1280px; height: 720px; padding: 52px 72px 60px; background: var(--bg); position: relative;
+    page-break-after: always; overflow: hidden; display: flex; flex-direction: column; counter-increment: slide;
   }
   .slide:last-child { page-break-after: auto; }
-  h1 { font-size: 54px; margin: 0 0 12px; letter-spacing: -1px; }
-  h2 { font-size: 36px; margin: 0 0 28px; letter-spacing: -0.5px; }
-  h3 { font-size: 20px; margin: 0 0 8px; color: var(--accent); }
-  p, li { font-size: 20px; line-height: 1.45; }
-  ul { margin: 0; padding-left: 22px; }
-  li { margin-bottom: 8px; }
+  .slide::after { content: counter(slide); position: absolute; right: 44px; bottom: 24px; font-size: 13px; color: var(--faint); }
+  h1 { font-size: 76px; line-height: 1; margin: 0; letter-spacing: -2px; font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 26px; letter-spacing: -0.6px; font-weight: 700; max-width: 1000px; }
+  h3 { font-size: 19px; margin: 0 0 6px; font-weight: 700; }
+  p, li { font-size: 19px; line-height: 1.45; margin: 0; }
+  ul { margin: 0; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  b { font-weight: 600; }
   .muted { color: var(--muted); }
-  .small { font-size: 15px; }
-  .tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); margin-right: 6px; }
+  .small, .small li { font-size: 14px; line-height: 1.45; }
+  .note { font-size: 14px; line-height: 1.45; color: var(--muted); margin-top: auto; }
+  .tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
   .tag.teal { background: var(--teal-soft); color: var(--teal); }
-  .tag.red { background: var(--red-soft); color: var(--red); }
   .tag.amber { background: var(--amber-soft); color: var(--amber); }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; }
-  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-  .card { background: var(--surface); border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(27,37,51,.05); border-radius: 18px; padding: 20px 22px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; box-shadow: 0 2px 8px rgba(27,37,51,.05); }
   .card p, .card li { font-size: 17px; }
-  table { border-collapse: collapse; width: 100%; font-size: 16px; }
-  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--muted); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: .4px; }
-  .footer { position: absolute; bottom: 22px; left: 72px; right: 72px; display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
-  .kuzya { position: absolute; right: 60px; bottom: 50px; width: 260px; }
-  .shot { border-radius: 22px; border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(27,37,51,.16); height: 520px; }
-  .steps { counter-reset: s; list-style: none; padding: 0; }
-  .steps li { counter-increment: s; position: relative; padding-left: 44px; font-size: 18px; margin-bottom: 11px; }
-  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #FFFFFF; font-weight: 700; display: grid; place-items: center; font-size: 15px; }
-  .big { font-size: 44px; font-weight: 700; color: var(--accent); }
-  .tech td:first-child { width: 290px; color: var(--muted); }
-  code { font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; }
-  .arch { width: 100%; height: 470px; }
+  table { border-collapse: collapse; width: 100%; font-size: 17px; line-height: 1.4; }
+  th, td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }
+  code { font-family: "Cascadia Code", Consolas, monospace; font-size: .88em; background: var(--accent-soft); padding: 1px 6px; border-radius: 6px; }
+  .row { display: flex; gap: 40px; flex: 1; min-height: 0; }
+  .col { display: flex; flex-direction: column; min-width: 0; }
+  .grow { flex: 1; }
+  .phones { display: flex; gap: 22px; align-items: flex-start; justify-content: center; flex: none; }
+
+  /* Рамка телефона вокруг реального скриншота 390×844 */
+  .phone { --w: 230px; width: var(--w); flex: none; margin: 0; padding: 8px; border-radius: 38px; background: var(--bezel); position: relative;
+    box-shadow: 0 22px 44px rgba(27,37,51,.22), inset 0 0 0 1.5px #3A4658; }
+  .phone::before { content: ""; position: absolute; right: -3px; top: 118px; width: 3px; height: 58px; border-radius: 0 3px 3px 0; background: #2C3747; }
+  .phone::after { content: ""; position: absolute; left: -3px; top: 96px; width: 3px; height: 34px; border-radius: 3px 0 0 3px; background: #2C3747; box-shadow: 0 46px 0 #2C3747; }
+  .screen { border-radius: 30px; overflow: hidden; background: var(--sb, #F5F7FA); }
+  .sb { height: 26px; display: flex; align-items: center; justify-content: space-between; padding: 2px 20px 0 24px; font-size: 11px; font-weight: 600; color: var(--sb-ink, #1B2533); position: relative; }
+  .sb::before { content: ""; position: absolute; left: 50%; top: 5px; width: 66px; height: 18px; border-radius: 10px; background: #0E141C; transform: translateX(-50%); }
+  .bat { width: 20px; height: 10px; border: 1.5px solid currentColor; border-radius: 3px; position: relative; opacity: .85; }
+  .bat::before { content: ""; position: absolute; inset: 1.5px 5px 1.5px 1.5px; background: currentColor; border-radius: 1px; }
+  .phone img { display: block; width: 100%; }
+  .phone.red { --sb: #CB3A3A; --sb-ink: #FFFFFF; }
+  figure.cap { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  figure.cap figcaption { font-size: 14px; color: var(--muted); text-align: center; max-width: 230px; line-height: 1.35; }
+
+  /* Список «метка → текст» с тонкими разделителями вместо сетки карточек */
+  .dl { display: grid; grid-template-columns: 190px 1fr; column-gap: 28px; }
+  .dl > dt, .dl > dd { margin: 0; padding: 13px 0; border-top: 1px solid var(--line); }
+  .dl > dt { font-weight: 700; font-size: 18px; color: var(--accent); }
+  .dl > dd { font-size: 18px; line-height: 1.45; }
+  .stack > div { padding: 14px 0; border-top: 1px solid var(--line); }
+  .stack > div:first-child { border-top: 0; padding-top: 0; }
+  .stack p { font-size: 17px; }
+
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+  .steps li { counter-increment: s; position: relative; padding-left: 44px; font-size: 17px; margin-bottom: 12px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #FFFFFF; font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+  .kpi { display: flex; flex-direction: column; gap: 2px; }
+  .kpi .num { font-size: 52px; font-weight: 800; letter-spacing: -1.5px; color: var(--accent); line-height: 1; }
+  .kpi .lbl { font-size: 15px; color: var(--muted); line-height: 1.35; }
+  .sum { border-radius: var(--radius); padding: 18px 22px; }
+  .sum p { font-size: 17px; }
+  .tech td:first-child { width: 250px; color: var(--muted); }
+  .tech td { font-size: 15.5px; padding: 8px 12px 8px 0; }
+  .arch { width: 100%; height: 450px; }
 </style>
 </head>
 <body>
 
-<!-- 1. Служебный слайд -->
+<!-- 1. Служебный слайд для проверки -->
 <section class="slide">
   <h2>Техническая информация для проверки</h2>
   <table class="tech">
     <tr><td>Бот в MAX</td><td><b>https://max.ru/id732818139220_bot</b> (@id732818139220_bot)</td></tr>
     <tr><td>Мини-приложение</td><td><b>https://linkog.ru</b>, открывается кнопкой в чате бота и диплинком <code>https://max.ru/id732818139220_bot?startapp=home</code></td></tr>
     <tr><td>Репозиторий и commit hash</td><td>https://github.com/Mojarung/max_hack, ветка <code>main</code>; hash сдаваемой версии: последний коммит <code>main</code> на момент дедлайна (<code>git rev-parse HEAD</code>)</td></tr>
-    <tr><td>Собственный API</td><td>не требуется для проверки; внутренний REST описан в <code>docs/openapi.json</code></td></tr>
-    <tr><td>Тестовые учётные записи</td><td>в MAX: ваш аккаунт. Личка с ботом: /start → «Открыть приложение». Сценарий в группе: добавьте бота в чат администратором с правом «Читать сообщения»;<br>без MAX: демо-жители 1001-1008 в переключателе мини-приложения, 1001 администратор</td></tr>
-    <tr><td>Переменные окружения</td><td><code>MAX_BOT_TOKEN</code> передаётся отдельно; остальное в <code>.env.example</code>, работает без изменений</td></tr>
+    <tr><td>Собственный API</td><td>для проверки не нужен; внутренний REST описан в <code>docs/openapi.json</code></td></tr>
+    <tr><td>Тестовые учётные записи</td><td>в MAX: ваш аккаунт. Личка с ботом: /start → «Открыть приложение». Сценарий в группе: добавьте бота в чат администратором с правом «Читать сообщения».<br>Без MAX: демо-жители 1001-1008 в переключателе мини-приложения, 1001 администратор</td></tr>
+    <tr><td>Переменные окружения</td><td><code>MAX_BOT_TOKEN</code> передаётся отдельно; остальное в <code>.env.example</code> и работает без изменений</td></tr>
     <tr><td>Запуск</td><td><code>docker compose up -d --build</code> (сборка около минуты) → http://localhost:8180 (мини-приложение), http://localhost:8180/dev/chat (эмулятор чата), http://localhost:8025 (тестовая почта с обращениями)</td></tr>
     <tr><td>Основной сценарий</td><td>«Проблемы» → «Сообщить» → фото и описание → голоса соседей → при пороге Кузя отправляет обращение → статус и срок в карточке</td></tr>
   </table>
 </section>
 
 <!-- 2. Титул -->
-<section class="slide" style="justify-content:center">
-  <span class="tag" style="align-self:flex-start">Трек «Умный город» · пилот в Ульяновске</span>
-  <h1 style="font-size:72px;margin-top:18px">Домовой Кузя</h1>
-  <p style="font-size:26px;max-width:720px">Хранитель дома в чате MAX: превращает жалобы соседей в коллективные обращения с правильным адресатом и сроком и следит, чтобы проблему решили.</p>
-  <p class="muted" style="margin-top:40px">Команда: <b>[впишите состав и роли]</b></p>
-  <img class="kuzya" src="../../frontend/public/kuzya.png" alt="">
+<section class="slide">
+  <div class="row" style="align-items:center">
+    <div class="col grow">
+      <span class="tag" style="align-self:flex-start">Трек «Умный город», пилот в Ульяновске</span>
+      <h1 style="margin-top:22px">Домовой Кузя</h1>
+      <p style="font-size:25px;line-height:1.4;max-width:600px;margin-top:22px">Бот для домового чата в MAX. Соседи жалуются на поломку, а Кузя превращает это в одно обращение к тому, кто обязан починить, и следит за сроком.</p>
+      <dl class="dl" style="grid-template-columns:230px 1fr;margin-top:40px;max-width:520px">
+        <dt style="color:var(--ink);font-weight:600">Симаков Максим</dt><dd class="muted">ML и DevOps</dd>
+        <dt style="color:var(--ink);font-weight:600">Вериялов Кирилл</dt><dd class="muted">Backend</dd>
+        <dt style="color:var(--ink);font-weight:600">Храмов Альберт</dt><dd class="muted">Backend</dd>
+      </dl>
+    </div>
+    <div style="position:relative;width:420px;height:600px;flex:none">
+      <figure class="phone" style="--w:250px;position:absolute;right:0;top:0"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/home.png" alt="Главный экран мини-приложения"></div></figure>
+      <img src="../../frontend/public/kuzya.png" alt="" style="position:absolute;left:0;bottom:-10px;width:230px">
+    </div>
+  </div>
 </section>
 
-<!-- 3. Summary -->
+<!-- 3. Коротко -->
 <section class="slide">
   <h2>Коротко</h2>
-  <div class="grid3" style="margin-bottom:26px">
-    <div class="card"><h3>Кто</h3><p>Жители МКД на 40-150 квартир с домовым чатом, прежде всего председатель совета дома и активные соседи.</p></div>
-    <div class="card"><h3>Проблема</h3><p>Обсуждение поломки в чате не превращается в заявку: неизвестно, кто отвечает, какой срок положен и подал ли уже кто-то.</p></div>
-    <div class="card"><h3>Решение</h3><p>Фото → ИИ находит ответственного и норматив → соседи голосуют кнопкой → Кузя отправляет обращение и контролирует срок.</p></div>
-  </div>
-  <div class="grid3">
-    <div class="card"><h3>Почему MAX</h3><p>С 01.09.2026 УК обязаны работать с жителями через MAX (ПП РФ № 40). Кузя живёт там, где жители уже общаются.</p></div>
-    <div class="card"><h3>Эффект</h3><p>Обращение за часы вместо недель, ноль ручных звонков у инициатора, дубли объединяются, просрочки эскалируются в ГЖИ.</p></div>
-    <div class="card"><h3>Готовность</h3><p>Работающий MVP в MAX: бот, мини-приложение, агент, модерация, события, барахолка, укрытия, несколько домов из чатов. Запуск одной командой.</p></div>
-  </div>
+  <dl class="dl">
+    <dt>Для кого</dt><dd>Жители домов на 40-150 квартир, у которых есть домовой чат. Первым Кузей пользуется председатель совета дома, остальные соседи поддерживают заявку одной кнопкой.</dd>
+    <dt>Проблема</dt><dd>В чате пишут «у нас течёт», но заявка до УК не доходит: никто не знает, кто отвечает и какой срок положен, и каждый думает, что заявку уже подал сосед.</dd>
+    <dt>Решение</dt><dd>Житель присылает фото. Кузя определяет исполнителя и срок по закону, соседи голосуют в чате, на пороге обращение уходит исполнителю. Просрочат - Кузя готовит жалобу в Госжилинспекцию.</dd>
+    <dt>Почему MAX</dt><dd>С 01.09.2026 УК обязаны работать с жителями через MAX (ПП РФ № 40). Кузя живёт в чате, где соседи уже общаются.</dd>
+    <dt>Что получает УК</dt><dd>Одно оформленное обращение с фото и нормативом вместо десятков звонков и повторных заявок.</dd>
+    <dt>Готовность</dt><dd>Работающий MVP в настоящем MAX: бот, мини-приложение, модерация, события, барахолка, укрытия. Запуск одной командой.</dd>
+  </dl>
 </section>
 
 <!-- 4. Проблема -->
 <section class="slide">
-  <h2>Проблема: разговор в чате не становится действием</h2>
-  <div class="grid2">
-    <div>
-      <p><i>«Председатель совета дома в ситуации протечки кровли хочет, чтобы УК устранила её в срок, но сталкивается с разрозненными жалобами в чате и не знает, кто отвечает и какой срок положен, из-за чего проблема висит неделями».</i></p>
-      <table style="margin-top:18px">
-        <tr><th>Факты</th><th>Источник</th></tr>
-        <tr><td>Жилфонд РФ около 4,2 млрд м²</td><td>Росстат, 2024</td></tr>
-        <tr><td>С 01.09.2026 УК принимают обращения через MAX</td><td>ПП РФ № 40 от 26.01.2026</td></tr>
-        <tr><td>Протечка кровли и лифт: устранение за 1 сутки</td><td>ПП Госстроя № 170</td></tr>
-        <tr><td>Ответственность делят УК, регоператор ТКО, администрация, аварийные службы</td><td>ЖК РФ, ПП № 491, 131-ФЗ</td></tr>
+  <h2>Соседи обсуждают поломку в чате, но заявку никто не подаёт</h2>
+  <div class="row">
+    <div class="col grow">
+      <p style="font-size:21px;line-height:1.45">Председатель совета дома хочет, чтобы УК устранила протечку кровли в срок. Но жалобы разбросаны по чату, непонятно, кто отвечает и какой срок положен, и проблема висит неделями.</p>
+      <table style="margin-top:22px">
+        <tr><th>Факт</th><th>Источник</th></tr>
+        <tr><td>С 01.09.2026 УК принимают обращения жителей через MAX</td><td class="muted">ПП РФ № 40 от 26.01.2026</td></tr>
+        <tr><td>Протечку кровли и неисправный лифт устраняют за 1 сутки</td><td class="muted">Госстрой, пост. № 170</td></tr>
+        <tr><td>За проблему в доме отвечают разные организации: УК, регоператор ТКО, администрация, аварийные службы</td><td class="muted">ЖК РФ, ПП № 491, 131-ФЗ</td></tr>
+        <tr><td>Жалоб на ЖКХ больше: в Татарстане за 8 месяцев 2026 года 21,9 тыс. жалоб в ГЖИ, на 38,7% больше</td><td class="muted">Бизнес Online, 11.09.2026</td></tr>
       </table>
     </div>
-    <div class="card">
-      <h3>Гипотезы, проверяем в пилоте</h3>
+    <div class="card" style="width:400px;flex:none;align-self:flex-start">
+      <h3 style="color:var(--accent)">Проверяем в пилоте</h3>
       <ul>
-        <li>Жители не знают ответственного и норматив.</li>
+        <li>Жители не знают, кто отвечает и какой срок положен.</li>
         <li>Каждый думает, что заявку уже подал кто-то другой.</li>
-        <li>Коллективное обращение с фото и ссылкой на норматив закрывают быстрее, чем звонки.</li>
+        <li>Коллективное обращение с фото и нормативом закрывают быстрее, чем разрозненные звонки.</li>
       </ul>
-      <p class="small muted" style="margin-top:16px">Проверка: опрос 30+ жителей, сравнение числа жалоб в чате и заявок в УК за 4 недели до запуска.</p>
+      <p class="small muted" style="margin-top:14px">Как: опрос 30+ жителей и сравнение числа жалоб в чате с заявками в УК за 4 недели до запуска.</p>
     </div>
   </div>
 </section>
 
-<!-- 5. As is / To be -->
+<!-- 5. Спрос и альтернативы -->
+<section class="slide">
+  <h2>Заявки онлайн уже подают, но почти всегда поодиночке</h2>
+  <div class="row">
+    <div class="col" style="width:470px;flex:none">
+      <div style="display:flex;align-items:flex-end;gap:18px">
+        <div class="kpi"><span class="num">8,5%</span></div>
+        <p class="muted" style="font-size:16px;line-height:1.35;padding-bottom:4px">заявок в УК через «Госуслуги.Дом» коллективные</p>
+      </div>
+      <!-- 200 клеток = 1,5 млн заявок; 17 закрашенных = 8,5% -->
+      <svg id="units" width="460" height="230" viewBox="0 0 460 230" role="img" aria-label="Из каждых 200 заявок 17 коллективных" style="margin-top:18px"></svg>
+      <p class="small muted" style="margin-top:6px">1 клетка ≈ 7 500 заявок. Январь-апрель 2025: 1,5 млн заявок, приложение установили 10+ млн человек. Коллективная заявка в нём есть с сентября 2024 года.</p>
+      <p class="small muted" style="margin-top:6px">Минстрой и Минцифры России (CNews, 13.05.2025)</p>
+    </div>
+    <div class="col grow">
+      <table>
+        <tr><th>Что есть сейчас</th><th>Чего не хватает</th></tr>
+        <tr><td><b>«Госуслуги.Дом»</b></td><td>Отдельное приложение со входом через Госуслуги. Соседи договариваются в чате, а заявку приходится заново оформлять в приложении. Поддержать её может только собственник, адресат только УК.</td></tr>
+        <tr><td><b>«Решаем вместе»</b></td><td>Сообщение от одного человека, не видно, что соседи уже пожаловались. Срок 30 дней на ответ, а не норматив на ремонт.</td></tr>
+        <tr><td><b>Домовой чат без бота</b></td><td>Все соседи уже здесь, но разговор не становится заявкой: нет адресата, срока и контроля.</td></tr>
+      </table>
+      <p style="margin-top:20px;font-size:18px">Кузя не заменяет ГИС ЖКХ. Он собирает соседей прямо в чате и отправляет обращение туда, где его принимает УК. Голос может отдать и арендатор, течь он видит так же.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Как сейчас и как с Кузей -->
 <section class="slide">
   <h2>Как сейчас и как с Кузей</h2>
   <table>
-    <tr><th>Шаг</th><th>Сейчас</th><th>С Кузей</th></tr>
-    <tr><td>Заметил</td><td>«у нас течёт» и 20 ответов «у нас тоже»</td><td>фото + описание, дубль найден автоматически</td></tr>
-    <tr><td>Кому писать</td><td>ищет в интернете, путает УК и регоператора</td><td>ответственный из справочника виден сразу</td></tr>
-    <tr><td>Оформление</td><td>один активист пишет заявление</td><td>соседи голосуют кнопкой, обращение собирается само</td></tr>
-    <tr><td>Основание и срок</td><td>неизвестны</td><td>в обращении со ссылкой на норматив</td></tr>
-    <tr><td>Контроль</td><td>никто не помнит, когда подавали</td><td>таймер в карточке, жалоба в ГЖИ при просрочке</td></tr>
+    <tr><th style="width:190px">Шаг</th><th>Сейчас</th><th>С Кузей</th></tr>
+    <tr><td><b>Заметили</b></td><td>«у нас течёт» и 20 ответов «у нас тоже»</td><td>фото и описание, Кузя сам находит такую же заявку</td></tr>
+    <tr><td><b>Кому писать</b></td><td>ищут в интернете, путают УК и регоператора</td><td>исполнитель виден сразу, из справочника</td></tr>
+    <tr><td><b>Заявление</b></td><td>пишет один активист, остальные в стороне</td><td>соседи жмут «Поддерживаю», текст Кузя собирает сам</td></tr>
+    <tr><td><b>Срок</b></td><td>никто не знает</td><td>в обращении, со ссылкой на норматив</td></tr>
+    <tr><td><b>Контроль</b></td><td>никто не помнит, когда подавали</td><td>таймер в карточке, при просрочке жалоба в ГЖИ</td></tr>
+    <tr><td><b>Итог</b></td><td>проблема висит неделями</td><td>статус «Решено», соседи видят результат</td></tr>
   </table>
-  <p style="margin-top:22px"><span class="tag teal">исчезает</span> поиск ответственного, ручное заявление, звонки «подавали ли уже» &nbsp; <span class="tag">автоматизируется</span> адресация, текст, контроль срока, эскалация</p>
+  <div class="row" style="flex:none;gap:24px;margin-top:26px">
+    <div class="sum grow" style="background:var(--teal-soft)"><h3 style="color:var(--teal)">Жителям больше не нужно</h3><p>искать ответственного, писать заявление вручную, звонить в УК с вопросом «а подавали ли уже»</p></div>
+    <div class="sum grow" style="background:var(--accent-soft)"><h3 style="color:var(--accent)">Кузя делает сам</h3><p>находит адресата, собирает текст обращения, следит за сроком, готовит жалобу при просрочке</p></div>
+  </div>
 </section>
 
-<!-- 6. Сценарий -->
+<!-- 7. Основной сценарий -->
 <section class="slide">
-  <h2>Основной сценарий</h2>
-  <div class="grid2" style="grid-template-columns: 1.15fr .85fr">
-    <ol class="steps">
+  <h2>Основной сценарий: от фото до решения</h2>
+  <div class="row">
+    <ol class="steps grow">
       <li>В чате дома житель жмёт «Сообщить о проблеме» под сообщением Кузи.</li>
-      <li>Фото и «течёт крыша над 9 этажом». Пока печатает: «Кровля → УК, срок 24 ч», проверка дублей.</li>
-      <li>В чате появляется карточка с кнопкой «👍 Поддерживаю (1/6)». Порог 6 = 15% от 40 участников чата.</li>
-      <li>Соседи голосуют в чате или приложении, счётчик обновляется у всех без перезагрузки.</li>
-      <li>На пороге Кузя формирует официальное обращение и пишет в чат срок исполнения.</li>
-      <li>В карточке таймер срока; при просрочке готова жалоба в Госжилинспекцию.</li>
-      <li>«Решено»: жители получают очки, Кузя радуется.</li>
+      <li>Присылает фото и пишет «течёт крыша над 9 этажом». Кузя сразу показывает: кровля, отвечает УК, срок 24 часа, и проверяет, нет ли такой же заявки.</li>
+      <li>В чате появляется карточка с кнопкой «Поддерживаю (1/6)». Порог 6 голосов: это 15% от 40 участников чата.</li>
+      <li>Соседи голосуют в чате или в приложении, счётчик обновляется у всех сразу.</li>
+      <li>На пороге Кузя отправляет обращение исполнителю и пишет в чат срок.</li>
+      <li>В карточке идёт таймер. Просрочили - готова жалоба в Госжилинспекцию.</li>
+      <li>Починили - соседи получают очки, Кузя радуется.</li>
     </ol>
-    <div style="display:flex;gap:14px;justify-content:center">
-      <img class="shot" src="shots/issue.png" alt="Карточка заявки">
+    <div class="phones">
+      <figure class="cap"><div class="phone" style="--w:220px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/new_issue.png" alt=""></div></div><figcaption>Шаг 2: категория и похожие заявки</figcaption></figure>
+      <figure class="cap"><div class="phone" style="--w:220px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/issue.png" alt=""></div></div><figcaption>Шаги 3-6: голоса и срок</figcaption></figure>
     </div>
   </div>
 </section>
 
-<!-- 7. Фишки -->
+<!-- 8. Кто отвечает и какой срок -->
+<section class="slide">
+  <h2>Кто обязан починить и за какой срок</h2>
+  <!-- данные: backend/src/domovoy/modules/issues/catalog.py, deadline_hours; ось логарифмическая -->
+  <svg id="deadlines" width="1136" height="390" viewBox="0 0 1136 390" style="margin-top:10px" role="img" aria-label="Нормативные сроки по категориям проблем"></svg>
+  <p class="note" style="margin-top:6px">Срок и основание Кузя берёт из справочника со ссылками на ПП РФ № 290, 354, 410, 491, 1156 и постановление Госстроя № 170. Нейросеть только выбирает категорию. Перед пилотом справочник проверяет юрист УК. Для дорог 30 дней: срок ответа на обращение по 59-ФЗ.</p>
+</section>
+
+<!-- 9. Чем Кузя отличается -->
 <section class="slide">
   <h2>Чем Кузя отличается</h2>
-  <div class="grid2" style="grid-template-columns: .9fr 1.1fr">
-    <div style="display:flex;gap:14px;justify-content:center"><img class="shot" src="shots/home.png" alt="Главный экран"></div>
-    <div>
-      <div class="card" style="margin-bottom:14px"><h3>Тамагочи дома</h3><p>Настроение маскота считается из данных: просрочки огорчают, решённые проблемы и субботники радуют. Состояние дома понятно без отчётов.</p></div>
-      <div class="card" style="margin-bottom:14px"><h3>Закон не выдумывается</h3><p>LLM только выбирает категорию. Адресат, основание и срок из справочника со ссылками на ПП № 290, 354, 491, Госстрой № 170.</p></div>
-      <div class="card"><h3>Доводит до результата</h3><p>Порог голосов от размера чата, дубли через RAG, автообращение, контроль срока, эскалация в ГЖИ. Газ уходит в аварийку сразу, без голосования.</p></div>
+  <div class="row">
+    <div class="phones"><div class="phone" style="--w:240px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/home.png" alt="Главный экран"></div></div></div>
+    <div class="col grow stack" style="justify-content:center">
+      <div><h3>По Кузе видно, как дела у дома</h3><p>Настроение маскота считается по заявкам: просрочки его огорчают, решённые проблемы и субботники радуют. Председателю не нужен отчёт, чтобы понять состояние дома.</p></div>
+      <div><h3>Закон не выдумывается</h3><p>Нейросеть только выбирает категорию. Кому писать, на каком основании и в какой срок, Кузя берёт из справочника.</p></div>
+      <div><h3>Доводит до результата</h3><p>Порог голосов считается от размера чата, похожие заявки объединяются, обращение уходит само, за сроком следит таймер, просрочка уходит в ГЖИ. Запах газа сразу направляется в аварийную службу, без голосования.</p></div>
     </div>
   </div>
 </section>
 
-<!-- 8. Вокруг сценария -->
+<!-- 10. Повод открывать каждую неделю -->
 <section class="slide">
-  <h2>Зачем жителю открывать Кузю каждую неделю</h2>
-  <div class="grid3" style="margin-bottom:22px">
-    <div class="card"><h3>События двора</h3><p>«Кузя, создай субботник в субботу в 11». Анонс в чате, кнопка «Иду», живой чат события, напоминание записавшимся.</p></div>
-    <div class="card"><h3>Барахолка</h3><p>Отдать коляску даром или продать шкаф соседу. Кузя передаёт сообщение продавцу в личку.</p></div>
-    <div class="card"><h3>Ачивки и уровни</h3><p>Очки за заявки, голоса, субботники и подарки соседям. Рейтинг соседей и уровень дома.</p></div>
+  <h2>Зачем жителю открывать Кузю, пока ничего не сломалось</h2>
+  <div class="row">
+    <div class="phones">
+      <div class="phone" style="--w:205px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/events.png" alt="События двора"></div></div>
+      <div class="phone" style="--w:205px;margin-top:36px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/market.png" alt="Барахолка"></div></div>
+    </div>
+    <div class="col grow">
+      <dl class="dl" style="grid-template-columns:160px 1fr">
+        <dt>События двора</dt><dd style="font-size:16.5px">«Кузя, создай субботник в субботу в 11». Анонс в чате, кнопка «Иду», чат события, напоминание записавшимся.</dd>
+        <dt>Барахолка</dt><dd style="font-size:16.5px">Отдать коляску или продать шкаф соседу. Кузя передаёт сообщение продавцу в личку.</dd>
+        <dt>Очки и уровни</dt><dd style="font-size:16.5px">За заявки, голоса, субботники и подарки соседям. Рейтинг соседей и уровень дома.</dd>
+        <dt>Безопасность</dt><dd style="font-size:16.5px">Карта укрытий с маршрутом, оповещение о БПЛА на весь экран. Без мобильного интернета Кузя отвечает про укрытия прямо в чате.</dd>
+        <dt>Модерация</dt><dd style="font-size:16.5px">Мат, оскорбления, реклама и спам удаляются. После трёх предупреждений Кузя пишет администраторам.</dd>
+        <dt>Разговор с Кузей</dt><dd style="font-size:16.5px">Знает, кто пишет, помнит разговор, отвечает про дом: УК, тарифы, капремонт.</dd>
+      </dl>
+      <p class="small muted" style="margin-top:12px">Когда что-то сломается, соседи уже в Кузе и голосуют за заявку.</p>
+    </div>
   </div>
-  <div class="grid3">
-    <div class="card"><h3>Безопасность</h3><p>Карта укрытий, маршрут в Яндекс Картах, полноэкранное оповещение о БПЛА. Без мобильного интернета Кузя отвечает про укрытия прямо в чате MAX.</p></div>
-    <div class="card"><h3>Модерация</h3><p>Мат, оскорбления, реклама и спам удаляются. Три предупреждения → сообщение администраторам.</p></div>
-    <div class="card"><h3>Кузя-агент</h3><p>Понимает, кто пишет, помнит контекст чата, берёт данные о доме из MCP «Жилищный навигатор».</p></div>
-  </div>
-  <p class="small muted" style="margin-top:18px">Эти функции дают регулярный повод заходить, поэтому в момент поломки канал уже установлен и соседи голосуют.</p>
 </section>
 
-<!-- 8a. Дом из чата -->
+<!-- 11. Дом из чата -->
 <section class="slide">
   <h2>Дом живёт в чате MAX</h2>
-  <div class="grid2" style="grid-template-columns: 1.1fr .9fr">
-    <div>
-      <div class="card" style="margin-bottom:12px"><h3>Дом появляется сам</h3><p>Добавили Кузю в домовой чат: у каждого участника дом уже в приложении, переключатель в шапке, если домов несколько. Вышел из чата - потерял доступ.</p></div>
-      <div class="card" style="margin-bottom:12px"><h3>Права из чата</h3><p>Администратор чата MAX = администратор дома: задаёт адрес, УК, порог голосов, закрепляет объявления. Жителю не нужно ничего настраивать.</p></div>
-      <div class="card"><h3>Объявления и документы</h3><p>«@Кузя, сделай объявление о субботнике в субботу в 11»: закреп в чате, доска объявлений, событие с «Иду». Протоколы и договор УК видят все жители, личные документы только владелец.</p></div>
+  <div class="row">
+    <div class="col grow stack" style="justify-content:center">
+      <div><h3>Дом появляется сам</h3><p>Добавили Кузю в домовой чат, и у каждого участника дом уже есть в приложении. Несколько домов - переключатель в шапке. Вышел из чата - доступ пропал.</p></div>
+      <div><h3>Права из чата</h3><p>Администратор чата в MAX становится администратором дома: задаёт адрес, УК и порог голосов, закрепляет объявления. Жителю ничего настраивать не нужно.</p></div>
+      <div><h3>Объявления и документы</h3><p>«@Кузя, сделай объявление о субботнике в субботу в 11»: объявление закреплено в чате и висит на доске, соседи жмут «Иду». Протоколы и договор с УК видят все жители, личные документы только владелец.</p></div>
     </div>
-    <div style="display:flex;gap:14px;justify-content:center">
-      <img class="shot" style="height:500px" src="shots/chat_reply.png" alt="Объявление в чате">
-      <img class="shot" style="height:500px" src="shots/house.png" alt="О доме">
+    <div class="phones">
+      <figure class="cap"><div class="phone" style="--w:215px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/chat_reply.png" alt=""></div></div><figcaption>Объявление по просьбе в чате</figcaption></figure>
+      <figure class="cap"><div class="phone" style="--w:215px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/house.png" alt=""></div></div><figcaption>Карточка дома и УК</figcaption></figure>
     </div>
   </div>
 </section>
 
-<!-- 8c. Возможности MAX -->
+<!-- 12. Возможности MAX -->
 <section class="slide">
-  <h2>Что берём от MAX сверх минимума</h2>
-  <div class="grid2">
+  <h2>Что Кузя берёт от MAX сверх минимума</h2>
+  <div class="row">
+    <div class="col grow" style="gap:18px">
     <div class="card">
-      <h3>Бот в групповом чате</h3>
+      <h3 style="color:var(--accent)">Бот в групповом чате</h3>
       <ul>
-        <li>Кнопка «👍 Поддерживаю (4/6)» под заявкой: сообщение переписывается после каждого голоса из чата или приложения</li>
-        <li>Участники и администраторы чата → права в доме и порог голосов от размера чата</li>
+        <li>Кнопка «Поддерживаю (4/6)» под заявкой: сообщение переписывается после каждого голоса из чата или приложения</li>
+        <li>Участники и администраторы чата становятся жителями и администраторами дома, порог голосов считается от размера чата</li>
         <li>Закреп объявлений, удаление спама, фото заявки прямо в чате</li>
       </ul>
     </div>
     <div class="card">
-      <h3>Мини-приложение</h3>
+      <h3 style="color:var(--accent)">Мини-приложение</h3>
       <ul>
-        <li>Вход по подписи MAX (initData, проверка на сервере): без регистрации и паролей</li>
+        <li>Вход по подписи MAX (initData, проверяется на сервере): без регистрации и паролей</li>
         <li>Диплинки <code>?startapp=</code>: из сообщения бота сразу в нужную заявку или событие</li>
-        <li>Системная кнопка «Назад», виброотклик, «Позвать соседей» через шеринг MAX</li>
+        <li>Системная кнопка «Назад» и виброотклик</li>
+        <li>«Позвать соседей» через шеринг MAX</li>
       </ul>
     </div>
+    </div>
+    <div class="phones"><figure class="cap"><div class="phone" style="--w:215px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/chat.png" alt=""></div></div><figcaption>Кузя отвечает в чате дома</figcaption></figure></div>
   </div>
-  <p class="small muted" style="margin-top:18px">Всё работает от начала до результата в настоящем MAX и описано в README («Внешние сервисы и интеграции»).</p>
+  <p class="note">Всё работает от начала до конца в настоящем MAX. Подробности в README, раздел «Внешние сервисы и интеграции».</p>
 </section>
 
-<!-- 8b. Экраны -->
+<!-- 13. Экраны -->
 <section class="slide">
   <h2>Как это выглядит</h2>
-  <div style="display:flex;gap:22px;justify-content:space-between">
-    <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/new_issue.png" alt=""><figcaption class="small muted">Кузя сразу видит категорию и дубль</figcaption></figure>
-    <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/chat.png" alt=""><figcaption class="small muted">Ответ агента в чате дома</figcaption></figure>
-    <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/safety.png" alt=""><figcaption class="small muted">Укрытия и маршрут</figcaption></figure>
-    <figure style="margin:0;text-align:center"><img class="shot" style="height:470px" src="shots/alert.png" alt=""><figcaption class="small muted">Оповещение о БПЛА</figcaption></figure>
+  <div style="display:flex;gap:34px;justify-content:center">
+    <figure class="cap"><div class="phone" style="--w:216px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/issues.png" alt=""></div></div><figcaption>Заявки дома со сроками</figcaption></figure>
+    <figure class="cap"><div class="phone" style="--w:216px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/achievements.png" alt=""></div></div><figcaption>Очки и рейтинг соседей</figcaption></figure>
+    <figure class="cap"><div class="phone" style="--w:216px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/safety.png" alt=""></div></div><figcaption>Укрытия и маршрут</figcaption></figure>
+    <figure class="cap"><div class="phone red" style="--w:216px"><div class="screen"><div class="sb"><span>9:41</span><span class="bat"></span></div><img src="shots/alert.png" alt=""></div></div><figcaption>Оповещение о БПЛА</figcaption></figure>
   </div>
 </section>
 
-<!-- 9. Эффект -->
+<!-- 14. Бизнес-модель -->
 <section class="slide">
-  <h2>Ожидаемый эффект и метрики пилота</h2>
-  <p>Если помочь жителям превращать жалобы из чата в коллективные обращения с правильным адресатом и сроком через голосование в MAX, доля устранённых в срок проблем вырастет: УК получает одно оформленное обращение с фото и основанием, а жители видят срок и могут эскалировать.</p>
-  <table style="margin-top:12px">
-    <tr><th>Метрика</th><th>Как считаем</th><th>Цель (гипотеза)</th></tr>
-    <tr><td>Время до обращения в УК</td><td>sent_at − created_at</td><td>медиана &lt; 24 ч</td></tr>
-    <tr><td>Устранено в нормативный срок</td><td>resolved_at ≤ deadline_at</td><td>+30% к базовой линии</td></tr>
-    <tr><td>Объединённые дубли</td><td>«поддержать существующую» вместо новой</td><td>&gt; 50% похожих жалоб</td></tr>
-    <tr><td>Вовлечённость</td><td>доля участников чата с голосом за месяц</td><td>&gt; 25%</td></tr>
-    <tr><td>Ручные действия инициатора</td><td>звонки и письма в УК на одну проблему</td><td>с 5-10 до 0-1</td></tr>
+  <h2>Бизнес-модель: платят УК и регион, жителям бесплатно</h2>
+  <table>
+    <tr><th style="width:250px">Клиент</th><th style="width:250px">За что платит</th><th>Что получает</th></tr>
+    <tr><td><b>Управляющая компания</b></td><td>подписка на кабинет диспетчера</td><td>Одно обращение с фото и основанием вместо десятков звонков. Меньше повторных заявок и предписаний надзора за просрочки. Статусы меняет прямо в MAX.</td></tr>
+    <tr><td><b>Регион или муниципалитет</b></td><td>подключение Кузи к домовым чатам региона</td><td>Инструмент, который Ульяновская область сама просит: чаты становятся каналом работы с УК. Надзор получает оформленные жалобы с доказательствами.</td></tr>
   </table>
+  <div class="sum" style="background:var(--teal-soft);margin-top:24px"><h3 style="color:var(--teal)">Для жителей Кузя бесплатный</h3><p>Польза растёт с числом соседей в чате: чем больше людей голосует, тем быстрее обращение уходит в УК. Платный вход срезал бы охват, а без охвата нечего продавать УК.</p></div>
+  <div style="display:flex;gap:24px;align-items:center;margin-top:24px">
+    <div class="kpi" style="flex:none"><span class="num">2 ГБ</span></div>
+    <p style="font-size:18px">памяти на одном сервере хватает на все процессы пилота. Нейросеть не обязательна: основной сценарий работает на правилах. Фото пересжимаются до 1600 px, хранилище не разрастается.</p>
+  </div>
+  <p class="note">Модель оплаты - гипотеза. В пилоте считаем, сколько домов выдерживает один сервер и сколько минут диспетчера экономит одно коллективное обращение.</p>
 </section>
 
-<!-- 10. Архитектура -->
+<!-- 15. Эффект -->
+<section class="slide">
+  <h2>Что изменится и как это измерим</h2>
+  <p style="max-width:1080px">Гипотеза: если жалобы из чата превращаются в коллективные обращения с правильным адресатом и сроком, в срок устраняют больше проблем. УК получает одно оформленное обращение с фото и основанием, а жители видят срок и могут пожаловаться в надзор.</p>
+  <table style="margin-top:18px">
+    <tr><th>Метрика</th><th>Как считаем</th><th>Цель пилота</th></tr>
+    <tr><td>Время до обращения в УК</td><td>от сообщения о проблеме до отправки обращения</td><td><b>медиана меньше 24 ч</b></td></tr>
+    <tr><td>Устранено в нормативный срок</td><td>доля заявок, закрытых до дедлайна</td><td><b>+30% к базовой линии</b></td></tr>
+    <tr><td>Объединённые дубли</td><td>житель поддержал существующую заявку вместо новой</td><td><b>больше 50% похожих жалоб</b></td></tr>
+    <tr><td>Вовлечённость</td><td>доля участников чата, проголосовавших за месяц</td><td><b>больше 25%</b></td></tr>
+    <tr><td>Ручная работа инициатора</td><td>звонки и письма в УК на одну проблему</td><td><b>с 5-10 до 0-1</b></td></tr>
+  </table>
+  <p class="note">Цели - гипотезы. Базовая линия: 4 недели истории чата до подключения Кузи.</p>
+</section>
+
+<!-- 16. Архитектура -->
 <section class="slide">
   <h2>Архитектура</h2>
-  <svg class="arch" viewBox="0 0 1136 470" font-family="Segoe UI, sans-serif" font-size="15">
+  <svg class="arch" viewBox="0 0 1136 470" font-family="Golos Text, Segoe UI, sans-serif" font-size="15">
     <defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1F5FAF"/></marker></defs>
     <g fill="#FFFFFF" stroke="#D5DCE5" stroke-width="2">
       <rect x="10" y="40" width="220" height="80" rx="14"/><rect x="10" y="190" width="220" height="80" rx="14"/>
@@ -256,17 +367,17 @@
       <rect x="920" y="40" width="200" height="80" rx="14"/><rect x="920" y="190" width="200" height="80" rx="14"/>
       <rect x="920" y="340" width="200" height="80" rx="14"/>
     </g>
-    <g fill="#1B2533" font-weight="600" text-anchor="middle">
+    <g fill="#1B2533" font-weight="600" text-anchor="middle" font-size="14">
       <text x="120" y="75">Домовой чат MAX</text><text x="120" y="225">Мини-приложение</text>
       <text x="430" y="75">bot</text><text x="430" y="225">api (FastAPI)</text><text x="430" y="375">worker</text>
       <text x="725" y="225">RabbitMQ</text><text x="725" y="75">ReAct-агент</text><text x="725" y="375">Postgres + pgvector</text>
       <text x="1020" y="75">Ollama / stub</text><text x="1020" y="225">MCP-серверы</text><text x="1020" y="375">MinIO (фото)</text>
     </g>
-    <g fill="#4A5668" text-anchor="middle" font-size="13">
+    <g fill="#4A5668" text-anchor="middle" font-size="11.5">
       <text x="120" y="98">Bot API, long polling</text><text x="120" y="248">Vue 3 + MAX Bridge</text>
       <text x="430" y="98">модерация, агент, отправка</text><text x="430" y="248">REST + SSE</text><text x="430" y="398">обращения, напоминания, ГЖИ</text>
-      <text x="725" y="248">topic exchange</text><text x="725" y="98">LangGraph, память в Postgres</text><text x="725" y="398">гибридный RAG-поиск</text>
-      <text x="1020" y="98">fallback на stub</text><text x="1020" y="248">Жилищный навигатор + внешние</text><text x="1020" y="398">без EXIF</text>
+      <text x="725" y="248">topic exchange</text><text x="725" y="98">LangGraph, память в Postgres</text><text x="725" y="398">гибридный поиск дублей</text>
+      <text x="1020" y="98">без сети работает stub</text><text x="1020" y="248">Жилищный навигатор + внешние</text><text x="1020" y="398">без EXIF</text>
     </g>
     <g stroke="#1F5FAF" stroke-width="2" fill="none" marker-end="url(#a)">
       <path d="M230,80 H328"/><path d="M230,230 H328"/><path d="M530,230 H628"/><path d="M530,80 C580,80 580,210 628,215"/>
@@ -274,82 +385,90 @@
       <path d="M530,245 C600,300 600,360 628,370"/><path d="M530,260 C700,330 850,380 918,380"/>
     </g>
   </svg>
-  <p class="small muted">Модульный монолит: один пакет, четыре процесса из одного образа, связь через RabbitMQ. REST + SSE вместо gRPC/GraphQL: мини-приложение живёт в WebView, так быстрее и проще отлаживать.</p>
+  <p class="note">Модульный монолит: один пакет и четыре процесса из одного образа, связь через RabbitMQ. REST и SSE вместо gRPC и GraphQL: мини-приложение живёт в WebView, так быстрее и проще отлаживать.</p>
 </section>
 
-<!-- 11. Данные -->
+<!-- 17. Данные -->
 <section class="slide">
-  <h2>Данные и интеграции</h2>
+  <h2>Данные и интеграции: что уже настоящее</h2>
   <table>
-    <tr><th>Интеграция</th><th>Статус в MVP</th><th>Для внедрения</th></tr>
-    <tr><td>MAX Bot API и MAX Bridge</td><td><span class="tag teal">реальная</span> подпись initData проверяется на сервере</td><td>токен бота, HTTPS-адрес мини-приложения</td></tr>
-    <tr><td>Справочник ответственных и нормативов</td><td><span class="tag teal">реальные нормы</span> справочно</td><td>подтверждение юристом УК, региональные нормы</td></tr>
-    <tr><td>Участники и администраторы чата</td><td><span class="tag teal">реальная</span> Bot API, бот - администратор чата</td><td>добавить Кузю в домовой чат</td></tr>
-    <tr><td>Отправка обращения в УК</td><td><span class="tag">модельная</span> письмо на тестовый адрес с пометкой «[ТЕСТ]»</td><td>e-mail диспетчерской УК (уже задаётся в настройках дома) или ГИС ЖКХ</td></tr>
+    <tr><th>Интеграция</th><th>Сейчас в MVP</th><th>Нужно для внедрения</th></tr>
+    <tr><td>MAX Bot API и MAX Bridge</td><td><span class="tag teal">настоящая</span> подпись initData проверяется на сервере</td><td>токен бота, HTTPS-адрес мини-приложения</td></tr>
+    <tr><td>Справочник исполнителей и сроков</td><td><span class="tag teal">настоящие нормы</span> справочно</td><td>проверка юристом УК, региональные нормы</td></tr>
+    <tr><td>Участники и администраторы чата</td><td><span class="tag teal">настоящая</span> через Bot API, бот администратор чата</td><td>добавить Кузю в домовой чат</td></tr>
+    <tr><td>Отправка обращения в УК</td><td><span class="tag">модельная</span> письмо на тестовый адрес с пометкой «[ТЕСТ]»</td><td>e-mail диспетчерской УК (задаётся в настройках дома) или ГИС ЖКХ</td></tr>
     <tr><td>Паспорт дома, тарифы, капремонт</td><td><span class="tag">модельные данные</span> в MCP</td><td>ГИС ЖКХ, региональный фонд капремонта</td></tr>
     <tr><td>Укрытия</td><td><span class="tag">демо-точки</span></td><td>реестр МЧС или муниципалитета</td></tr>
-    <tr><td>Оповещение о БПЛА</td><td><span class="tag">запуск администратором</span></td><td>региональная система оповещения</td></tr>
-    <tr><td>LLM</td><td><span class="tag teal">Ollama Cloud</span> или stub без сети</td><td>выбор модели, при необходимости локальная Ollama</td></tr>
+    <tr><td>Оповещение о БПЛА</td><td><span class="tag">запускает администратор</span></td><td>региональная система оповещения</td></tr>
+    <tr><td>Нейросеть</td><td><span class="tag teal">Ollama Cloud</span> или правила без сети</td><td>выбор модели, при необходимости своя Ollama</td></tr>
   </table>
-  <p class="small muted" style="margin-top:14px">Персональные данные по минимуму: имя из MAX и номер квартиры по желанию. Фото без EXIF, переписка чата не хранится, только срабатывания модерации.</p>
+  <p class="note">Персональных данных минимум: имя из MAX и номер квартиры по желанию. Фото без EXIF. Переписку чата Кузя не хранит, только срабатывания модерации.</p>
 </section>
 
-<!-- 11b. Почему Ульяновск -->
+<!-- 18. Почему Ульяновск -->
 <section class="slide">
   <h2>Почему пилот в Ульяновске</h2>
-  <div class="grid2" style="grid-template-columns: 1fr 1fr; gap:22px">
-    <div class="card"><h3>Тревога - несколько раз в неделю</h3><p>Режим «беспилотная опасность» объявляют несколько раз в неделю. 25.09.2026 при атаке БПЛА пострадали до 15 человек, в школах отменили занятия. Укрытия и оповещение в чате дома нужны каждому.</p></div>
-    <div class="card"><h3>Интернет отключают, MAX работает</h3><p>Мобильный интернет в части районов ограничен до конца СВО. MAX в белом списке: Кузя в домовом чате на связи, когда большинство сервисов молчит. Заявка, голос и укрытия - прямо в чате.</p></div>
-    <div class="card"><h3>Аудитория уже в MAX</h3><p>128 тыс. ульяновцев в 5 тыс. домовых чатов MAX. Кузю добавляют в существующий чат, никого не нужно звать в новое приложение.</p></div>
-    <div class="card"><h3>Регион хочет того же</h3><p>Губернатор: сделать чаты «полноценным инструментом взаимодействия жителей с управляющими организациями». Администрация уже просит УК вешать QR-коды чатов в подъездах.</p></div>
+  <div class="row" style="flex:none;gap:64px;margin-bottom:26px">
+    <div class="kpi"><span class="num">128 тыс.</span><span class="lbl">ульяновцев уже в домовых чатах MAX</span></div>
+    <div class="kpi"><span class="num">5 тыс.</span><span class="lbl">домовых чатов, куда можно<br>добавить Кузю</span></div>
+    <div class="kpi"><span class="num">135</span><span class="lbl">каналов УК и ресурсоснабжающих<br>организаций в MAX</span></div>
   </div>
-  <p class="small muted" style="margin-top:14px">Источники: Lenta.ru и ВЗГЛЯД 25.09.2026; АиФ Ульяновск; Forbes, РБК 11.11.2025; Улправда 18.08.2026; 1ul.ru 29.08.2025. Ограничение: мини-приложение на своём домене не в белом списке и без мобильного интернета открывается через Wi-Fi; в пилоте просим включить домен в региональный список.</p>
+  <dl class="dl" style="grid-template-columns:250px 1fr">
+    <dt>Тревога каждую неделю</dt><dd style="font-size:17px">«Беспилотную опасность» объявляют несколько раз в неделю. 25.09.2026 при атаке БПЛА пострадали до 15 человек, в школах отменили занятия.</dd>
+    <dt>Интернет отключают, MAX работает</dt><dd style="font-size:17px">Мобильный интернет в части районов ограничен до конца СВО. MAX в белом списке, поэтому заявка, голос и укрытия работают прямо в чате.</dd>
+    <dt>Регион хочет того же</dt><dd style="font-size:17px">Губернатор поставил задачу сделать чаты «полноценным инструментом взаимодействия жителей с управляющими организациями».</dd>
+    <dt>Город зовёт в чаты</dt><dd style="font-size:17px">Администрация Ульяновска просит УК перенести домовые чаты в MAX и повесить QR-коды в подъездах.</dd>
+  </dl>
+  <p class="note">Источники: Улправда 18.08.2026; Lenta.ru и ВЗГЛЯД 25.09.2026; АиФ Ульяновск; Forbes, РБК 11.11.2025; 1ul.ru 29.08.2025. Ограничение: мини-приложение на своём домене не в белом списке и без мобильного интернета открывается через Wi-Fi. Для пилота просим включить домен в региональный список.</p>
 </section>
 
-<!-- 12. Пилот -->
+<!-- 19. Пилот -->
 <section class="slide">
   <h2>Пилот: один дом в Ульяновске, 4 недели</h2>
-  <div class="grid2">
-    <div>
-      <div class="card" style="margin-bottom:14px"><h3>Где и с кем</h3><p>Панельная девятиэтажка в Новом Городе (Заволжский район), УК, готовая принимать обращения по e-mail или в MAX, председатель совета дома как амбассадор.</p></div>
-      <div class="card"><h3>Как встраивается</h3><p>Кузю добавляют в существующий домовой чат. УК указывает канал приёма, юрист подтверждает сроки. Партнёры: управление ЖКХ города и Агентство госстройжилнадзора области.</p></div>
+  <svg id="timeline" width="1136" height="96" viewBox="0 0 1136 96" role="img" aria-label="План пилота по неделям"></svg>
+  <div class="row" style="margin-top:22px">
+    <div class="col grow stack">
+      <div><h3>Где и с кем</h3><p>Панельная девятиэтажка в Новом Городе (Заволжский район). УК, готовая принимать обращения по e-mail или в MAX. Председатель совета дома помогает запустить.</p></div>
+      <div><h3>Как встраивается</h3><p>Кузю добавляют в существующий домовой чат. УК указывает, куда слать обращения, юрист подтверждает сроки. Партнёры: управление ЖКХ города и Агентство госстройжилнадзора области.</p></div>
     </div>
-    <div>
-      <div class="card" style="margin-bottom:14px"><h3>Привлечение</h3><p>Закреп Кузи в чате, QR-код в подъезде на диплинк мини-приложения, первый субботник через Кузю.</p></div>
-      <div class="card"><h3>Дальше</h3><p>Базовая линия: 4 недели истории чата до запуска. После успеха: все дома этой УК и кабинет диспетчера для смены статусов прямо в MAX.</p></div>
+    <div class="col grow stack">
+      <div><h3>Как зовём жителей</h3><p>Закреплённое сообщение Кузи в чате, QR-код в подъезде, который открывает мини-приложение, первый субботник через Кузю.</p></div>
+      <div><h3>После успеха</h3><p>Все дома этой УК и кабинет диспетчера: приём обращений и смена статусов прямо в MAX.</p></div>
     </div>
   </div>
 </section>
 
-<!-- 13. Масштабирование -->
+<!-- 20. Масштабирование -->
 <section class="slide">
-  <h2>Масштабирование</h2>
-  <div class="grid2">
-    <div class="card"><h3>Не меняется</h3><ul><li>сценарий «фото → голоса → обращение → контроль»</li><li>модель данных, бот, мини-приложение, агент</li><li>механика голосования и эскалации</li><li>модерация, события, ачивки</li></ul></div>
-    <div class="card"><h3>Адаптируется</h3><ul><li>справочник исполнителей и нормативов региона</li><li>канал отправки обращения конкретной УК</li><li>тарифы и капремонт (новый MCP-источник)</li><li>реестр укрытий и оповещения</li></ul></div>
+  <h2>Масштабирование: код тот же, меняется справочник</h2>
+  <svg id="path" width="1136" height="120" viewBox="0 0 1136 120" role="img" aria-label="Порядок масштабирования"></svg>
+  <div class="row" style="margin-top:22px;flex:none">
+    <div class="card grow"><h3>Не меняется</h3><ul><li>сценарий «фото → голоса → обращение → контроль»</li><li>бот, мини-приложение, агент, модель данных</li><li>голосование и жалоба при просрочке</li><li>модерация, события, очки</li></ul></div>
+    <div class="card grow"><h3>Настраивается под регион</h3><ul><li>справочник исполнителей и сроков</li><li>канал, через который УК принимает обращения</li><li>тарифы и капремонт (новый источник данных)</li><li>реестр укрытий и система оповещения</li></ul></div>
   </div>
-  <p style="margin-top:24px"><b>Дом</b> → <b>все дома УК</b> (один справочник и канал) → <b>УК Ульяновска</b> через управление ЖКХ города → <b>Поволжье</b> с угрозой БПЛА и отключениями интернета: Самара, Пенза, Саратов, Татарстан → <b>остальные регионы</b>. Также ТСЖ, ЖСК, коттеджные посёлки, общежития.</p>
+  <p class="muted" style="margin-top:22px;font-size:17px">Та же задача есть у ТСЖ и ЖСК, в коттеджных посёлках и студенческих общежитиях.</p>
 </section>
 
-<!-- 14. Риски -->
+<!-- 21. Риски -->
 <section class="slide">
-  <h2>Риски, допущения, ограничения MVP</h2>
+  <h2>Риски и ограничения MVP</h2>
   <table>
-    <tr><th>Риск</th><th>Что делаем</th></tr>
-    <tr><td>УК игнорирует обращения из бота</td><td>основание и срок в обращении, жалоба в ГЖИ при просрочке, договорённость с УК до пилота</td></tr>
-    <tr><td>Ошибка категории у LLM</td><td>правовая часть из справочника, газ определяется правилами, житель видит категорию до отправки</td></tr>
+    <tr><th style="width:320px">Риск</th><th>Что делаем</th></tr>
+    <tr><td>УК игнорирует обращения из бота</td><td>в обращении основание и срок, при просрочке жалоба в ГЖИ, с УК договариваемся до пилота</td></tr>
+    <tr><td>Нейросеть ошиблась с категорией</td><td>правовая часть из справочника, газ определяется правилами, житель видит категорию до отправки</td></tr>
     <tr><td>Накрутка голосов</td><td>один голос на жителя, порог от размера чата, блокировка строки при подсчёте</td></tr>
-    <tr><td>Спам и токсичность</td><td>двухслойная модерация, журнал срабатываний, уведомление администраторов</td></tr>
-    <tr><td>Недоступна LLM</td><td>stub и правила: основной сценарий работает без LLM</td></tr>
-    <tr><td>Отключён мобильный интернет</td><td>MAX в белом списке: заявка, голос и укрытия в чате текстом; мини-приложение через Wi-Fi, домен просим в региональный белый список</td></tr>
+    <tr><td>Спам и токсичность в чате</td><td>двухслойная модерация, журнал срабатываний, уведомление администраторов</td></tr>
+    <tr><td>Нейросеть недоступна</td><td>основной сценарий работает на правилах без неё</td></tr>
+    <tr><td>Отключили мобильный интернет</td><td>MAX в белом списке: заявка, голос и укрытия текстом в чате; мини-приложение через Wi-Fi, домен просим в региональный белый список</td></tr>
+    <tr><td>Голос в чате путают с решением собрания</td><td>называем это поддержкой обращения; решения собственников идут в ОСС через «Госуслуги.Дом»</td></tr>
   </table>
-  <p class="small muted" style="margin-top:14px">Ограничения MVP: отправка обращения и данные ГИС ЖКХ модельные, укрытия демонстрационные, long polling вместо webhook. Подробно в README.</p>
+  <p class="note">Ограничения MVP: отправка обращения и данные ГИС ЖКХ модельные, укрытия демонстрационные, long polling вместо webhook. Подробно в README.</p>
 </section>
 
-<!-- 15. Источники -->
+<!-- 22. Источники -->
 <section class="slide">
   <h2>Источники</h2>
-  <ul class="small" style="columns:2;column-gap:40px">
+  <ul class="small" style="columns:2;column-gap:48px;max-width:960px">
     <li>ТЗ трека «Умный город», 2026</li>
     <li>Росстат: жилищный фонд РФ, 2024</li>
     <li>ПП РФ от 26.01.2026 № 40 (взаимодействие через MAX)</li>
@@ -363,6 +482,9 @@
     <li>ПП РФ от 12.11.2016 № 1156 (обращение с ТКО)</li>
     <li>Федеральный закон № 59-ФЗ (обращения граждан)</li>
     <li>Федеральный закон № 131-ФЗ (местное самоуправление)</li>
+    <li>CNews, 13.05.2025: 1,5 млн заявок через «Госуслуги.Дом», 8,5% коллективных</li>
+    <li>Минстрой России, 17.09.2024: коллективная заявка в «Госуслуги.Дом»</li>
+    <li>Бизнес Online, 11.09.2026: жалобы в ГЖИ Татарстана</li>
     <li>Документация MAX: dev.max.ru/docs, dev.max.ru/docs-api</li>
     <li>Lenta.ru, ВЗГЛЯД: атака БПЛА на Ульяновск, 25.09.2026</li>
     <li>АиФ Ульяновск: почему ульяновцам отключают мобильный интернет</li>
@@ -370,8 +492,107 @@
     <li>Улправда: 128 тыс. ульяновцев в домовых чатах MAX, 18.08.2026</li>
     <li>1ul.ru: администрация рекомендует УК перенести чаты в MAX, 29.08.2025</li>
   </ul>
-  <img class="kuzya" style="width:200px" src="../../frontend/public/kuzya.png" alt="">
+  <img src="../../frontend/public/kuzya.png" alt="" style="position:absolute;right:56px;bottom:40px;width:170px">
 </section>
 
+<script>
+  // Графики рисуются из данных при открытии, чтобы числа не расходились с подписями.
+  const NS = 'http://www.w3.org/2000/svg';
+  const C = { accent: '#1F5FAF', soft: '#C9D7EA', ink: '#1B2533', muted: '#4A5668', line: '#D5DCE5', surface: '#FFFFFF', amber: '#8A5300', amberSoft: '#FBF0DC' };
+  const el = (parent, tag, attrs, text) => {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    parent.appendChild(n);
+    return n;
+  };
+  const FONT = 'Golos Text, Segoe UI, sans-serif';
+
+  // Слайд 5: 200 клеток, 17 из них коллективные заявки (8,5%)
+  (() => {
+    const svg = document.getElementById('units');
+    const cols = 20, size = 19, gap = 4, total = 200, hit = 17;
+    for (let i = 0; i < total; i++) {
+      const x = (i % cols) * (size + gap), y = Math.floor(i / cols) * (size + gap);
+      el(svg, 'rect', { x, y, width: size, height: size, rx: 4, fill: i < hit ? C.accent : C.soft });
+    }
+  })();
+
+  // Слайд 8: нормативные сроки из catalog.py, группы по сроку, ось логарифмическая
+  (() => {
+    const svg = document.getElementById('deadlines');
+    const groups = [
+      { h: 1, tick: '1 час', items: [['Запах газа', 'аварийная газовая служба', true]] },
+      { h: 24, tick: '1 сутки', items: [['Кровля и протечки', 'УК'], ['Лифт', 'УК'], ['Вода и канализация', 'УК'], ['Отопление', 'УК'], ['Вывоз мусора', 'регоператор ТКО', true]] },
+      { h: 72, tick: '3 суток', items: [['Подъезд и уборка', 'УК'], ['Двор', 'УК']] },
+      { h: 168, tick: '7 суток', items: [['Освещение в доме', 'УК']] },
+      { h: 720, tick: '30 дней', items: [['Дороги и фонари', 'администрация района', true]] },
+    ];
+    // Ступени срока идут равными колонками: подпись под точкой даёт точное значение.
+    const axisY = 340, colW = 1136 / groups.length;
+    el(svg, 'line', { x1: 0, y1: axisY, x2: 1122, y2: axisY, stroke: C.line, 'stroke-width': 2 });
+    el(svg, 'path', { d: `M1122,${axisY - 6} L1134,${axisY} L1122,${axisY + 6} Z`, fill: C.line });
+    const chipW = 200, chipH = 50, chipGap = 8;
+    groups.forEach((g, gi) => {
+      const cx = colW * (gi + 0.5);
+      el(svg, 'circle', { cx, cy: axisY, r: 7, fill: C.accent, stroke: '#F5F7FA', 'stroke-width': 2 });
+      el(svg, 'text', { x: cx, y: axisY + 32, 'text-anchor': 'middle', 'font-family': FONT, 'font-size': 19, 'font-weight': 700, fill: C.ink }, g.tick);
+      el(svg, 'line', { x1: cx, y1: axisY - 22, x2: cx, y2: axisY - 8, stroke: C.line, 'stroke-width': 2 });
+      g.items.forEach(([title, org, other], i) => {
+        const y = axisY - 22 - (i + 1) * chipH - i * chipGap;
+        el(svg, 'rect', { x: cx - chipW / 2, y, width: chipW, height: chipH, rx: 12, fill: other ? C.amberSoft : C.surface, stroke: other ? '#E7C98F' : C.line, 'stroke-width': 1.5 });
+        el(svg, 'text', { x: cx - chipW / 2 + 14, y: y + 22, 'font-family': FONT, 'font-size': 15, 'font-weight': 600, fill: C.ink }, title);
+        el(svg, 'text', { x: cx - chipW / 2 + 14, y: y + 40, 'font-family': FONT, 'font-size': 13, fill: other ? C.amber : C.muted }, org);
+      });
+    });
+    // легенда: цвет дублируется подписью организации в каждой карточке
+    const lg = [[C.surface, C.line, 'отвечает УК'], [C.amberSoft, '#E7C98F', 'отвечает другая организация']];
+    lg.forEach(([fill, stroke, label], i) => {
+      const x = 700 + i * 140;
+      el(svg, 'rect', { x, y: 0, width: 18, height: 18, rx: 5, fill, stroke, 'stroke-width': 1.5 });
+      el(svg, 'text', { x: x + 26, y: 14, 'font-family': FONT, 'font-size': 14, fill: C.muted }, label);
+    });
+  })();
+
+  // Слайд 19: 4 недели базовой линии по истории чата, затем 4 недели пилота
+  (() => {
+    const svg = document.getElementById('timeline');
+    const w = 1136 / 8;
+    const parts = [
+      { from: 0, to: 4, fill: '#E4EDF8', ink: C.accent, label: 'Базовая линия: 4 недели истории чата до Кузи' },
+      { from: 4, to: 8, fill: C.accent, ink: '#FFFFFF', label: 'Пилот: Кузя в чате, считаем метрики' },
+    ];
+    for (const p of parts) {
+      el(svg, 'rect', { x: p.from * w + 1, y: 0, width: (p.to - p.from) * w - 2, height: 48, rx: 12, fill: p.fill });
+      el(svg, 'text', { x: p.from * w + 20, y: 30, 'font-family': FONT, 'font-size': 16, 'font-weight': 600, fill: p.ink }, p.label);
+    }
+    for (let i = 0; i <= 8; i++) {
+      const label = i < 4 ? `−${4 - i}` : i === 4 ? 'запуск' : `+${i - 4}`;
+      el(svg, 'text', { x: Math.min(Math.max(i * w, 12), 1124), y: 76, 'text-anchor': i === 0 ? 'start' : i === 8 ? 'end' : 'middle', 'font-family': FONT, 'font-size': 13, fill: i === 4 ? C.ink : C.muted, 'font-weight': i === 4 ? 700 : 400 }, i === 8 ? '+4 нед.' : label);
+    }
+  })();
+
+  // Слайд 20: порядок масштабирования
+  (() => {
+    const svg = document.getElementById('path');
+    const steps = [
+      ['Дом', 'пилот,', '4 недели'],
+      ['Все дома УК', 'один справочник', 'и канал'],
+      ['УК Ульяновска', 'через управление', 'ЖКХ города'],
+      ['Поволжье', 'Самара, Пенза,', 'Саратов, Татарстан'],
+      ['Другие регионы', 'новая строка', 'справочника'],
+    ];
+    const gap = 14, w = (1136 - gap * (steps.length - 1)) / steps.length, h = 96, tip = 18;
+    steps.forEach(([title, ...subs], i) => {
+      const x = i * (w + gap);
+      const d = `M${x},0 H${x + w - tip} L${x + w},${h / 2} L${x + w - tip},${h} H${x} ` + (i ? `L${x + tip},${h / 2} Z` : 'Z');
+      const strong = i === 0;
+      el(svg, 'path', { d, fill: strong ? C.accent : C.surface, stroke: strong ? C.accent : C.line, 'stroke-width': 1.5 });
+      const tx = x + (i ? tip + 12 : 18);
+      el(svg, 'text', { x: tx, y: subs.length > 1 ? 34 : 42, 'font-family': FONT, 'font-size': 18, 'font-weight': 700, fill: strong ? '#FFFFFF' : C.ink }, title);
+      subs.forEach((s, k) => el(svg, 'text', { x: tx, y: (subs.length > 1 ? 56 : 66) + k * 17, 'font-family': FONT, 'font-size': 13, fill: strong ? '#E4EDF8' : C.muted }, s));
+    });
+  })();
+</script>
 </body>
 </html>
