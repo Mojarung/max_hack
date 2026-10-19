@@ -199,12 +199,12 @@ async function submit(): Promise<void> {
       <h2 class="mt-4 mb-2 text-2xl font-bold">Спасибо! Кузя всё записал</h2>
       <p class="text-muted m-0 max-w-[340px]">
         <template v-if="created.status === 'voting'">
-          Соседи увидят проблему и смогут её поддержать. Нужно
+          Соседи увидят заявку и смогут её поддержать. Нужно
           {{ created.votes_needed }}
           {{ plural(created.votes_needed, ['голос', 'голоса', 'голосов']) }}, и обращение уйдёт
           {{ orgRecipient(created.responsible_org?.name) || 'в управляющую компанию' }}.
         </template>
-        <template v-else>Обращение уже отправлено ответственной организации.</template>
+        <template v-else>Кузя уже отправил обращение тем, кто отвечает за ремонт.</template>
       </p>
       <div class="mt-6 flex w-full flex-col gap-2">
         <v-btn
@@ -213,7 +213,7 @@ async function submit(): Promise<void> {
           :to="`/issues/${created.id}`"
           prepend-icon="mdi-eye-outline"
         >
-          Открыть проблему
+          Открыть заявку
         </v-btn>
         <v-btn size="large" variant="text" to="/">На главную</v-btn>
       </div>
@@ -221,14 +221,20 @@ async function submit(): Promise<void> {
 
     <template v-else>
       <div class="mb-4 flex items-center gap-3" aria-live="polite">
-        <div class="step-dot" :class="{ 'step-dot--on': step >= 1 }">1</div>
-        <div class="h-0.5 flex-1 rounded bg-on-surface/10">
+        <div class="step" :class="{ 'step--on': step >= 1 }">
+          <div class="step-dot" :class="{ 'step-dot--on': step >= 1 }">1</div>
+          <span class="step__label">Описание</span>
+        </div>
+        <div class="h-0.5 min-w-4 flex-1 rounded bg-on-surface/10">
           <div
             class="h-full rounded bg-primary transition-all"
             :style="{ width: step === 2 ? '100%' : '0%' }"
           />
         </div>
-        <div class="step-dot" :class="{ 'step-dot--on': step >= 2 }">2</div>
+        <div class="step" :class="{ 'step--on': step >= 2 }">
+          <div class="step-dot" :class="{ 'step-dot--on': step >= 2 }">2</div>
+          <span class="step__label">Место и отправка</span>
+        </div>
         <span class="sr-only">Шаг {{ step }} из 2</span>
       </div>
 
@@ -256,19 +262,15 @@ async function submit(): Promise<void> {
 
         <!-- место под подсказку занято заранее: кнопка «Дальше» не съезжает, когда она появляется -->
         <div class="mt-2 min-h-[84px]" aria-live="polite">
-          <v-chip v-if="classifying" variant="tonal" prepend-icon="mdi-head-cog-outline">
-            Кузя думает...
-          </v-chip>
-          <v-chip
-            v-else-if="classification"
-            variant="tonal"
-            prepend-icon="mdi-lightbulb-on-outline"
-            class="h-auto! py-1.5! whitespace-normal!"
-          >
-            Кузя думает, что это: {{ classification.category_title }}. Отвечает
-            {{ orgTitle(classification.org_name) }}, срок
-            {{ formatHours(classification.deadline_hours) }}
-          </v-chip>
+          <div v-if="classifying || classification" class="kuzya-hint">
+            <img src="/kuzya-avatar.png" alt="" width="36" height="36" class="kuzya-hint__face" />
+            <p v-if="classifying" class="m-0">Кузя читает описание...</p>
+            <p v-else-if="classification" class="m-0">
+              Похоже, это <b>{{ classification.category_title }}</b
+              >. Отвечает {{ orgTitle(classification.org_name) }}, срок
+              {{ formatHours(classification.deadline_hours) }}
+            </p>
+          </div>
         </div>
 
         <h3 class="mt-5 mb-2 text-base font-bold">
@@ -328,7 +330,7 @@ async function submit(): Promise<void> {
                     prepend-icon="mdi-eye-outline"
                     :to="`/issues/${item.id}`"
                   >
-                    {{ item.status === 'voting' ? 'Открыть заявку' : 'Уже отправлено, посмотреть' }}
+                    {{ item.status === 'voting' ? 'Открыть заявку' : 'Посмотреть, что с заявкой' }}
                   </v-btn>
                 </template>
                 <v-btn
@@ -423,6 +425,38 @@ async function submit(): Promise<void> {
 </template>
 
 <style scoped>
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.step__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: rgba(var(--v-theme-on-surface), var(--muted-alpha));
+}
+.step--on .step__label {
+  color: rgb(var(--v-theme-on-surface));
+}
+/* Подсказка Кузи - отдельный «голос» помощника, а не серый служебный чип */
+.kuzya-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 10px 10px;
+  border-radius: var(--r-md);
+  background: rgb(var(--v-theme-primary-container));
+  color: rgb(var(--v-theme-on-primary-container));
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+.kuzya-hint__face {
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgb(var(--v-theme-surface));
+}
 .step-dot {
   display: flex;
   align-items: center;

@@ -27,6 +27,16 @@ const saving = ref(false)
 const showErrors = ref(false)
 
 const deleting = ref<McpServerOut | null>(null)
+
+/** Понятные названия встроенных источников; у подключённых администратором - их имя. */
+const FRIENDLY: Record<string, { title: string; text: string }> = {
+  housing_navigator: {
+    title: 'Жилищный навигатор',
+    text: 'Паспорт дома, тарифы, капремонт',
+  },
+}
+const titleOf = (s: McpServerOut) => FRIENDLY[s.name]?.title ?? s.name
+const textOf = (s: McpServerOut) => FRIENDLY[s.name]?.text ?? (s.enabled ? 'Подключён' : 'Выключен')
 const deleteBusy = ref(false)
 
 const TRANSPORTS = [
@@ -49,7 +59,7 @@ function parseHeaders(raw: string): Record<string, string> | null {
 const errors = computed(() => ({
   name: MCP_NAME_RE.test(name.value)
     ? ''
-    : 'Латиница в нижнем регистре, цифры и _, начинается с буквы',
+    : 'Маленькие латинские буквы, цифры и _, первой должна быть буква',
   url: /^https?:\/\/\S+$/.test(url.value.trim()) ? '' : 'Адрес вида https://example.com/mcp',
   headers: parseHeaders(headersText.value) === null ? 'Каждая строка: Имя: значение' : '',
 }))
@@ -142,7 +152,7 @@ async function remove(): Promise<void> {
 <template>
   <div class="page">
     <p class="text-muted mt-0 text-sm">
-      MCP-серверы дают ИИ-помощнику Кузе новые инструменты: поиск по базе УК, погода, карты.
+      Источники данных, из которых Кузя отвечает на вопросы о доме. Подключает их администратор.
     </p>
 
     <ListSkeleton v-if="loading && !servers.length" :count="2" />
@@ -154,8 +164,8 @@ async function remove(): Promise<void> {
     />
     <EmptyState
       v-else-if="!servers.length"
-      title="Серверов пока нет"
-      text="Добавьте первый MCP-сервер"
+      title="Источников пока нет"
+      text="Подключите первый MCP-сервер"
     />
 
     <v-expansion-panels
@@ -180,15 +190,20 @@ async function remove(): Promise<void> {
               :color="s.enabled ? 'success' : 'muted'"
             />
             <div class="min-w-0">
-              <div class="font-semibold">{{ s.name }}</div>
-              <div class="text-muted truncate text-sm">{{ s.transport }} · {{ s.url }}</div>
+              <div class="font-semibold">{{ titleOf(s) }}</div>
+              <div class="text-muted truncate text-sm">{{ textOf(s) }}</div>
             </div>
           </div>
         </v-expansion-panel-title>
         <v-expansion-panel-text>
-          <div class="text-muted mb-2 text-sm">
-            {{ s.enabled ? 'Включён' : 'Выключен'
-            }}<template v-if="s.has_headers"> · с заголовками авторизации</template>
+          <div class="tech mb-3">
+            <div class="text-muted text-sm">Для администратора</div>
+            <code class="tech__line">{{ s.name }} · {{ s.transport }}</code>
+            <code class="tech__line">{{ s.url }}</code>
+            <div class="text-muted text-sm">
+              {{ s.enabled ? 'Включён' : 'Выключен'
+              }}<template v-if="s.has_headers"> · с заголовками авторизации</template>
+            </div>
           </div>
           <div v-if="toolsLoading === s.id" class="flex items-center gap-2 text-sm">
             <v-progress-circular indeterminate size="18" width="2" /> Загружаем инструменты...
@@ -197,7 +212,7 @@ async function remove(): Promise<void> {
             {{ toolsError[s.id] }}
           </div>
           <template v-else-if="tools[s.id]">
-            <div class="mb-1 text-sm font-semibold">Инструменты: {{ tools[s.id]!.length }}</div>
+            <div class="mb-1 text-sm font-semibold">Что умеет: {{ tools[s.id]!.length }}</div>
             <ul class="m-0 flex list-none flex-col gap-1.5 p-0">
               <li
                 v-for="t in tools[s.id]"
@@ -230,12 +245,12 @@ async function remove(): Promise<void> {
       prepend-icon="mdi-plus"
       @click="openForm"
     >
-      Добавить сервер
+      Подключить источник
     </v-btn>
 
     <Drawer v-model:open="formOpen">
       <DrawerContent>
-        <DrawerHeader title="Новый MCP-сервер" />
+        <DrawerHeader title="Новый источник (MCP-сервер)" />
         <form class="flex flex-col gap-3" novalidate @submit.prevent="save">
           <v-text-field
             v-model="name"
@@ -282,3 +297,19 @@ async function remove(): Promise<void> {
     </v-dialog>
   </div>
 </template>
+
+<style scoped>
+.tech {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: rgba(var(--v-theme-on-surface), 0.05);
+}
+.tech__line {
+  font-family: 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+</style>

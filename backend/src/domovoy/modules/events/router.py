@@ -1,8 +1,20 @@
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from domovoy.api.deps import CtxDep, SessionDep
+from domovoy.core.storage import save_uploads
 from domovoy.modules.events import service
-from domovoy.modules.events.service import CommentIn, CommentOut, EventDetail, EventIn, EventOut, comment_out
+from domovoy.modules.events.service import (
+    MAX_EVENT_PHOTOS,
+    CommentIn,
+    CommentOut,
+    EventDetail,
+    EventIn,
+    EventOut,
+    EventPatch,
+    comment_out,
+)
 
 router = APIRouter(prefix="/events", tags=["События двора"])
 
@@ -21,6 +33,40 @@ async def get_event(event_id: int, session: SessionDep, ctx: CtxDep) -> EventDet
 @router.post("", response_model=EventDetail, status_code=201)
 async def create_event(body: EventIn, session: SessionDep, ctx: CtxDep) -> EventDetail:
     ev = await service.create_event(session, user=ctx.user, house=ctx.house, data=body)
+    return await service.event_detail(session, ev, ctx.user.id)
+
+
+@router.patch("/{event_id}", response_model=EventDetail)
+async def update_event(event_id: int, body: EventPatch, session: SessionDep, ctx: CtxDep) -> EventDetail:
+    """Организатор дописывает описание, если создал событие из чата или забыл подробности."""
+    ev = await service.get_event(session, event_id, ctx.house.id)
+    service.check_can_edit(ev, ctx.user, ctx.is_admin)
+    await service.update_description(session, ev, body.description)
+    return await service.event_detail(session, ev, ctx.user.id)
+
+
+@router.post("/{event_id}/photos", response_model=EventDetail)
+async def add_photos(
+    event_id: int,
+    session: SessionDep,
+    ctx: CtxDep,
+    photos: Annotated[list[UploadFile], File()],
+) -> EventDetail:
+    ev = await service.get_event(session, event_id, ctx.house.id)
+    service.check_can_edit(ev, ctx.user, ctx.is_admin)
+    room = MAX_EVENT_PHOTOS - len(ev.photos or [])
+    if room <= 0:
+        raise HTTPException(422, f"У события уже {MAX_EVENT_PHOTOS} фото, сначала удалите лишние")
+    keys = await save_uploads("events", photos[:room])
+    await service.add_photos(session, ev, keys)
+    return await service.event_detail(session, ev, ctx.user.id)
+
+
+@router.delete("/{event_id}/photos/{index}", response_model=EventDetail)
+async def remove_photo(event_id: int, index: int, session: SessionDep, ctx: CtxDep) -> EventDetail:
+    ev = await service.get_event(session, event_id, ctx.house.id)
+    service.check_can_edit(ev, ctx.user, ctx.is_admin)
+    await service.remove_photo(session, ev, index)
     return await service.event_detail(session, ev, ctx.user.id)
 
 

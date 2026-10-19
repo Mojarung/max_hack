@@ -16,12 +16,12 @@ class AchievementDef:
 
 ACHIEVEMENTS: tuple[AchievementDef, ...] = (
     AchievementDef(
-        "first_issue", "Зоркий глаз", "Сообщил о первой проблеме дома", "mdi-eye-outline", 20, "issue_created", 1
+        "first_issue", "Зоркий глаз", "Первая заявка о поломке в доме", "mdi-eye-outline", 20, "issue_created", 1
     ),
     AchievementDef(
         "issue_sent",
         "Дело сдвинулось",
-        "Твоя заявка набрала голоса и ушла исполнителю",
+        "Ваша заявка набрала голоса соседей",
         "mdi-send-check",
         50,
         "issue_sent",
@@ -30,7 +30,7 @@ ACHIEVEMENTS: tuple[AchievementDef, ...] = (
     AchievementDef(
         "issue_resolved",
         "Починили!",
-        "Проблема, о которой ты сообщил, решена",
+        "Вашу заявку решили",
         "mdi-hammer-wrench",
         50,
         "issue_resolved",

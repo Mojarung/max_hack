@@ -254,7 +254,7 @@ export function buildIssue(seed: IssueSeed, users: UserFull[], needed: number): 
     note:
       seed.notes?.[status] ??
       (status === 'voting'
-        ? 'Кузя опубликовал проблему в домовом чате'
+        ? 'Кузя написал о заявке в чат дома'
         : status === 'sent'
           ? `Обращение отправлено: ${rule.org.name}`
           : null),
@@ -418,69 +418,73 @@ export function buildListings(s: MockScenario, users: UserFull[], meId: number):
     electronics: 'Техника',
     services: 'Услуги',
   }
-  const rows: [number, string, string, number, string, ListingOut['status'], number, string?][] = [
+  // последний элемент - имена фото из public/demo: в карточке они листаются каруселью
+  const rows: [number, string, string, number, string, ListingOut['status'], number, string[]?][] =
     [
-      201,
-      'Детская коляска 2 в 1',
-      'Коляска после одного ребёнка, всё работает, есть дождевик.',
-      0,
-      'kids',
-      'active',
-      3,
-      photo('stroller'),
-    ],
-    [
-      202,
-      s.name === 'long'
-        ? 'Диван-книжка раскладной, велюр, серо-голубой, почти не пользовались, самовывоз с 5 этажа'
-        : 'Диван-книжка',
-      'Раскладной, чистый, без пятен. Самовывоз, 5 этаж, лифт есть.',
-      3500,
-      'furniture',
-      'active',
-      4,
-      photo('sofa'),
-    ],
-    [
-      203,
-      'Рассада томатов',
-      'Черри и бычье сердце, 20 кустов. Отдам соседям.',
-      0,
-      'plants',
-      'active',
-      5,
-      photo('seedlings'),
-    ],
-    [
-      204,
-      'Шуруповёрт Makita',
-      'С двумя аккумуляторами и набором свёрл. Можно взять на выходные.',
-      1500,
-      'tools',
-      'reserved',
-      2,
-      photo('drill'),
-    ],
-    [
-      205,
-      'Телевизор Samsung 32"',
-      'Рабочий, пульт в комплекте.',
-      4000,
-      'electronics',
-      'active',
-      meId,
-    ],
-    [
-      206,
-      'Помогу настроить телефон',
-      'Установлю MAX, Госуслуги, настрою крупный шрифт. Для пожилых соседей бесплатно.',
-      0,
-      'services',
-      'active',
-      6,
-    ],
-  ]
-  return rows.map(([id, title, description, price, category, status, authorId, pic], i) => ({
+      [
+        201,
+        'Детская коляска 2 в 1',
+        'Коляска после одного ребёнка, всё работает, есть дождевик.',
+        0,
+        'kids',
+        'active',
+        3,
+        ['stroller', 'stroller-2', 'stroller-3'],
+      ],
+      [
+        202,
+        s.name === 'long'
+          ? 'Диван-книжка раскладной, велюр, серо-голубой, почти не пользовались, самовывоз с 5 этажа'
+          : 'Диван-книжка',
+        'Раскладной, чистый, без пятен. Самовывоз, 5 этаж, лифт есть.',
+        3500,
+        'furniture',
+        'active',
+        4,
+        ['sofa-2', 'sofa-3', 'sofa'],
+      ],
+      [
+        203,
+        'Рассада томатов',
+        'Черри и бычье сердце, 20 кустов. Отдам соседям.',
+        0,
+        'plants',
+        'active',
+        5,
+        ['seedlings', 'seedlings-2', 'seedlings-3'],
+      ],
+      [
+        204,
+        'Шуруповёрт Makita',
+        'С двумя аккумуляторами и набором свёрл. Можно взять на выходные.',
+        1500,
+        'tools',
+        'reserved',
+        2,
+        ['drill', 'drill-2', 'drill-3'],
+      ],
+      [
+        205,
+        'Телевизор Samsung 32"',
+        'Рабочий, пульт в комплекте.',
+        4000,
+        'electronics',
+        'active',
+        meId,
+        ['tv', 'tv-2'],
+      ],
+      [
+        206,
+        'Помогу настроить телефон',
+        'Установлю MAX, Госуслуги, настрою крупный шрифт. Для пожилых соседей бесплатно.',
+        0,
+        'services',
+        'active',
+        6,
+        ['phone-help', 'phone-help-2'],
+      ],
+    ]
+  return rows.map(([id, title, description, price, category, status, authorId, pics], i) => ({
     id,
     title,
     description,
@@ -489,7 +493,7 @@ export function buildListings(s: MockScenario, users: UserFull[], meId: number):
     category,
     category_title: titles[category] ?? 'Разное',
     status,
-    photos: pic ? [pic] : [],
+    photos: (pics ?? []).map(photo),
     author: short(users.find((u) => u.id === authorId) ?? users[0]!),
     is_mine: authorId === meId,
     created_at: at(-(i + 1) * 7 * H),
@@ -634,7 +638,13 @@ export function buildAchievements(s: MockScenario): AchievementOut[] {
     ['helper', 'Добрая рука', 'Отдать вещь даром', 'mdi-gift-outline', 15],
     ['subbotnik', 'Чистый двор', 'Сходить на субботник', 'mdi-broom', 20],
     ['voter10', 'Активист', 'Поддержать 10 заявок', 'mdi-account-voice', 30],
-    ['resolved', 'Дело сделано', 'Ваша заявка решена', 'mdi-check-decagram-outline', 25],
+    [
+      'resolved',
+      'Дело сделано',
+      'Добиться, чтобы вашу заявку решили',
+      'mdi-check-decagram-outline',
+      25,
+    ],
     ['organizer', 'Организатор', 'Создать событие', 'mdi-calendar-star', 20],
     ['seller', 'Купец', 'Разместить объявление', 'mdi-storefront-outline', 5],
     ['chatter', 'Душа компании', 'Написать 20 комментариев', 'mdi-chat-outline', 15],

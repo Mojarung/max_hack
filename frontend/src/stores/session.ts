@@ -6,6 +6,7 @@ import type { DevUser, HouseBrief, MeOut } from '@/api/types'
 import { notify } from '@/lib/notify'
 import { isInMax, ready } from '@/max/bridge'
 import { connectRealtime, onRealtime } from '@/realtime/sse'
+import { pluralize } from '@/utils/format'
 import { resetAllStores } from './helpers'
 
 const DEV_USER_KEY = 'kuzya.devUser'
@@ -65,7 +66,9 @@ export const useSessionStore = defineStore('session', () => {
       if (!me.value || payload.user_id !== me.value.user.id) return
       notify.success(
         payload.title ? `Новая награда: ${payload.title}` : 'Новая награда!',
-        payload.points ? `+${payload.points} очков` : 'Загляните в раздел «Награды»',
+        payload.points
+          ? `+${pluralize(payload.points, ['очко', 'очка', 'очков'])}`
+          : 'Загляните в раздел «Награды и рейтинг»',
       )
       void refreshMe()
     })

@@ -14,8 +14,10 @@ const props = withDefaults(
     interactive?: boolean
     /** Без фоновых анимаций (для маленьких иконок в списках). */
     still?: boolean
+    /** Смена настроения без прыжка: в пустых состояниях списков, где настроение меняют фильтры. */
+    quiet?: boolean
   }>(),
-  { mood: 'ok', size: 160, interactive: true, still: false },
+  { mood: 'ok', size: 160, interactive: true, still: false, quiet: false },
 )
 
 const emit = defineEmits<{ tap: [] }>()
@@ -159,7 +161,7 @@ watch(
   () => props.mood,
   (mood) => {
     tapReturn?.kill()
-    void switchPose(mood, performance.now() - mountedAt > SETTLE_MS)
+    void switchPose(mood, !props.quiet && performance.now() - mountedAt > SETTLE_MS)
   },
 )
 
@@ -263,7 +265,7 @@ onBeforeUnmount(() => {
 }
 button.kuzya {
   cursor: pointer;
-  border-radius: 24px;
+  border-radius: var(--r-lg);
 }
 button.kuzya:focus-visible {
   outline: 3px solid rgb(var(--v-theme-primary));

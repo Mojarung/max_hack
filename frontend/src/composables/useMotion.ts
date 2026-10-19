@@ -43,7 +43,20 @@ export function useStagger(container: Ref<HTMLElement | null>, source: WatchSour
   watch(source, run, { flush: 'post' })
 }
 
-/** Переход между страницами: лёгкий сдвиг и проявление. */
+/**
+ * Как сменился экран: вглубь (push), назад (pop) или между вкладками (tab).
+ * Ставит роутер перед каждым переходом, читают pageEnter/pageLeave.
+ */
+export type NavDirection = 'push' | 'pop' | 'tab'
+let navDirection: NavDirection = 'tab'
+export function setNavDirection(direction: NavDirection): void {
+  navDirection = direction
+}
+
+/**
+ * Переход между страницами как в iOS: внутренний экран въезжает справа, при возврате
+ * предыдущий появляется слева, вкладки сменяются мягким растворением.
+ */
 export function pageEnter(el: Element, done: () => void): void {
   // Без анимации переключаем сразу: переход не должен зависеть от кадров (фоновая вкладка их не рисует).
   // done() откладываем на микрозадачу: синхронный вызов посреди патча ломает <Transition mode="out-in">.
@@ -52,19 +65,21 @@ export function pageEnter(el: Element, done: () => void): void {
     queueMicrotask(done)
     return
   }
-  gsap.fromTo(
-    el,
-    { opacity: 0, y: 8 },
-    {
-      opacity: 1,
-      y: 0,
-      // короткий переход: вкладки переключаются без ощущения задержки
-      duration: 0.18,
-      ease: 'power2.out',
-      clearProps: 'transform',
-      onComplete: done,
-    },
-  )
+  const from =
+    navDirection === 'push'
+      ? { opacity: 0, x: 48 }
+      : navDirection === 'pop'
+        ? { opacity: 0, x: -36 }
+        : { opacity: 0, scale: 0.985 }
+  gsap.fromTo(el, from, {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    duration: navDirection === 'tab' ? 0.24 : 0.34,
+    ease: 'power3.out',
+    clearProps: 'transform',
+    onComplete: done,
+  })
 }
 
 export function pageLeave(el: Element, done: () => void): void {
@@ -72,13 +87,13 @@ export function pageLeave(el: Element, done: () => void): void {
     queueMicrotask(done)
     return
   }
-  gsap.to(el, {
-    opacity: 0,
-    y: -4,
-    duration: 0.08,
-    ease: 'power1.in',
-    onComplete: done,
-  })
+  const to =
+    navDirection === 'push'
+      ? { opacity: 0, x: -28 }
+      : navDirection === 'pop'
+        ? { opacity: 0, x: 40 }
+        : { opacity: 0 }
+  gsap.to(el, { ...to, duration: 0.12, ease: 'power2.in', onComplete: done })
 }
 
 /** Небольшой «пульс» элемента после успешного действия. */

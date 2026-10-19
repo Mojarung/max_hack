@@ -39,7 +39,16 @@ async function toggle(): Promise<void> {
       :to="`/events/${event.id}`"
       class="tap-card flex gap-3 p-3 text-inherit no-underline"
     >
+      <!-- есть фото от организатора - оно и обложка; нет - цветная плитка типа события -->
+      <img
+        v-if="event.photos?.[0]"
+        :src="event.photos[0]"
+        alt=""
+        loading="lazy"
+        class="h-14 w-14 shrink-0 rounded-2xl object-cover"
+      />
       <div
+        v-else
         class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
         :class="`bg-${eventKindMeta(event.kind).color}`"
       >
@@ -60,14 +69,14 @@ async function toggle(): Promise<void> {
     </router-link>
     <div v-if="!past" class="px-3 pb-3">
       <!-- Запись и отмена - разные кнопки: случайное второе нажатие не снимает запись -->
-      <template v-if="event.joined_by_me">
-        <div class="joined" role="status">
-          <v-icon icon="mdi-check-circle" size="22" /> Вы идёте
-        </div>
-        <v-btn block variant="text" size="large" class="mt-1" :loading="busy" @click="toggle">
-          Не смогу прийти
+      <!-- отметка и отмена в одной строке: карточка не вырастает, отмена отдельной кнопкой справа -->
+      <div v-if="event.joined_by_me" class="joined joined--row">
+        <v-icon icon="mdi-check-circle" size="22" />
+        <span class="flex-1" role="status">Вы идёте</span>
+        <v-btn variant="text" class="joined__cancel" :loading="busy" @click="toggle">
+          Не смогу
         </v-btn>
-      </template>
+      </div>
       <v-btn
         v-else
         ref="button"
@@ -85,4 +94,12 @@ async function toggle(): Promise<void> {
   </article>
 </template>
 
-<style scoped></style>
+<style scoped>
+.joined--row {
+  padding-right: 4px;
+}
+.joined__cancel {
+  min-height: 44px;
+  font-weight: 600;
+}
+</style>

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from domovoy.core import bus
 from domovoy.core.db import lock_row
 from domovoy.core.embeddings import embed
+from domovoy.core.storage import media_url, remove_object
 from domovoy.modules.achievements import service as achievements
 from domovoy.modules.common_schemas import UserShort
 from domovoy.modules.events.models import Event, EventComment, EventParticipant
@@ -39,6 +40,14 @@ class EventIn(BaseModel):
     max_participants: int | None = Field(default=None, ge=1, le=10000)
 
 
+# Фото у события - как у вещей: не больше пяти, первое идёт на обложку
+MAX_EVENT_PHOTOS = 5
+
+
+class EventPatch(BaseModel):
+    description: str = Field(max_length=2000)
+
+
 class EventOut(BaseModel):
     id: int
     title: str
@@ -47,6 +56,7 @@ class EventOut(BaseModel):
     kind_title: str
     starts_at: datetime
     place: str
+    photos: list[str] = []
     max_participants: int | None
     participants_count: int
     joined_by_me: bool
@@ -81,6 +91,7 @@ def event_out(ev: Event, joined: bool, score: float | None = None) -> EventOut:
         kind_title=KINDS.get(ev.kind, "Встреча"),
         starts_at=ev.starts_at,
         place=ev.place,
+        photos=[media_url(k) for k in ev.photos or []],
         max_participants=ev.max_participants,
         participants_count=ev.participants_count,
         joined_by_me=joined,
@@ -99,6 +110,44 @@ async def get_event(session: AsyncSession, event_id: int, house_id: int) -> Even
     ev = await session.get(Event, event_id)
     if ev is None or ev.house_id != house_id:
         raise HTTPException(404, "Событие не найдено")
+    return ev
+
+
+def check_can_edit(ev: Event, user: User, is_admin: bool) -> None:
+    if ev.author_id != user.id and not is_admin:
+        raise HTTPException(403, "Менять событие может только организатор")
+
+
+async def _saved(session: AsyncSession, ev: Event) -> Event:
+    await session.commit()
+    await session.refresh(ev)
+    await bus.emit(ev.house_id, "event.updated", event_out(ev, False).model_dump(mode="json"))
+    return ev
+
+
+async def update_description(session: AsyncSession, ev: Event, text: str) -> Event:
+    text = text.strip()
+    verdict = await moderate(f"{ev.title}\n{text}")
+    if verdict.blocked:
+        raise HTTPException(422, f"Кузя не пропустил описание: {verdict.human_reason()}")
+    ev.description = text
+    ev.embedding = embed(f"{ev.title} {text} {ev.place} {KINDS.get(ev.kind, '')}")
+    return await _saved(session, ev)
+
+
+async def add_photos(session: AsyncSession, ev: Event, keys: list[str]) -> Event:
+    ev.photos = [*(ev.photos or []), *keys][:MAX_EVENT_PHOTOS]
+    return await _saved(session, ev)
+
+
+async def remove_photo(session: AsyncSession, ev: Event, index: int) -> Event:
+    photos = list(ev.photos or [])
+    if not 0 <= index < len(photos):
+        raise HTTPException(404, "Фото не найдено")
+    key = photos.pop(index)
+    ev.photos = photos
+    await _saved(session, ev)
+    await remove_object(key)
     return ev
 
 

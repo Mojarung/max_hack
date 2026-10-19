@@ -14,7 +14,10 @@ class User(TimestampMixin, Base):
     first_name: Mapped[str] = mapped_column(String(128), default="")
     last_name: Mapped[str] = mapped_column(String(128), default="")
     username: Mapped[str | None] = mapped_column(String(128))
+    # Фото из профиля MAX: обновляется при каждом входе
     photo_url: Mapped[str | None] = mapped_column(String(1024))
+    # Выбор жителя поверх фото из MAX: «preset:N» (готовая картинка) или «upload:<ключ MinIO>»
+    avatar: Mapped[str | None] = mapped_column(String(300))
     apartment: Mapped[str | None] = mapped_column(String(16))
     points: Mapped[int] = mapped_column(Integer, default=0)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)

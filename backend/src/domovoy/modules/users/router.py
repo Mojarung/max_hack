@@ -1,19 +1,31 @@
 from datetime import datetime
+from typing import Annotated
 
 import httpx
 import structlog
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import Select, func, select
 
 from domovoy.api.deps import CtxDep, SessionDep, require_admin
 from domovoy.core.config import get_settings
+from domovoy.core.storage import remove_object, save_uploads
 from domovoy.modules.achievements.catalog import ACHIEVEMENTS, level_for
+from domovoy.modules.common_schemas import Ok
 from domovoy.modules.events.models import Event, EventParticipant
 from domovoy.modules.issues.catalog import OPEN_STATUSES
 from domovoy.modules.issues.models import Issue, IssueVote
 from domovoy.modules.market.models import Listing
 from domovoy.modules.misc_models import UserAchievement
+from domovoy.modules.users import neighbours
+from domovoy.modules.users.avatar import (
+    PRESET_COUNT,
+    PRESET_PREFIX,
+    UPLOAD_PREFIX,
+    avatar_choice,
+    avatar_url,
+    uploaded_key,
+)
 from domovoy.modules.users.membership import discover_houses, my_houses, sync_chat
 from domovoy.modules.users.models import House, Membership, Organization, User
 from domovoy.modules.users.pulse import PulseOut, house_pulse
@@ -31,6 +43,8 @@ class UserOut(BaseModel):
     last_name: str
     username: str | None
     photo_url: str | None
+    # выбор на экране аватара: «preset:N», «upload» или None (фото из MAX)
+    avatar: str | None = None
     apartment: str | None
     points: int
     level: int
@@ -90,7 +104,8 @@ def user_out(u: User) -> UserOut:
         first_name=u.first_name,
         last_name=u.last_name,
         username=u.username,
-        photo_url=u.photo_url,
+        photo_url=avatar_url(u),
+        avatar=avatar_choice(u),
         apartment=u.apartment,
         points=u.points,
         level=level,
@@ -145,6 +160,40 @@ async def onboarded(session: SessionDep, ctx: CtxDep) -> MeOut:
     return await me(ctx)
 
 
+class AvatarIn(BaseModel):
+    # номер готовой картинки; null - вернуть фото из MAX
+    preset: int | None = Field(default=None, ge=1, le=PRESET_COUNT)
+
+
+async def _set_avatar(session: SessionDep, ctx: CtxDep, value: str | None) -> MeOut:
+    user = await session.get(User, ctx.user.id)
+    if user is None:
+        raise HTTPException(404, "Житель не найден")
+    old_key = uploaded_key(user)
+    user.avatar = value
+    await session.commit()
+    # прежнее своё фото больше нигде не показывается
+    if old_key and value != f"{UPLOAD_PREFIX}{old_key}":
+        await remove_object(old_key)
+    ctx.user = user
+    return await me(ctx)
+
+
+@router.put("/me/avatar", response_model=MeOut)
+async def set_avatar(body: AvatarIn, session: SessionDep, ctx: CtxDep) -> MeOut:
+    """Готовая картинка вместо фото или возврат к фото из MAX (preset = null)."""
+    return await _set_avatar(session, ctx, f"{PRESET_PREFIX}{body.preset}" if body.preset else None)
+
+
+@router.post("/me/avatar/photo", response_model=MeOut)
+async def upload_avatar(session: SessionDep, ctx: CtxDep, photo: Annotated[UploadFile, File()]) -> MeOut:
+    """Своё фото: пересжимается и очищается от EXIF так же, как фото заявок."""
+    keys = await save_uploads(f"avatars/{ctx.user.id}", [photo])
+    if not keys:
+        raise HTTPException(422, "Выберите фото")
+    return await _set_avatar(session, ctx, f"{UPLOAD_PREFIX}{keys[0]}")
+
+
 @router.get("/houses", response_model=list[HouseBrief])
 async def houses(session: SessionDep, ctx: CtxDep, refresh: bool = False) -> list[HouseBrief]:
     """Дома жителя. refresh=true заново ищет чаты с Кузей, где он состоит (дома добавляются сами)."""
@@ -162,7 +211,7 @@ async def houses(session: SessionDep, ctx: CtxDep, refresh: bool = False) -> lis
 
 @router.get("/house/pulse", response_model=PulseOut)
 async def pulse(session: SessionDep, ctx: CtxDep) -> PulseOut:
-    return await house_pulse(session, ctx.house.id)
+    return await house_pulse(session, ctx.house.id, ctx.user.id)
 
 
 class HouseIn(BaseModel):
@@ -310,6 +359,9 @@ class ProfileOut(BaseModel):
     next_level_points: int | None
     stats: ProfileStats
     achievements: list[ProfileAchievement]
+    # сколько раз соседа благодарили и благодарил ли его текущий житель за последние сутки
+    thanks_count: int = 0
+    thanked_by_me: bool = False
 
 
 def neighbour(u: User, role: str) -> Neighbour:
@@ -318,7 +370,7 @@ def neighbour(u: User, role: str) -> Neighbour:
         id=u.id,
         first_name=u.first_name,
         last_name=u.last_name,
-        photo_url=u.photo_url,
+        photo_url=avatar_url(u),
         apartment=u.apartment,
         role=role,
         points=u.points,
@@ -401,7 +453,44 @@ async def profile(user_id: int, session: SessionDep, ctx: CtxDep) -> ProfileOut:
             for a in earned
             if a.code in defs
         ],
+        thanks_count=await neighbours.thanks_count(session, user),
+        thanked_by_me=await neighbours.thanked_recently(session, ctx.user, user),
     )
+
+
+async def _neighbour(session: SessionDep, ctx: CtxDep, user_id: int) -> User:
+    user = await session.scalar(
+        select(User)
+        .join(Membership, Membership.user_id == User.id)
+        .where(User.id == user_id, Membership.house_id == ctx.house.id)
+    )
+    if user is None:
+        raise HTTPException(404, "Житель не найден в вашем доме")
+    return user
+
+
+@router.post("/people/{user_id}/thanks", response_model=ProfileOut, tags=["Соседи"])
+async def thank_neighbour(user_id: int, session: SessionDep, ctx: CtxDep) -> ProfileOut:
+    """Сказать соседу спасибо: +5 очков ему, не чаще раза в сутки от одного жителя."""
+    target = await _neighbour(session, ctx, user_id)
+    await neighbours.thank(session, ctx.user, target, ctx.house.id)
+    await session.commit()
+    await neighbours.notify_thanks(ctx.user, target)
+    return await profile(user_id, session, ctx)
+
+
+class NeighbourMessageIn(BaseModel):
+    text: str = Field(min_length=1, max_length=1000)
+
+
+@router.post("/people/{user_id}/message", response_model=Ok, tags=["Соседи"])
+async def message_neighbour(user_id: int, body: NeighbourMessageIn, session: SessionDep, ctx: CtxDep) -> Ok:
+    """Написать соседу: Кузя перешлёт сообщение ему в личку, MAX id остаётся скрытым."""
+    target = await _neighbour(session, ctx, user_id)
+    if not body.text.strip():
+        raise HTTPException(422, "Напишите сообщение")
+    await neighbours.send_message(ctx.user, target, body.text)
+    return Ok()
 
 
 @router.get("/dev/users", response_model=list[DevUser], tags=["Мок-режим"])

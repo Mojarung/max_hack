@@ -25,7 +25,13 @@ router = APIRouter(prefix="/dev", tags=["Мок-режим"])
 class SendIn(BaseModel):
     chat_id: int
     user_id: int
-    text: str = Field(min_length=1, max_length=4000)
+    text: str = Field(default="", max_length=4000)
+    # фото как data:-ссылки: бот получает их вложениями image, как из настоящего MAX
+    photos: list[str] = Field(default_factory=list, max_length=3)
+
+
+# ~7 МБ файла в base64: больше эмулятору не нужно, крупное фото браузер сожмёт перед отправкой
+MAX_PHOTO_CHARS = 10_000_000
 
 
 class CallbackIn(BaseModel):
@@ -88,8 +94,12 @@ async def send(body: SendIn, session: SessionDep) -> Ok:
     chat_type = await _chat_type(session, body.chat_id)
     if chat_type == "dialog" and body.chat_id != user.max_user_id:
         raise HTTPException(403, "Нельзя писать в чужую личку")
+    photos = [p for p in body.photos if p.startswith("data:image/") and len(p) <= MAX_PHOTO_CHARS]
+    if not body.text.strip() and not photos:
+        raise HTTPException(422, "Напишите сообщение или приложите фото")
+    shown = (body.text + (f"\n📷 Фото: {len(photos)}" if photos else "")).strip()
     msg = await service.store(
-        session, chat_id=body.chat_id, text=body.text, from_user_max_id=user.max_user_id, from_name=user.full_name
+        session, chat_id=body.chat_id, text=shown, from_user_max_id=user.max_user_id, from_name=user.full_name
     )
     await bus.publish(
         "bot.inbound",
@@ -99,7 +109,11 @@ async def send(body: SendIn, session: SessionDep) -> Ok:
             "message": {
                 "sender": max_user(user),
                 "recipient": {"chat_id": body.chat_id, "chat_type": chat_type},
-                "body": {"mid": service.mid_of(msg), "text": body.text},
+                "body": {
+                    "mid": service.mid_of(msg),
+                    "text": body.text,
+                    "attachments": [{"type": "image", "payload": {"url": p}} for p in photos],
+                },
             },
         },
     )

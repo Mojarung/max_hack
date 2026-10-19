@@ -1,11 +1,16 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import type { IssueOut } from '@/api/types'
 import StatusChip from './StatusChip.vue'
 import VoteProgress from './VoteProgress.vue'
 import { formatRelative, orgTitleCap, plural } from '@/utils/format'
 import { ISSUE_STATUS_TITLES, issueCategoryIcon } from '@/utils/labels'
 
-defineProps<{ issue: IssueOut }>()
+const props = defineProps<{ issue: IssueOut }>()
+
+// Фото не загрузилось (файл удалён из хранилища) - показываем иконку категории, а не пустой квадрат
+const broken = ref(false)
+const cover = computed(() => (broken.value ? undefined : props.issue.photos[0]))
 </script>
 
 <template>
@@ -16,14 +21,16 @@ defineProps<{ issue: IssueOut }>()
     :aria-label="`${issue.title}. ${issue.is_overdue ? 'Просрочено' : ISSUE_STATUS_TITLES[issue.status]}`"
   >
     <div
-      class="flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface-variant"
+      class="issue-thumb flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-2xl"
+      :class="{ 'issue-thumb--empty': !cover }"
     >
       <img
-        v-if="issue.photos[0]"
-        :src="issue.photos[0]"
+        v-if="cover"
+        :src="cover"
         alt=""
         loading="lazy"
         class="h-full w-full object-cover"
+        @error="broken = true"
       />
       <v-icon v-else :icon="issueCategoryIcon(issue.category)" size="34" color="primary" />
     </div>
@@ -51,6 +58,15 @@ defineProps<{ issue: IssueOut }>()
 </template>
 
 <style scoped>
+/* Заявка без фото: мягкая плашка категории вместо серого квадрата, список не выглядит «дырявым» */
+.issue-thumb--empty {
+  background: linear-gradient(
+    135deg,
+    rgb(var(--v-theme-primary-container)),
+    rgba(var(--v-theme-primary), 0.22)
+  );
+}
+
 /* Просрочка видна в списке сразу: красная полоса слева, помимо чипа со статусом */
 .issue-card--overdue {
   border-left: 4px solid rgb(var(--v-theme-deep));

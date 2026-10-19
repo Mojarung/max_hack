@@ -57,13 +57,23 @@ const title = computed(() =>
 </template>
 
 <style scoped>
+/* Шапка из «стекла»: контент мягко уходит под неё при прокрутке */
 .app-header {
   position: sticky;
   top: 0;
   z-index: 1000;
   padding-top: env(safe-area-inset-top);
-  background: rgb(var(--v-theme-background));
-  border-bottom: 1px solid rgba(var(--v-border-color), 0.08);
+  background: rgba(var(--v-theme-background), 0.78);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.06);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .app-header {
+    background: rgb(var(--v-theme-background));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 .app-header__inner {
   display: flex;
@@ -78,8 +88,9 @@ const title = computed(() =>
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;

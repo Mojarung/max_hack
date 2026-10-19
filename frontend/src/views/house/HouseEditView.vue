@@ -183,7 +183,7 @@ async function save(): Promise<void> {
       <v-textarea
         v-model="form.info"
         label="Информация для жителей"
-        placeholder="Диспетчерская, председатель совета дома, вывоз крупногабарита, правила"
+        placeholder="Диспетчерская, председатель совета дома, вывоз крупного мусора, правила"
         rows="4"
         auto-grow
         maxlength="4000"
@@ -193,7 +193,7 @@ async function save(): Promise<void> {
       <v-text-field v-model="form.uk_name" label="Название управляющей компании" maxlength="256" />
       <v-text-field
         v-model="form.uk_email"
-        label="E-mail для обращений"
+        label="Почта для обращений"
         type="email"
         inputmode="email"
         :rules="[rules.email]"

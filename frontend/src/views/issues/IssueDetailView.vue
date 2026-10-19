@@ -30,6 +30,8 @@ import {
 } from '@/utils/format'
 import { ISSUE_STATUS_META, ISSUE_STATUS_TITLES, issueCategoryIcon } from '@/utils/labels'
 
+const HOUR_MS = 3_600_000
+
 const PhotoGallery = defineAsyncComponent(() => import('@/components/common/PhotoGallery.vue'))
 
 const props = defineProps<{ id: number }>()
@@ -64,6 +66,13 @@ const orgKind = computed(() => {
   return orgTitle(org.name).toLowerCase().includes(kind) ? '' : capitalize(kind)
 })
 const countdown = useCountdown(toRef(() => issue.value?.deadline_at))
+// Доля срока, которая ещё осталась: 1 - только отправили, 0 - срок вышел
+const slaShare = computed(() => {
+  const i = issue.value
+  if (!countdown.value || !i?.deadline_at || !i.deadline_hours) return null
+  const left = Date.parse(i.deadline_at) - Date.now()
+  return Math.min(1, Math.max(0, left / (i.deadline_hours * HOUR_MS)))
+})
 const slaActive = computed(
   () => !!issue.value?.deadline_at && ['sent', 'in_progress'].includes(issue.value.status),
 )
@@ -133,7 +142,7 @@ async function toggleVote(): Promise<void> {
       notify.info('Голос отозван')
     } else if (updated.status !== 'voting') {
       confetti(voteBlock.value)
-      notify.success('Порог набран!', `Кузя отправил обращение ${orgTo.value}`)
+      notify.success('Голосов хватает!', `Кузя отправил обращение ${orgTo.value}`)
     } else {
       pop(voteBlock.value)
       notify.success('Голос учтён, спасибо!')
@@ -181,7 +190,7 @@ async function share(text: string | null | undefined): Promise<void> {
 
     <ErrorState
       v-else-if="error && !issue"
-      :title="notFound ? 'Проблема не найдена' : 'Не получилось загрузить'"
+      :title="notFound ? 'Заявка не найдена' : 'Не получилось загрузить'"
       :message="error"
       :retrying="loading"
       @retry="load"
@@ -216,7 +225,10 @@ async function share(text: string | null | undefined): Promise<void> {
         {{ issue.location_hint }}
       </p>
 
-      <!-- Голосование: главное действие экрана, поэтому сразу под заголовком -->
+      <!-- Сначала суть проблемы, потом что с ней делать: голос, сроки, жалоба -->
+      <p class="pre-wrap mt-4 mb-0 text-base leading-relaxed">{{ issue.description }}</p>
+
+      <!-- Голосование: главное действие экрана, поэтому сразу под описанием -->
       <section
         v-if="issue.status === 'voting'"
         ref="voteBlock"
@@ -297,8 +309,6 @@ async function share(text: string | null | undefined): Promise<void> {
         </v-btn>
       </section>
 
-      <p class="pre-wrap mt-4 mb-0 text-base leading-relaxed">{{ issue.description }}</p>
-
       <!-- Кто отвечает и сроки -->
       <section v-if="issue.responsible_org" class="card-soft mt-4 p-4" aria-labelledby="who">
         <h3 id="who" class="m-0 text-base font-bold">Кто отвечает</h3>
@@ -318,9 +328,13 @@ async function share(text: string | null | undefined): Promise<void> {
           role="timer"
         >
           <v-icon icon="mdi-timer-sand" size="26" />
-          <div>
+          <div class="min-w-0 flex-1">
             <div class="text-sm">Осталось</div>
             <div class="text-xl font-bold">{{ countdown.text }}</div>
+            <!-- полоска показывает, сколько срока ещё в запасе: видно без чтения цифр -->
+            <div v-if="slaShare !== null" class="sla__track" aria-hidden="true">
+              <div class="sla__fill" :style="{ transform: `scaleX(${slaShare})` }" />
+            </div>
           </div>
         </div>
         <div v-if="slaActive && !overdue" class="text-muted mt-2 text-sm">
@@ -335,7 +349,7 @@ async function share(text: string | null | undefined): Promise<void> {
             <v-icon icon="mdi-chevron-down" class="basis__chevron" />
           </summary>
           <p class="text-muted mt-2 mb-0 text-sm">
-            {{ issue.legal_basis }}. Справочно: точный срок зависит от вида работ.
+            {{ issue.legal_basis }}. Точный срок зависит от вида работ.
           </p>
         </details>
       </section>
@@ -360,8 +374,7 @@ async function share(text: string | null | undefined): Promise<void> {
                 <template v-else>
                   Текст обращения сохранён здесь, в организацию он не ушёл.
                 </template>
-                Это модельная интеграция: настоящая отправка включится, когда подключим почту
-                управляющей компании.
+                Настоящие письма пойдут, когда подключим почту управляющей компании.
               </p>
             </div>
             <p class="pre-wrap mt-0 text-[15px] leading-relaxed">{{ issue.appeal_text }}</p>
@@ -453,7 +466,7 @@ async function share(text: string | null | undefined): Promise<void> {
   display: flex;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: var(--r-sm);
   background: rgba(var(--v-theme-primary), 0.1);
 }
 .sla {
@@ -461,13 +474,33 @@ async function share(text: string | null | undefined): Promise<void> {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 16px;
+  border-radius: var(--r-md);
   color: rgb(var(--v-theme-on-surface));
   background: rgba(var(--v-theme-primary), 0.1);
 }
 .sla--urgent {
   color: rgb(var(--v-theme-on-primary));
   background: rgb(var(--v-theme-primary));
+}
+.sla__track {
+  height: 6px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(var(--v-theme-on-surface), 0.1);
+}
+.sla__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: rgb(var(--v-theme-primary));
+  transform-origin: left center;
+  transition: transform 0.6s ease;
+}
+.sla--urgent .sla__track {
+  background: rgba(var(--v-theme-on-primary), 0.3);
+}
+.sla--urgent .sla__fill {
+  background: rgb(var(--v-theme-on-primary));
 }
 /* Просрочка по DESIGN.md: самый тёмный цвет, заливной, светлый текст */
 .overdue {
@@ -501,7 +534,7 @@ async function share(text: string | null | undefined): Promise<void> {
   overflow-y: auto;
   margin: 0;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--r-sm);
   font-size: 15px;
   line-height: 1.5;
   background: rgba(var(--v-theme-primary), 0.08);

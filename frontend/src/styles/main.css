@@ -23,16 +23,42 @@
   --color-border: rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
+/* Скругления Tailwind в шаблонах (rounded-xl, rounded-2xl) в той же шкале, что и токены ниже */
+@theme {
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+}
+
 :root {
   --v-font-body: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --v-font-heading: var(--v-font-body);
   --app-max-width: 640px;
-  --app-nav-height: 72px;
-  --radius-card: 20px;
+  /*
+   * Шкала скруглений как в iOS 26: карточка 28px, вложенные элементы меньше на отступ
+   * карточки (концентрические углы), кнопки и чипы - капсулы.
+   */
+  --r-sm: 14px;
+  --r-md: 18px;
+  --r-lg: 24px;
+  --radius-card: 28px;
+  /* Плавающий навбар-капсула: высота, отступ от края экрана и всё место, которое он занимает снизу */
+  --app-nav-height: 68px;
+  --nav-gap: 12px;
+  --nav-space: calc(var(--app-nav-height) + var(--nav-gap) + env(safe-area-inset-bottom));
+  /* Стекло для навигации и шапки; контент остаётся на непрозрачных карточках */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-edge: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 12px 32px -14px rgba(16, 24, 40, 0.32), 0 2px 6px -2px rgba(16, 24, 40, 0.08);
+  --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
   /* Второстепенный текст: в тёмной теме плотнее, иначе контраст ниже WCAG AA */
   --muted-alpha: 0.7;
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-text-size-adjust: 100%;
+}
+/* Внутренний экран: меню спрятано, снизу остаётся только отступ от края */
+:root.nav-hidden {
+  --nav-space: calc(var(--nav-gap) + env(safe-area-inset-bottom));
 }
 
 @layer components {
@@ -51,7 +77,7 @@
     width: 100%;
     max-width: var(--app-max-width);
     margin-inline: auto;
-    padding: 12px 16px calc(var(--app-nav-height) + 24px + env(safe-area-inset-bottom));
+    padding: 12px 16px calc(var(--nav-space) + 24px);
   }
 
   .page--flush {
@@ -67,26 +93,98 @@
 
   .v-theme--dark {
     --muted-alpha: 0.86;
+    --glass-bg: rgba(31, 38, 48, 0.7);
+    --glass-edge: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 14px 36px -12px rgba(0, 0, 0, 0.6);
   }
 
   .card-soft {
     background: rgb(var(--v-theme-surface));
-    border: 1px solid rgba(var(--v-border-color), 0.1);
+    border: 1px solid rgba(var(--v-border-color), 0.06);
     border-radius: var(--radius-card);
     box-shadow:
-      0 1px 2px rgba(16, 24, 40, 0.05),
-      0 6px 20px -12px rgba(16, 24, 40, 0.22);
+      0 1px 2px rgba(16, 24, 40, 0.04),
+      0 10px 30px -18px rgba(16, 24, 40, 0.2);
+  }
+  .v-theme--dark .card-soft {
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: none;
+  }
+
+  /*
+   * Сгруппированный список как в iOS (inset grouped): одна карточка, строки разделены тонкой
+   * линией с отступом от иконки (--group-inset), нажатая строка подсвечивается фоном.
+   */
+  .group-list {
+    background: rgb(var(--v-theme-surface));
+    border: 1px solid rgba(var(--v-border-color), 0.06);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.04),
+      0 10px 30px -18px rgba(16, 24, 40, 0.2);
+    overflow: hidden;
+  }
+  .v-theme--dark .group-list {
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: none;
+  }
+  .group-list > * {
+    position: relative;
+  }
+  .group-list > * + *::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: var(--group-inset, 16px);
+    right: 0;
+    border-top: 1px solid rgba(var(--v-border-color), 0.1);
+    pointer-events: none;
+  }
+  .tap-row {
+    transition: background-color 0.15s ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tap-row:active {
+    background: rgba(var(--v-theme-on-surface), 0.06);
+  }
+  .tap-row:focus-visible {
+    outline: 3px solid rgb(var(--v-theme-primary));
+    outline-offset: -3px;
+    border-radius: inherit;
+  }
+
+  /* Стекло: только навигация, шапка и всплывающие меню */
+  .glass {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--glass-edge);
+    box-shadow: var(--glass-shadow);
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass {
+      background: rgb(var(--v-theme-surface));
+    }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass {
+      background: rgb(var(--v-theme-surface));
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
   }
 
   .tap-card {
     transition:
-      transform 0.18s var(--ease-out-soft),
+      transform 0.32s var(--ease-spring),
       box-shadow 0.18s ease;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
   .tap-card:active {
-    transform: scale(0.985);
+    transform: scale(0.97);
+    transition-duration: 0.12s;
   }
   .tap-card:focus-visible {
     outline: 3px solid rgb(var(--v-theme-primary));
@@ -104,6 +202,17 @@
   }
   .chips-scroll > * {
     flex-shrink: 0;
+  }
+  /* край ленты растворяется: видно, что дальше есть ещё чипы, последний не обрезан ножом */
+  .chips-scroll {
+    padding-right: 32px;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    cursor: grab;
+  }
+  .chips-scroll--dragging {
+    cursor: grabbing;
+    user-select: none;
   }
   .chips-scroll::-webkit-scrollbar {
     display: none;
@@ -126,7 +235,7 @@
     gap: 10px;
     min-height: 52px;
     padding: 10px 14px;
-    border-radius: 14px;
+    border-radius: var(--r-md);
     font-weight: 600;
     color: rgb(var(--v-theme-on-surface));
     background: rgba(var(--v-theme-success), 0.12);
@@ -141,13 +250,13 @@
   .fab {
     position: fixed;
     right: max(16px, calc((100vw - var(--app-max-width)) / 2 + 16px));
-    bottom: calc(var(--app-nav-height) + 16px + env(safe-area-inset-bottom));
+    bottom: calc(var(--nav-space) + 14px);
     z-index: 900;
-    box-shadow: 0 8px 24px -6px rgba(var(--v-theme-primary), 0.6);
+    box-shadow: 0 10px 28px -8px rgba(var(--v-theme-primary), 0.55);
   }
   /* Экран с плавающей кнопкой: последний элемент списка не прячется под ней */
   .page--with-fab {
-    padding-bottom: calc(var(--app-nav-height) + 96px + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--nav-space) + 96px);
   }
 
   .text-inherit {
@@ -213,6 +322,10 @@
   --v-chip-height: 44px;
   font-size: 1rem;
 }
+/* Любой нажимаемый чип (подсказки в поиске и у Кузи) тоже не ниже 44px */
+.v-chip.v-chip--link {
+  --v-chip-height: 44px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -232,7 +345,123 @@
 /* Главная кнопка формы закреплена над нижней навигацией: не нужно искать её прокруткой */
 .sticky-cta {
   position: sticky;
-  bottom: calc(var(--app-nav-height) + 12px + env(safe-area-inset-bottom));
+  bottom: calc(var(--nav-space) + 12px);
   z-index: 3;
-  box-shadow: 0 8px 24px -10px rgba(16, 24, 40, 0.45);
+  box-shadow: 0 10px 28px -12px rgba(16, 24, 40, 0.45);
+}
+
+/*
+ * Поля ввода - плашки без рамки на мягкой заливке. Заливка плотнее обычной iOS-плашки,
+ * чтобы поле было видно на белой карточке; в фокусе синее кольцо 2px.
+ */
+.v-field.v-field--variant-solo-filled {
+  border-radius: var(--r-md);
+  background: rgba(var(--v-theme-on-surface), 0.065);
+  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-on-surface), 0.06);
+  transition:
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+.v-theme--dark .v-field.v-field--variant-solo-filled {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.v-field.v-field--variant-solo-filled.v-field--focused {
+  box-shadow: inset 0 0 0 2px rgb(var(--v-theme-primary));
+}
+.v-field.v-field--variant-solo-filled.v-field--error:not(.v-field--disabled) {
+  box-shadow: inset 0 0 0 2px rgb(var(--v-theme-error));
+}
+.v-field.v-field--variant-solo-filled .v-field__overlay {
+  opacity: 0 !important;
+}
+
+/* Всплывающие меню и выпадающие списки - стеклянные плашки */
+.v-menu > .v-overlay__content {
+  border-radius: var(--r-lg) !important;
+  overflow: hidden;
+}
+.v-menu > .v-overlay__content > .v-list,
+.v-menu > .v-overlay__content > .v-card {
+  border-radius: var(--r-lg);
+}
+
+/* Иконки-плитки (аватары с rounded="lg") и карточки Vuetify в той же шкале скруглений */
+.v-avatar.rounded-lg {
+  border-radius: var(--r-sm);
+}
+.v-card.rounded-xl,
+.v-expansion-panel.rounded-xl {
+  border-radius: var(--radius-card);
+}
+
+/* Вкладки-сегменты и кнопки-переключатели как сегментированный контрол iOS */
+.v-btn-group {
+  border-radius: 999px !important;
+}
+
+/* Кнопки масштаба карты: скруглённая плашка в стиле приложения, зона нажатия 44px */
+.leaflet-touch .leaflet-bar,
+.leaflet-bar {
+  border: 0 !important;
+  border-radius: var(--r-sm) !important;
+  overflow: hidden;
+  box-shadow: var(--glass-shadow) !important;
+}
+.leaflet-bar a,
+.leaflet-touch .leaflet-bar a {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  color: rgb(var(--v-theme-on-surface)) !important;
+  background: rgb(var(--v-theme-surface)) !important;
+  border-color: rgba(var(--v-border-color), 0.1) !important;
+}
+.leaflet-control-attribution {
+  border-radius: var(--r-sm) 0 0 0;
+}
+
+/*
+ * Смена состояния списка (скелетон, пусто, список) - коротким растворением, а область списка
+ * не схлопывается: при переключении вкладок страница не подпрыгивает и прокрутка не дёргается.
+ */
+.list-area {
+  min-height: 50dvh;
+}
+.swap-enter-active,
+.swap-leave-active {
+  transition:
+    opacity 0.16s ease,
+    transform 0.2s ease;
+}
+/* При смене вкладки список чуть сдвигается в сторону вкладки: видно, куда «перелистнули» */
+.list-area[data-dir='next'] > .swap-enter-from,
+.list-area[data-dir='prev'] > .swap-leave-to {
+  transform: translateX(28px);
+}
+.list-area[data-dir='prev'] > .swap-enter-from,
+.list-area[data-dir='next'] > .swap-leave-to {
+  transform: translateX(-28px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .list-area > .swap-enter-from,
+  .list-area > .swap-leave-to {
+    transform: none !important;
+  }
+}
+.swap-enter-from,
+.swap-leave-to {
+  opacity: 0;
+}
+
+/*
+ * Невыбранные чипы и подсказки - мягкая заливка без тёмной рамки, как поля ввода.
+ * Выбранный фильтр остаётся заливным синим (variant="flat").
+ */
+.v-chip.v-chip--variant-outlined {
+  border-color: transparent;
+  background: rgba(var(--v-theme-on-surface), 0.065);
+}
+.v-theme--dark .v-chip.v-chip--variant-outlined {
+  background: rgba(255, 255, 255, 0.08);
 }

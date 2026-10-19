@@ -2,8 +2,8 @@
 import { watchDebounced } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
 import { ApiError, errorMessage } from '@/api/client'
-import { searchApi } from '@/api/endpoints'
-import type { SearchOut } from '@/api/types'
+import { issuesApi, searchApi } from '@/api/endpoints'
+import type { IssueOut, SearchOut } from '@/api/types'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ListSkeleton from '@/components/common/ListSkeleton.vue'
 import IssueCard from '@/components/issues/IssueCard.vue'
@@ -28,7 +28,15 @@ const total = computed(() =>
 const SUGGESTIONS = ['лифт', 'крыша', 'коляска', 'субботник', 'шум']
 
 useStagger(box, () => total.value)
-onMounted(() => input.value?.focus())
+/** До ввода показываем, что сейчас происходит в доме: заявки, которым нужны голоса. */
+const now = ref<IssueOut[]>([])
+onMounted(() => {
+  input.value?.focus()
+  issuesApi
+    .list({ status: 'voting' })
+    .then((list) => (now.value = list.slice(0, 3)))
+    .catch(() => (now.value = []))
+})
 
 async function run(q: string): Promise<void> {
   controller?.abort()
@@ -66,7 +74,7 @@ watchDebounced(query, (q) => void run(q ?? ''), { debounce: 400 })
       :loading="loading"
       aria-label="Поиск по дому"
     />
-    <div v-if="!query" class="chips-scroll mt-3">
+    <div v-if="!query" class="tags mt-3">
       <v-chip
         v-for="s in SUGGESTIONS"
         :key="s"
@@ -88,7 +96,7 @@ watchDebounced(query, (q) => void run(q ?? ''), { debounce: 400 })
       />
       <div v-else-if="result" ref="box" aria-live="polite">
         <template v-if="result.issues.length">
-          <h2 class="section-title">Проблемы · {{ result.issues.length }}</h2>
+          <h2 class="section-title">Заявки · {{ result.issues.length }}</h2>
           <div class="flex flex-col gap-3">
             <div v-for="i in result.issues" :key="`i${i.id}`" data-stagger>
               <IssueCard :issue="i" />
@@ -118,7 +126,7 @@ watchDebounced(query, (q) => void run(q ?? ''), { debounce: 400 })
           </div>
         </template>
         <template v-if="result.listings.length">
-          <h2 class="section-title">Барахолка · {{ result.listings.length }}</h2>
+          <h2 class="section-title">Вещи соседей · {{ result.listings.length }}</h2>
           <div class="grid grid-cols-2 gap-3">
             <div v-for="l in result.listings" :key="`l${l.id}`" data-stagger class="flex">
               <ListingCard :listing="l" class="w-full" />
@@ -126,9 +134,23 @@ watchDebounced(query, (q) => void run(q ?? ''), { debounce: 400 })
           </div>
         </template>
       </div>
-      <p v-else class="text-muted mt-4 text-center">
-        Ищем сразу по проблемам, событиям и барахолке.
-      </p>
+      <template v-else>
+        <p class="text-muted mt-1 mb-0 text-sm">Ищем сразу по заявкам, событиям и вещам соседей.</p>
+        <template v-if="now.length">
+          <h2 class="section-title">Нужны голоса</h2>
+          <div class="flex flex-col gap-3">
+            <IssueCard v-for="i in now" :key="i.id" :issue="i" />
+          </div>
+        </template>
+      </template>
     </div>
   </div>
 </template>
+
+<style scoped>
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+</style>

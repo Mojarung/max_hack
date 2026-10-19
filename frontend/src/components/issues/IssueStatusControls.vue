@@ -23,10 +23,10 @@ const OPTIONS: Record<NextStatus, { title: string; icon: string; color: string; 
     hint: 'Например: «Мастер придёт завтра до 12:00»',
   },
   resolved: {
-    title: 'Проблема решена',
+    title: 'Всё исправили',
     icon: 'mdi-check-circle',
     color: 'primary',
-    hint: 'Например: «Кровлю залатали, течь устранена»',
+    hint: 'Например: «Кровлю залатали, больше не течёт»',
   },
   rejected: {
     title: 'Отклонить',
@@ -64,7 +64,7 @@ async function save(): Promise<void> {
 
 <template>
   <section class="card-soft p-4" aria-label="Управление статусом">
-    <h3 class="m-0 mb-1 text-base font-bold">Как продвигается решение?</h3>
+    <h3 class="m-0 mb-1 text-base font-bold">Что с заявкой сейчас?</h3>
     <p class="text-muted mt-0 mb-3 text-sm">
       Вы можете менять статус как автор заявки или администратор. Соседи увидят изменение сразу.
     </p>

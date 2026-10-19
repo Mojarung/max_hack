@@ -40,11 +40,14 @@ import {
   classifyText,
   short,
 } from './fixtures'
+import { presetAvatar } from '@/utils/avatar'
 import { scenario } from './scenario'
 import { LISTING_CATEGORY_TITLES } from '@/utils/labels'
 
 const users = buildUsers(scenario)
 let me = scenario.role === 'admin' ? users[1]! : users[0]!
+/** Кто кого поблагодарил в этой вкладке: «кто:кому». */
+const thanked = new Set<string>()
 const needed = Math.max(3, Math.ceil((HOUSE.members_count * HOUSE.vote_threshold_pct) / 100))
 
 /** Второй дом того же жителя: видно переключение домов. */
@@ -249,6 +252,9 @@ function pulse(): PulseOut {
       upcoming_events: upcoming,
       active_listings: db.listings.filter((l) => l.status === 'active').length,
       active_alert: !!db.alert,
+      awaiting_my_vote: db.issues.filter(
+        (i) => i.status === 'voting' && !i.voted_by_me && i.author?.id !== me.id,
+      ).length,
     },
   }
 }
@@ -274,6 +280,8 @@ function profile(id: number): ProfileOut {
   return {
     user: neighbour(u, i),
     is_me: u.id === me.id,
+    thanks_count: [...thanked].filter((t) => t.endsWith(`:${u.id}`)).length,
+    thanked_by_me: thanked.has(`${me.id}:${u.id}`),
     username: null,
     member_since: new Date(Date.now() - (120 + i * 30) * 86_400_000).toISOString(),
     level: u.level,
@@ -378,6 +386,16 @@ const routes: [string, RegExp, Handler][] = [
       return meOut()
     },
   ],
+  [
+    'PUT',
+    /^\/me\/avatar$/,
+    (_, __, b) => {
+      const preset = (b as { preset: number | null }).preset
+      me.avatar = preset ? `preset:${preset}` : null
+      me.photo_url = preset ? presetAvatar(preset) : null
+      return meOut()
+    },
+  ],
   ['GET', /^\/houses$/, () => housesOut()],
   [
     'PATCH',
@@ -469,6 +487,22 @@ const routes: [string, RegExp, Handler][] = [
   ],
   ['GET', /^\/people$/, () => users.map(neighbour)],
   ['GET', /^\/people\/(\d+)$/, ([id]) => profile(Number(id))],
+  [
+    'POST',
+    /^\/people\/(\d+)\/thanks$/,
+    ([id]) => {
+      const target = users.find((u) => u.id === Number(id))
+      if (!target) throw notFound()
+      if (target.id === me.id) throw new ApiError('http', 409, 'Себя поблагодарить нельзя')
+      const key = `${me.id}:${target.id}`
+      if (thanked.has(key))
+        throw new ApiError('http', 409, 'Вы уже благодарили этого соседа сегодня')
+      thanked.add(key)
+      target.points += 5
+      return profile(target.id)
+    },
+  ],
+  ['POST', /^\/people\/(\d+)\/message$/, () => ({ ok: true })],
   ['GET', /^\/house\/pulse$/, () => pulse()],
   [
     'GET',
@@ -582,6 +616,7 @@ const routes: [string, RegExp, Handler][] = [
         kind_title: 'Событие',
         starts_at: String(b.starts_at),
         place: String(b.place ?? ''),
+        photos: [],
         max_participants: (b.max_participants as number | null) ?? null,
         participants_count: 1,
         joined_by_me: true,
@@ -596,6 +631,24 @@ const routes: [string, RegExp, Handler][] = [
     },
   ],
   ['GET', /^\/events\/(\d+)$/, ([id]) => event(id!)],
+  [
+    'PATCH',
+    /^\/events\/(\d+)$/,
+    ([id], _, b) => {
+      const e = event(id!)
+      e.description = String(b.description ?? '').trim()
+      return e
+    },
+  ],
+  [
+    'DELETE',
+    /^\/events\/(\d+)\/photos\/(\d+)$/,
+    ([id, index]) => {
+      const e = event(id!)
+      e.photos = (e.photos ?? []).filter((_, i) => i !== Number(index))
+      return e
+    },
+  ],
   ['POST', /^\/events\/(\d+)\/join$/, ([id]) => join(id!, true)],
   ['DELETE', /^\/events\/(\d+)\/join$/, ([id]) => join(id!, false)],
   ['GET', /^\/events\/(\d+)\/comments$/, ([id]) => db.comments[Number(id)] ?? []],
@@ -760,6 +813,13 @@ export async function mockUpload<T>(
     db.issues.unshift(created)
     return structuredClone(created) as T
   }
+  if (path === '/me/avatar/photo') {
+    const file = form.get('photo')
+    if (!(file instanceof File)) throw new ApiError('http', 422, 'Выберите фото')
+    me.avatar = 'upload'
+    me.photo_url = URL.createObjectURL(file)
+    return meOut() as T
+  }
   if (path === '/documents') {
     const file = form.get('file')
     const scope = form.get('scope') === 'house' ? 'house' : 'personal'
@@ -778,6 +838,12 @@ export async function mockUpload<T>(
     }
     db.documents.unshift(created)
     return structuredClone(created) as T
+  }
+  const eventPhotos = path.match(/^\/events\/(\d+)\/photos$/)
+  if (eventPhotos) {
+    const e = event(eventPhotos[1]!)
+    e.photos = [...(e.photos ?? []), ...photos].slice(0, 5)
+    return structuredClone(e) as T
   }
   if (path === '/listings') {
     const price = Number(form.get('price') ?? 0)

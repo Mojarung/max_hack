@@ -6,7 +6,7 @@ import HouseSwitcher from '@/components/house/HouseSwitcher.vue'
 import { useStagger } from '@/composables/useMotion'
 import { openMaxLink } from '@/max/bridge'
 import { useSessionStore } from '@/stores/session'
-import { fullName } from '@/utils/format'
+import { fullName, pluralize } from '@/utils/format'
 
 const session = useSessionStore()
 const root = ref<HTMLElement | null>(null)
@@ -53,21 +53,21 @@ const entries = computed<Entry[]>(() => {
     {
       to: '/more/search',
       title: 'Поиск',
-      subtitle: 'По проблемам, событиям и барахолке',
+      subtitle: 'По заявкам, событиям и вещам соседей',
       icon: 'mdi-magnify',
       color: 'info',
     },
     {
       to: '/more/assistant',
       title: 'Спросить Кузю',
-      subtitle: 'Ответит здесь: заявки, сроки, события',
+      subtitle: 'Ответит про заявки, сроки и события',
       icon: 'mdi-chat-processing-outline',
       color: 'primary',
     },
     {
       to: '/more/achievements',
       title: 'Награды и рейтинг',
-      subtitle: 'Награды за добрые дела',
+      subtitle: 'Очки за помощь дому, место среди соседей',
       icon: 'mdi-trophy-outline',
       color: 'warning',
     },
@@ -77,7 +77,7 @@ const entries = computed<Entry[]>(() => {
     list.push({
       to: '/dev/chat',
       title: 'Эмулятор чата MAX',
-      subtitle: 'Демо сценариев бота без MAX',
+      subtitle: 'Как Кузя отвечает в чате, без MAX',
       icon: 'mdi-message-cog-outline',
       color: 'secondary',
     })
@@ -85,8 +85,8 @@ const entries = computed<Entry[]>(() => {
   if (session.canManageMcp) {
     list.push({
       to: '/more/mcp',
-      title: 'Настройки MCP',
-      subtitle: 'Инструменты для ИИ-помощника',
+      title: 'Навыки Кузи',
+      subtitle: 'Откуда Кузя берёт данные о доме',
       icon: 'mdi-puzzle-outline',
       color: 'muted',
     })
@@ -102,48 +102,44 @@ function openBot(): void {
 
 <template>
   <div ref="root" class="page">
-    <router-link
-      v-if="session.me"
-      :to="`/people/${session.me.user.id}`"
-      class="card-soft tap-card flex items-center gap-3 p-4 text-inherit no-underline"
-      aria-label="Мой профиль"
-      data-stagger
-    >
-      <UserAvatar :user="session.me.user" :size="56" />
-      <div class="min-w-0 flex-1">
-        <div class="text-lg font-bold">{{ fullName(session.me.user) }}</div>
-        <div class="text-muted text-sm">
-          <template v-if="session.me.user.apartment"
-            >Квартира {{ session.me.user.apartment }} ·
-          </template>
-          {{ session.me.user.level_title }} · {{ session.me.user.points }} очков
+    <!-- Профиль и дом одной группой, как карточка аккаунта в настройках iOS -->
+    <div v-if="session.me" class="group-list" style="--group-inset: 16px" data-stagger>
+      <router-link
+        :to="`/people/${session.me.user.id}`"
+        class="tap-row flex items-center gap-3 p-4 text-inherit no-underline"
+        aria-label="Мой профиль"
+      >
+        <UserAvatar :user="session.me.user" :size="56" />
+        <div class="min-w-0 flex-1">
+          <div class="text-lg font-bold">{{ fullName(session.me.user) }}</div>
+          <div class="text-muted text-sm">
+            <template v-if="session.me.user.apartment"
+              >Квартира {{ session.me.user.apartment }} ·
+            </template>
+            {{ session.me.user.level_title }} ·
+            {{ pluralize(session.me.user.points, ['очко', 'очка', 'очков']) }}
+          </div>
+          <div v-if="!session.me.user.apartment" class="text-sm font-semibold text-primary">
+            Укажите номер квартиры
+          </div>
         </div>
-        <div v-if="!session.me.user.apartment" class="text-sm font-semibold text-primary">
-          Укажите номер квартиры
-        </div>
-      </div>
-      <v-icon icon="mdi-chevron-right" aria-hidden="true" />
-    </router-link>
-
-    <HouseSwitcher v-if="session.houses.length">
-      <template #trigger="{ open }">
-        <v-btn
-          block
-          size="large"
-          variant="text"
-          color="primary"
-          class="house-btn mt-1"
-          prepend-icon="mdi-home-switch-outline"
-          data-stagger
-          @click="open"
-        >
-          <span class="truncate">{{ session.me?.house.title }}</span>
-          <span class="text-muted ml-1 shrink-0">
-            · {{ session.houses.length > 1 ? 'сменить дом' : 'мои дома' }}
-          </span>
-        </v-btn>
-      </template>
-    </HouseSwitcher>
+        <v-icon icon="mdi-chevron-right" aria-hidden="true" />
+      </router-link>
+      <HouseSwitcher v-if="session.houses.length">
+        <template #trigger="{ open }">
+          <button type="button" class="tap-row house-row" @click="open">
+            <v-icon icon="mdi-home-city-outline" color="primary" aria-hidden="true" />
+            <span class="min-w-0 flex-1">
+              <span class="text-muted block text-sm">{{
+                session.houses.length > 1 ? 'Мой дом, нажмите, чтобы сменить' : 'Мой дом'
+              }}</span>
+              <span class="block truncate font-semibold">{{ session.me.house.title }}</span>
+            </span>
+            <v-icon icon="mdi-chevron-right" aria-hidden="true" />
+          </button>
+        </template>
+      </HouseSwitcher>
+    </div>
 
     <!-- Тревога - самое важное, что может понадобиться: сразу под профилем и красным -->
     <router-link
@@ -162,13 +158,12 @@ function openBot(): void {
     </router-link>
 
     <h2 class="section-title">Мой дом</h2>
-    <nav class="flex flex-col gap-2" aria-label="Разделы">
+    <nav class="group-list" style="--group-inset: 72px" aria-label="Разделы">
       <router-link
         v-for="e in entries"
         :key="e.to"
         :to="e.to"
-        class="card-soft tap-card flex items-center gap-3 p-3 text-inherit no-underline"
-        data-stagger
+        class="tap-row flex items-center gap-3 p-3 text-inherit no-underline"
       >
         <v-avatar :color="e.color" variant="tonal" size="48" rounded="lg">
           <v-icon :icon="e.icon" size="26" />
@@ -206,10 +201,17 @@ function openBot(): void {
   color: inherit;
   border-color: rgba(var(--v-theme-deep), 0.35);
 }
-.house-btn {
-  justify-content: flex-start;
-}
-.house-btn :deep(.v-btn__content) {
-  min-width: 0;
+.house-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 </style>

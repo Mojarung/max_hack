@@ -55,10 +55,15 @@ watch(
   },
 )
 
-// Системная кнопка «Назад» в MAX на внутренних страницах
+// Системная кнопка «Назад» в MAX на внутренних страницах; там же прячется нижнее меню,
+// и отступы снизу (--nav-space) пересчитываются через класс на <html>
 watch(
   () => route.meta.inner,
-  (inner) => (inner ? backButton.show(goBack) : backButton.hide()),
+  (inner) => {
+    if (inner) backButton.show(goBack)
+    else backButton.hide()
+    document.documentElement.classList.toggle('nav-hidden', !!inner)
+  },
   { immediate: true },
 )
 </script>
@@ -80,6 +85,8 @@ watch(
       <BottomNav :inert="alertOpen" />
       <OnboardingSheet v-if="!alertOpen" />
     </template>
+    <!-- слой для плавающей кнопки «создать» (AppFab): вне анимируемой страницы -->
+    <div id="fab-layer" :inert="alertOpen" />
     <DroneAlertOverlay v-if="alerts.active" />
     <Toaster />
   </v-app>

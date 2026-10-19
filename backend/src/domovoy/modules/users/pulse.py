@@ -8,12 +8,12 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domovoy.modules.events.models import Event
 from domovoy.modules.issues.catalog import OPEN_STATUSES
-from domovoy.modules.issues.models import Issue
+from domovoy.modules.issues.models import Issue, IssueVote
 from domovoy.modules.market.models import Listing
 from domovoy.modules.misc_models import Alert
 from domovoy.modules.users.models import Membership, User
@@ -29,6 +29,8 @@ class PulseStats(BaseModel):
     upcoming_events: int
     active_listings: int
     active_alert: bool
+    # Личное: заявки в голосовании, которые житель ещё не поддержал (свои не считаем). Это цифра на вкладке
+    awaiting_my_vote: int = 0
 
 
 class PulseOut(BaseModel):
@@ -68,19 +70,19 @@ def phrase_for(mood: Mood, s: PulseStats) -> str:
     if mood == "alarm":
         return "Тревога! Отойдите от окон и идите в укрытие, я покажу дорогу."
     if s.overdue_issues:
-        return f"Сроки по заявкам сорваны ({s.overdue_issues} шт.), готовлю жалобу в жилинспекцию."
+        return f"Просрочено заявок: {s.overdue_issues}. Готовлю жалобу в Госжилинспекцию."
     if mood == "happy":
         if s.upcoming_events:
-            return "Дом в порядке, а скоро событие во дворе. Приходи, будет весело!"
+            return "Дом в порядке, а скоро событие во дворе. Приходите, будет весело!"
         return "В доме тепло и спокойно. Спасибо, соседи!"
     if mood == "ok":
-        return f"Открытых проблем: {s.open_issues}. Поддержи голосом, и я отправлю обращения."
+        return f"Открытых заявок: {s.open_issues}. Поддержите их голосом, и я отправлю обращения."
     if mood == "worried":
-        return "Проблем накопилось. Давайте вместе наберём голоса, я всё оформлю сам."
-    return "Мне грустно: дом давно без внимания. Сообщи о проблеме или организуй субботник."
+        return "Накопилось много заявок. Давайте вместе наберём голоса, остальное я оформлю сам."
+    return "Мне грустно: дом давно без внимания. Сообщите о поломке или устройте субботник."
 
 
-async def house_pulse(session: AsyncSession, house_id: int) -> PulseOut:
+async def house_pulse(session: AsyncSession, house_id: int, user_id: int | None = None) -> PulseOut:
     now = datetime.now(UTC)
 
     async def count(stmt: object) -> int:
@@ -108,6 +110,18 @@ async def house_pulse(session: AsyncSession, house_id: int) -> PulseOut:
         active_listings=await count(
             select(func.count()).select_from(Listing).where(Listing.house_id == house_id, Listing.status == "active")
         ),
+        awaiting_my_vote=await count(
+            select(func.count())
+            .select_from(Issue)
+            .where(
+                Issue.house_id == house_id,
+                Issue.status == "voting",
+                Issue.author_id != user_id,
+                ~exists().where(IssueVote.issue_id == Issue.id, IssueVote.user_id == user_id),
+            )
+        )
+        if user_id is not None
+        else 0,
         active_alert=bool(
             await count(
                 select(func.count())

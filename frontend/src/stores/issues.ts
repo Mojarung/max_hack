@@ -5,6 +5,7 @@ import { issuesApi } from '@/api/endpoints'
 import type { IssueDetail, IssueOut, IssueStatus } from '@/api/types'
 import { hasNumericId, onRealtime } from '@/realtime/sse'
 import { registerReset, upsertById } from './helpers'
+import { usePulseStore } from './pulse'
 
 /** Поля, посчитанные сервером для конкретного жителя: из SSE их не берём. */
 const PERSONAL_KEYS: (keyof IssueOut)[] = ['voted_by_me']
@@ -57,7 +58,7 @@ export const useIssuesStore = defineStore('issues', () => {
     const before = details.value[id]
     const beforeItem = items.value.find((i) => i.id === id)
     const base = before ?? beforeItem
-    if (!base) throw new Error('Проблема не найдена')
+    if (!base) throw new Error('Заявка не найдена')
     const voting = !base.voted_by_me
     const optimistic = {
       voted_by_me: voting,
@@ -68,6 +69,8 @@ export const useIssuesStore = defineStore('issues', () => {
     try {
       const data = voting ? await issuesApi.vote(id) : await issuesApi.unvote(id)
       storeDetail(data)
+      // свой голос меняет цифру на вкладке «Заявки»
+      usePulseStore().softRefresh()
       return data
     } catch (e) {
       if (before) details.value = { ...details.value, [id]: before }

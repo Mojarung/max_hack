@@ -36,21 +36,21 @@ async def dispatch_issue(issue_id: int) -> None:
         if issue is None or issue.appeal_text:
             return
         issue.appeal_text = render_appeal(issue, await business_description(issue))
-        org = issue.responsible_org.name if issue.responsible_org else "исполнителю"
+        org = issue.responsible_org.name if issue.responsible_org else "ответственная служба"
         try:
             sent_to = await mailer.send_appeal(issue, issue.appeal_text)
         except Exception:
             log.exception("worker.appeal_email_failed", issue_id=issue.id)
             sent_to = None
-            note = f"Обращение сформировано для: {org}. Тестовое письмо отправить не удалось, текст сохранён в карточке"
+            note = f"Обращение составлено, адресат: {org}. Тестовое письмо не ушло, текст сохранён в карточке"
         else:
             if sent_to:
                 note = (
-                    f"Обращение отправлено письмом на тестовый адрес {sent_to} вместо адреса УК "
+                    f"Обращение ушло письмом на тестовый адрес {sent_to}, а не в УК "
                     f"(модельная интеграция, адресат по справочнику: {org})"
                 )
             else:
-                note = f"Обращение сформировано и направлено: {org} (модельная отправка, письмо не отправлялось)"
+                note = f"Обращение составлено, адресат: {org}. Письмо не отправлялось (модельная интеграция)"
         issue.appeal_channel = f"test_email:{sent_to}" if sent_to else "model"
         session.add(IssueUpdate(issue_id=issue.id, status="sent", note=note))
         await session.commit()
@@ -59,20 +59,27 @@ async def dispatch_issue(issue_id: int) -> None:
         author_max_id = issue.author.max_user_id
 
     await bus.emit(house.id, "issue.updated", issue_out(issue, False).model_dump(mode="json"))
-    deadline = issue.deadline_at.astimezone(MSK).strftime("%d.%m %H:%M") if issue.deadline_at else "-"
+    deadline = issue.deadline_at.astimezone(MSK).strftime("%d.%m в %H:%M МСК") if issue.deadline_at else "-"
+    # имитацию нельзя выдавать за настоящую отправку в УК: говорим об этом жителям прямо
     channel = (
-        "письмом на тестовый адрес (модельная интеграция, настоящей УК письмо не уходит)"
+        "Сервис пока работает в тестовом режиме: письмо ушло на проверочный адрес, исполнитель его не получит."
         if (issue.appeal_channel or "").startswith("test_email:")
-        else "(модельная отправка: текст обращения в карточке заявки)"
+        else "Сервис пока работает в тестовом режиме: письмо не отправлялось, текст обращения есть в карточке заявки."
     )
-    text = (
-        f"📨 Заявка **«{issue.title}»** набрала голоса. Я сформировал обращение для: {org} и отправил его {channel}.\n"
-        f"Срок по нормативу: до {deadline} (МСК). Слежу за сроком, при просрочке подготовлю жалобу в жилинспекцию."
+    details = (
+        f"Кому: {org}.\n{channel}\n"
+        f"Срок по нормативу: до {deadline}. Если исполнитель не успеет, я подготовлю жалобу в Госжилинспекцию."
     )
-    buttons = [[app_button("Текст обращения и статус", f"issue_{issue.id}")]]
+    text = f"📨 Заявка **«{issue.title}»** набрала голоса, и я составил обращение.\n{details}"
+    author_text = f"📨 Соседи поддержали вашу заявку **«{issue.title}»**, и я составил обращение.\n{details}"
+    # карточка с текстом обращения и сроком открывается прямо в чате, приложение - второй кнопкой
+    buttons = [
+        [{"type": "callback", "text": "📋 Карточка заявки", "payload": f"issue:{issue.id}"}],
+        [app_button("В приложении", f"issue_{issue.id}")],
+    ]
     if house.max_chat_id:
         await bus.bot_send(chat_id=house.max_chat_id, text=text, buttons=buttons)
-    await bus.bot_send(user_id=author_max_id, text="Ваша заявка ушла исполнителю! " + text, buttons=buttons)
+    await bus.bot_send(user_id=author_max_id, text=author_text, buttons=buttons)
 
 
 async def remind_events() -> None:
@@ -138,10 +145,13 @@ async def escalate_overdue() -> None:
                 await bus.bot_send(
                     chat_id=issue.house.max_chat_id,
                     text=(
-                        f"⏳ Исполнитель просрочил заявку «{issue.title}». "
-                        "Я подготовил жалобу в Госжилинспекцию, текст в карточке заявки."
+                        f"⏳ Исполнитель не уложился в срок по заявке «{issue.title}». "
+                        "Я подготовил жалобу в Госжилинспекцию, текст откроется по кнопке ниже."
                     ),
-                    buttons=[[app_button("Открыть заявку", f"issue_{issue.id}")]],
+                    buttons=[
+                        [{"type": "callback", "text": "⚖️ Жалоба в ГЖИ", "payload": f"complaint:{issue.id}"}],
+                        [{"type": "callback", "text": "📋 Карточка заявки", "payload": f"issue:{issue.id}"}],
+                    ],
                 )
 
 

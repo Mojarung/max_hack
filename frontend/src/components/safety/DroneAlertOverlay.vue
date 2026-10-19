@@ -207,7 +207,7 @@ async function endAlert(): Promise<void> {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 16px;
+  border-radius: var(--r-md);
   background: rgba(0, 0, 0, 0.18);
   font-size: 17px;
   font-weight: 600;
@@ -216,7 +216,7 @@ async function endAlert(): Promise<void> {
 .alert-shelter {
   margin-top: 16px;
   padding: 14px;
-  border-radius: 16px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }

@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
 import { ApiError, errorMessage } from '@/api/client'
 import ErrorState from '@/components/common/ErrorState.vue'
+import PhotoPicker from '@/components/common/PhotoPicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import { Drawer, DrawerContent, DrawerHeader } from '@/components/ui/drawer'
 import { Skeleton } from '@/components/ui/skeleton'
 import { pop, staggerIn } from '@/composables/useMotion'
 import { notify } from '@/lib/notify'
@@ -11,6 +13,11 @@ import { useEventsStore } from '@/stores/events'
 import { useSessionStore } from '@/stores/session'
 import { formatDateTime, formatRelative, fullName, pluralize } from '@/utils/format'
 import { eventKindMeta } from '@/utils/labels'
+
+const PhotoGallery = defineAsyncComponent(() => import('@/components/common/PhotoGallery.vue'))
+
+// Фото у события не больше пяти, как у вещей (EventOut на бэкенде)
+const MAX_EVENT_PHOTOS = 5
 
 const props = defineProps<{ id: number }>()
 const store = useEventsStore()
@@ -41,6 +48,51 @@ const isFull = computed(
     event.value.participants_count >= event.value.max_participants,
 )
 const meId = computed(() => session.me?.user.id)
+// Описание и фото дописывает организатор (или администратор дома), пока событие не прошло
+const canEdit = computed(
+  () => !!event.value && !isPast.value && (event.value.author.id === meId.value || session.isAdmin),
+)
+const photos = computed(() => event.value?.photos ?? [])
+
+const editOpen = ref(false)
+const draft = ref('')
+const newPhotos = ref<File[]>([])
+const saving = ref(false)
+const removing = ref<number | null>(null)
+
+function openEdit(): void {
+  draft.value = event.value?.description ?? ''
+  newPhotos.value = []
+  editOpen.value = true
+}
+
+async function saveEdit(): Promise<void> {
+  if (!event.value || saving.value) return
+  saving.value = true
+  try {
+    if (draft.value.trim() !== event.value.description)
+      await store.updateDescription(props.id, draft.value)
+    if (newPhotos.value.length) await store.addPhotos(props.id, newPhotos.value)
+    editOpen.value = false
+    haptic.notify('success')
+    notify.success('Сохранено, соседи увидят обновление')
+  } catch (e) {
+    notify.error(e, 'Не удалось сохранить')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removePhoto(index: number): Promise<void> {
+  removing.value = index
+  try {
+    await store.removePhoto(props.id, index)
+  } catch (e) {
+    notify.error(e, 'Фото не удалилось')
+  } finally {
+    removing.value = null
+  }
+}
 
 async function load(): Promise<void> {
   loading.value = true
@@ -135,6 +187,13 @@ async function send(): Promise<void> {
     />
 
     <article v-else-if="event">
+      <PhotoGallery
+        v-if="photos.length"
+        :photos="photos"
+        :alt="event.title"
+        :height="220"
+        class="mb-3"
+      />
       <header
         class="event-hero"
         :style="{ '--kind': `var(--v-theme-${eventKindMeta(event.kind).color})` }"
@@ -165,6 +224,29 @@ async function send(): Promise<void> {
       <p v-if="event.description" class="pre-wrap mt-4 mb-0 leading-relaxed">
         {{ event.description }}
       </p>
+      <!-- Событие из чата приходит без подробностей: организатору подсказываем их дописать -->
+      <button
+        v-if="canEdit && !event.description && !photos.length"
+        type="button"
+        class="add-details tap-card mt-4"
+        @click="openEdit"
+      >
+        <v-icon icon="mdi-text-box-plus-outline" size="28" color="primary" />
+        <span class="text-left">
+          <span class="block font-semibold">Добавьте подробности и фото</span>
+          <span class="text-muted block text-sm">Что взять с собой, где собираемся, кого ждём</span>
+        </span>
+      </button>
+      <v-btn
+        v-else-if="canEdit"
+        variant="text"
+        color="primary"
+        prepend-icon="mdi-pencil-outline"
+        class="mt-2 -ml-3"
+        @click="openEdit"
+      >
+        Изменить описание и фото
+      </v-btn>
 
       <section class="card-soft mt-4 p-4" aria-label="Участники">
         <div class="flex items-baseline justify-between">
@@ -294,6 +376,56 @@ async function send(): Promise<void> {
         </form>
       </section>
     </article>
+
+    <Drawer v-model:open="editOpen">
+      <DrawerContent>
+        <DrawerHeader
+          title="Подробности события"
+          description="Соседи увидят описание и фото на странице события"
+        />
+        <v-textarea
+          v-model="draft"
+          label="Описание"
+          placeholder="Например: возьмите перчатки, мешки и грабли даёт УК. После уборки чай у 2 подъезда"
+          persistent-placeholder
+          rows="3"
+          auto-grow
+          maxlength="2000"
+        />
+        <template v-if="photos.length">
+          <h4 class="mt-2 mb-2 text-base font-bold">Фото события</h4>
+          <ul class="mb-3 flex list-none flex-wrap gap-2 p-0">
+            <li v-for="(src, i) in photos" :key="src" class="relative">
+              <img :src="src" alt="" class="h-20 w-20 rounded-2xl object-cover" />
+              <v-btn
+                icon="mdi-close"
+                size="small"
+                class="!absolute -top-2 -right-2"
+                :loading="removing === i"
+                :aria-label="`Удалить фото ${i + 1}`"
+                @click="removePhoto(i)"
+              />
+            </li>
+          </ul>
+        </template>
+        <PhotoPicker
+          v-if="photos.length < MAX_EVENT_PHOTOS"
+          v-model="newPhotos"
+          :max="MAX_EVENT_PHOTOS - photos.length"
+        />
+        <v-btn
+          block
+          size="large"
+          color="primary"
+          class="mt-4"
+          :loading="saving"
+          :disabled="draft.trim() === event?.description && !newPhotos.length"
+          @click="saveEdit"
+        >
+          Сохранить
+        </v-btn>
+      </DrawerContent>
+    </Drawer>
   </div>
 </template>
 
@@ -309,15 +441,27 @@ async function send(): Promise<void> {
 .event-hero :deep(.v-icon) {
   color: rgb(var(--kind));
 }
+.add-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px dashed rgba(var(--v-theme-primary), 0.45);
+  border-radius: var(--r-lg);
+  background: rgba(var(--v-theme-primary), 0.05);
+  color: inherit;
+  font: inherit;
+}
 .bubble {
   max-width: 78%;
   padding: 8px 12px;
-  border-radius: 16px 16px 16px 4px;
+  border-radius: 20px 20px 20px 6px;
   background: rgb(var(--v-theme-surface));
   border: 1px solid rgba(var(--v-border-color), 0.1);
 }
 .bubble--mine {
-  border-radius: 16px 16px 4px 16px;
+  border-radius: 20px 20px 6px 20px;
   background: rgba(var(--v-theme-primary), 0.12);
   border-color: transparent;
 }

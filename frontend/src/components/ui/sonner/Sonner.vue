@@ -14,11 +14,12 @@ const mode = computed(() => (theme.current.value.dark ? 'dark' : 'light'))
     position="bottom-center"
     close-button
     :duration="3500"
-    :offset="{ bottom: 'calc(var(--app-nav-height) + 12px + env(safe-area-inset-bottom))' }"
+    :offset="{ bottom: 'calc(var(--nav-space) + 12px)' }"
+    :mobile-offset="{ bottom: 'calc(var(--nav-space) + 12px)', left: '16px', right: '16px' }"
     :toast-options="{
       style: {
         fontSize: '15px',
-        borderRadius: '16px',
+        borderRadius: '22px',
         color: 'rgb(var(--v-theme-on-surface))',
         background: 'rgb(var(--v-theme-surface))',
         border: '1px solid rgba(var(--v-theme-primary), 0.3)',

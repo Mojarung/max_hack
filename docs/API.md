@@ -35,6 +35,8 @@ X-Max-Init-Data: <initData>
 |---|---|---|
 | GET | `/me` | `MeOut` |
 | POST | `/me/onboarded` | `MeOut`, житель прошёл обучалку первого входа |
+| PUT | `/me/avatar` | `MeOut`. Тело `{"preset": 1..9}` - готовая картинка, `{"preset": null}` - вернуть фото из MAX. Выбор хранится в `user.avatar` (`preset:N`, `upload` или `null`) и стоит выше фото из MAX |
+| POST | `/me/avatar/photo` | `MeOut`. multipart, поле `photo`: своё фото, сжимается до 1600 px без EXIF, как фото заявок |
 | GET | `/houses?refresh=true` | `HouseBrief[]`, дома жителя; `refresh` заново ищет чаты с Кузей |
 | GET | `/house/pulse` | `PulseOut`, состояние маскота Кузи |
 | GET | `/dev/users` | `DevUser[]`, только в мок-режиме |
@@ -42,7 +44,9 @@ X-Max-Init-Data: <initData>
 | POST | `/house/sync` | `{"members": 40, "bot_is_admin": true}`, сверка жителей и администраторов с чатом MAX (администратор) |
 | GET | `/house/geocode?q=` | `[{"title", "lat", "lon"}]`, координаты по адресу через OpenStreetMap Nominatim (администратор) |
 | GET | `/people` | `Neighbour[]`, жители дома |
-| GET | `/people/{id}` | `ProfileOut`: уровень, статистика помощи дому, награды. Только жители того же дома |
+| GET | `/people/{id}` | `ProfileOut`: уровень, статистика помощи дому, награды, `thanks_count`, `thanked_by_me`. Только жители того же дома |
+| POST | `/people/{id}/thanks` | `ProfileOut`. Спасибо соседу: +5 очков ему, не чаще раза в сутки от одного жителя (`409` при повторе). Кузя сообщает соседу в личку |
+| POST | `/people/{id}/message` | `{"ok": true}`. Тело `{"text": "..."}` (1-1000 символов): Кузя пересылает сообщение соседу в личку MAX, MAX id остаётся скрытым. Одному соседу не чаще раза в минуту (`429`) |
 
 ```jsonc
 // MeOut
@@ -142,6 +146,9 @@ X-Max-Init-Data: <initData>
 | GET | `/events?scope=upcoming\|past` | | `EventOut[]` |
 | GET | `/events/{id}` | | `EventDetail` |
 | POST | `/events` | `{"title","description","kind","starts_at","place","max_participants"?}` | `EventDetail`, 201 |
+| PATCH | `/events/{id}` | `{"description": "..."}`, только организатор или администратор | `EventDetail`, 403 для остальных |
+| POST | `/events/{id}/photos` | multipart: `photos` (файлы), всего у события не больше 5 фото | `EventDetail` |
+| DELETE | `/events/{id}/photos/{index}` | номер фото с нуля | `EventDetail` |
 | POST | `/events/{id}/join` | | `EventDetail` |
 | DELETE | `/events/{id}/join` | | `EventDetail` |
 | GET | `/events/{id}/comments` | | `CommentOut[]` |
@@ -236,7 +243,7 @@ X-Max-Init-Data: <initData>
 | Метод | Путь | Тело | Ответ |
 |---|---|---|---|
 | GET | `/dev/chat/messages?chat_id=` | | `ChatMessage[]` |
-| POST | `/dev/chat/send` | `{"chat_id": -100, "user_id": 1001, "text": "..."}` | `{"ok": true}` |
+| POST | `/dev/chat/send` | `{"chat_id": -100, "user_id": 1001, "text": "...", "photos": ["data:image/jpeg;base64,..."]}`: до 3 фото, бот получает их вложениями `image`, как из MAX; нужен текст или фото | `{"ok": true}` |
 | POST | `/dev/chat/callback` | `{"chat_id": -100, "user_id": 1001, "message_id": "m1", "payload": "..."}` | `{"ok": true}` |
 | GET | `/dev/chats` | | `[{"chat_id": -100, "title": "Чат дома 7", "type": "chat"}, {"chat_id": 1001, "title": "Личка с ботом", "type": "dialog"}]` |
 

@@ -9,8 +9,16 @@ const store = useAssistantStore()
 const text = ref('')
 const box = ref<HTMLElement | null>(null)
 
+/** Быстрые сценарии на пустом экране: самые частые вопросы, по одному нажатию. */
+const SCENARIOS = [
+  { text: 'Какие заявки сейчас открыты?', icon: 'mdi-tools' },
+  { text: 'Когда ближайший субботник?', icon: 'mdi-calendar-star' },
+  { text: 'Кто отвечает за лифт?', icon: 'mdi-elevator-passenger-outline' },
+  { text: 'Где ближайшее укрытие?', icon: 'mdi-shield-home-outline' },
+]
+
 const SUGGESTIONS = [
-  'Какие проблемы сейчас в доме?',
+  'Какие заявки сейчас открыты?',
   'Когда ближайший субботник?',
   'Кто отвечает за лифт?',
   'Где ближайшее укрытие?',
@@ -43,8 +51,21 @@ async function send(value?: string): Promise<void> {
       <KuzyaMascot mood="happy" :size="120" />
       <h2 class="mt-3 mb-1 text-lg font-bold">Привет! Я Кузя, домовой вашего дома</h2>
       <p class="text-muted m-0 max-w-[320px]">
-        Спросите про проблемы, события, соседскую барахолку или укрытия. Я посмотрю и отвечу.
+        Спросите про заявки, события, вещи соседей или укрытия. Я посмотрю и отвечу.
       </p>
+      <div class="scenarios mt-5 w-full">
+        <button
+          v-for="sc in SCENARIOS"
+          :key="sc.text"
+          type="button"
+          class="scenario card-soft tap-card"
+          :disabled="store.typing"
+          @click="send(sc.text)"
+        >
+          <v-icon :icon="sc.icon" color="primary" size="26" aria-hidden="true" />
+          <span>{{ sc.text }}</span>
+        </button>
+      </div>
     </div>
 
     <div ref="box" class="flex flex-col gap-2" aria-live="polite">
@@ -101,7 +122,7 @@ async function send(value?: string): Promise<void> {
     </div>
 
     <div class="composer-wrap">
-      <div class="chips-scroll mb-2">
+      <div v-if="store.messages.length" class="chips-scroll mb-2">
         <v-chip
           v-for="s in SUGGESTIONS"
           :key="s"
@@ -142,13 +163,35 @@ async function send(value?: string): Promise<void> {
 </template>
 
 <style scoped>
+.scenarios {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  text-align: left;
+}
+.scenario {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 112px;
+  padding: 14px;
+  border-radius: var(--r-lg);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.scenario:disabled {
+  opacity: 0.6;
+}
 .chat-page {
-  padding-bottom: calc(var(--app-nav-height) + 150px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--nav-space) + 150px);
 }
 .msg {
   max-width: 82%;
   padding: 10px 14px;
-  border-radius: 18px;
+  border-radius: var(--r-md);
   font-size: 16px;
   line-height: 1.4;
 }
@@ -170,7 +213,7 @@ async function send(value?: string): Promise<void> {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--app-nav-height) + env(safe-area-inset-bottom));
+  bottom: var(--nav-space);
   z-index: 900;
   max-width: var(--app-max-width);
   margin: 0 auto;

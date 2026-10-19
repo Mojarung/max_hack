@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppFab from '@/components/common/AppFab.vue'
 import { computed, onMounted, ref } from 'vue'
 import type { AnnouncementOut } from '@/api/types'
 import AnnouncementCard from '@/components/announcements/AnnouncementCard.vue'
@@ -85,10 +86,11 @@ async function remove(item: AnnouncementOut): Promise<void> {
 
 <template>
   <div class="page page--with-fab">
-    <p class="text-muted mt-0 mb-3">
-      Важное для всего дома: отключения, работы, собрания. Кузя дублирует объявления в чат дома. В
-      чате можно попросить: «Кузя, сделай объявление о субботнике в субботу в 11».
-    </p>
+    <!-- Подсказка в одну строку вместо абзаца: как сделать объявление через Кузю в чате -->
+    <div class="hint mb-3">
+      <v-icon icon="mdi-creation-outline" color="primary" size="20" aria-hidden="true" />
+      <span>В чате дома: «Кузя, сделай объявление о субботнике в субботу в 11»</span>
+    </div>
 
     <ListSkeleton v-if="store.loading && !store.loaded" :count="3" />
     <ErrorState
@@ -135,16 +137,7 @@ async function remove(item: AnnouncementOut): Promise<void> {
       </div>
     </div>
 
-    <v-btn
-      color="primary"
-      size="large"
-      rounded="xl"
-      prepend-icon="mdi-plus"
-      class="fab"
-      @click="startCreate"
-    >
-      Объявление
-    </v-btn>
+    <AppFab icon="mdi-plus" label="Написать объявление" @click="startCreate" />
 
     <Drawer v-model:open="deleteOpen">
       <DrawerContent>
@@ -210,3 +203,17 @@ async function remove(item: AnnouncementOut): Promise<void> {
     </Drawer>
   </div>
 </template>
+
+<style scoped>
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: rgb(var(--v-theme-on-primary-container));
+  background: rgb(var(--v-theme-primary-container));
+}
+</style>

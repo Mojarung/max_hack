@@ -229,7 +229,7 @@ async function remove(): Promise<void> {
         <DrawerContent>
           <DrawerHeader
             :title="listing.is_free ? 'Сообщение автору' : 'Сообщение продавцу'"
-            :description="`Кузя передаст сообщение в личку MAX. Продавец: ${fullName(listing.author)}`"
+            :description="`Кузя передаст сообщение в личные сообщения MAX. Продавец: ${fullName(listing.author)}`"
           />
           <v-textarea
             v-model="message"

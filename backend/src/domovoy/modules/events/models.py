@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Boolean, Computed, DateTime, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from domovoy.core.db import Base, TimestampMixin
@@ -22,6 +22,7 @@ class Event(TimestampMixin, Base):
     kind: Mapped[str] = mapped_column(String(16), default="other")
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     place: Mapped[str] = mapped_column(String(200), default="")
+    photos: Mapped[list[str]] = mapped_column(JSONB, default=list)
     max_participants: Mapped[int | None] = mapped_column(Integer)
     participants_count: Mapped[int] = mapped_column(Integer, default=0)
     comments_count: Mapped[int] = mapped_column(Integer, default=0)

@@ -56,63 +56,15 @@ const hotIssue = computed(() => {
   )
 })
 
-const tiles = computed(() => {
-  const s = pulse.value?.stats
-  return [
-    {
-      key: 'issues',
-      title: plural(s?.open_issues ?? 0, [
-        'открытая проблема',
-        'открытые проблемы',
-        'открытых проблем',
-      ]),
-      value: s?.open_issues ?? 0,
-      icon: 'mdi-alert-circle-outline',
-      to: '/issues',
-      color: 'primary',
-      alert: false,
-    },
-    {
-      key: 'events',
-      title: plural(s?.upcoming_events ?? 0, ['событие скоро', 'события скоро', 'событий скоро']),
-      value: s?.upcoming_events ?? 0,
-      icon: 'mdi-calendar-star',
-      to: '/events',
-      color: 'primary',
-      alert: false,
-    },
-    {
-      key: 'market',
-      title: plural(s?.active_listings ?? 0, [
-        'вещь у соседей',
-        'вещи у соседей',
-        'вещей у соседей',
-      ]),
-      value: s?.active_listings ?? 0,
-      icon: 'mdi-storefront-outline',
-      to: '/market',
-      color: 'primary',
-      alert: false,
-    },
-    {
-      key: 'overdue',
-      title: 'Просрочено',
-      value: s?.overdue_issues ?? 0,
-      icon: 'mdi-clock-alert-outline',
-      to: '/issues?overdue=1',
-      color: 'primary',
-      alert: (s?.overdue_issues ?? 0) > 0,
-    },
-  ]
-})
+const overdue = computed(() => pulse.value?.stats.overdue_issues ?? 0)
 
 const alertActive = computed(() => !!pulse.value?.stats.active_alert)
 /** Куда ведёт фраза Кузи: к тому, о чём он говорит. */
 const phraseLink = computed(() => {
   const stats = pulse.value?.stats
   if (!stats) return null
+  // просрочку показывает отдельная строка под кнопкой, здесь только тревога
   if (stats.active_alert) return { to: '/more/safety', label: 'Где укрыться' }
-  if (stats.overdue_issues > 0) return { to: '/issues?overdue=1', label: 'Что просрочено' }
   return null
 })
 
@@ -225,6 +177,55 @@ watch(
       >
         Сообщить о проблеме
       </v-btn>
+      <!-- Кузя и поиск в один тап с главной -->
+      <div class="quick mt-3" data-stagger>
+        <router-link to="/more/assistant" class="quick__item tap-card card-soft">
+          <v-icon icon="mdi-chat-processing-outline" color="primary" size="24" aria-hidden="true" />
+          <span>Спросить Кузю</span>
+        </router-link>
+        <router-link to="/more/search" class="quick__item tap-card card-soft">
+          <v-icon icon="mdi-magnify" color="primary" size="24" aria-hidden="true" />
+          <span>Поиск</span>
+        </router-link>
+      </div>
+
+      <!-- Срочное: просроченные заявки. Одна строка с выходом к жалобе, а не красная плитка среди цифр -->
+      <router-link
+        v-if="overdue > 0"
+        to="/issues?overdue=1"
+        class="overdue-row tap-card mt-3"
+        data-stagger
+      >
+        <v-icon icon="mdi-clock-alert-outline" size="28" aria-hidden="true" />
+        <span class="min-w-0 flex-1">
+          <span class="block font-bold">
+            {{ overdue }}
+            {{ plural(overdue, ['заявка просрочена', 'заявки просрочены', 'заявок просрочено']) }}
+          </span>
+          <span class="block text-sm opacity-90">Откройте и перешлите готовую жалобу</span>
+        </span>
+        <v-icon icon="mdi-chevron-right" aria-hidden="true" />
+      </router-link>
+
+      <!-- Что можно сделать прямо сейчас: поддержать заявку, записаться на событие -->
+      <template v-if="hotIssue">
+        <h2 class="section-title">Нужны голоса</h2>
+        <div data-stagger>
+          <IssueCard :issue="hotIssue" />
+        </div>
+      </template>
+
+      <template v-if="nextEvent">
+        <div class="section-head">
+          <h2 class="section-title">Ближайшее событие</h2>
+          <router-link to="/events" class="section-more">
+            Все <v-icon icon="mdi-chevron-right" size="20" />
+          </router-link>
+        </div>
+        <div data-stagger>
+          <EventCard :event="nextEvent" />
+        </div>
+      </template>
 
       <template v-if="topAnnouncement">
         <div class="section-head">
@@ -238,39 +239,6 @@ watch(
         </div>
         <div data-stagger>
           <AnnouncementCard :item="topAnnouncement" clamp />
-        </div>
-      </template>
-
-      <template v-if="hotIssue">
-        <h2 class="section-title">Нужны голоса</h2>
-        <div data-stagger>
-          <IssueCard :issue="hotIssue" />
-        </div>
-      </template>
-
-      <!-- Показатели -->
-      <h2 class="section-title">Коротко о доме</h2>
-      <section class="grid grid-cols-2 gap-3" aria-label="Коротко о доме">
-        <router-link
-          v-for="tile in tiles"
-          :key="tile.key"
-          :to="tile.to"
-          class="card-soft tap-card flex flex-col gap-1 p-3 no-underline"
-          :class="tile.alert ? 'tile--alert' : 'text-inherit'"
-          data-stagger
-        >
-          <v-icon :icon="tile.icon" :color="tile.alert ? undefined : tile.color" size="26" />
-          <strong class="text-[28px] leading-none"><AnimatedNumber :value="tile.value" /></strong>
-          <span class="text-sm leading-tight" :class="{ 'text-muted': !tile.alert }">{{
-            tile.title
-          }}</span>
-        </router-link>
-      </section>
-
-      <template v-if="nextEvent">
-        <h2 class="section-title">Ближайшее событие</h2>
-        <div data-stagger>
-          <EventCard :event="nextEvent" />
         </div>
       </template>
 
@@ -320,7 +288,8 @@ watch(
             aria-label="Прогресс вашего уровня"
           />
           <div class="text-muted text-sm">
-            <AnimatedNumber :value="user.points" /> очков
+            <AnimatedNumber :value="user.points" />
+            {{ plural(user.points, ['очко', 'очка', 'очков']) }}
             <template v-if="user.next_level_points">
               · ещё {{ user.next_level_points - user.points }} до уровня {{ user.level + 1 }}
             </template>
@@ -333,6 +302,25 @@ watch(
 </template>
 
 <style scoped>
+.quick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.quick__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  min-height: 76px;
+  padding: 12px 16px;
+  border-radius: var(--r-lg);
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .setup {
   color: rgb(var(--v-theme-on-primary));
   background: rgb(var(--v-theme-primary));
@@ -363,7 +351,7 @@ watch(
   flex: 1;
   margin-bottom: 36px;
   padding: 12px 14px;
-  border-radius: 18px 18px 18px 6px;
+  border-radius: 22px 22px 22px 6px;
   background: rgba(var(--v-theme-primary), 0.1);
   font-size: 16px;
   font-weight: 500;
@@ -378,11 +366,17 @@ watch(
   border-right-color: rgba(var(--v-theme-primary), 0.1);
   border-left: 0;
 }
-/* Есть просрочка: плитка заливная, чтобы её было видно сразу в обеих темах */
-.tile--alert {
+/* Просрочка по DESIGN.md: заливка тревожного цвета, светлый текст, видно в обеих темах */
+.overdue-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 14px 12px 16px;
+  border-radius: var(--r-lg);
   color: rgb(var(--v-theme-on-deep));
   background: rgb(var(--v-theme-deep));
-  border-color: transparent;
+  text-decoration: none;
 }
 .bubble__link {
   display: inline-flex;

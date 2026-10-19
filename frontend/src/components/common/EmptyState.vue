@@ -10,7 +10,7 @@ withDefaults(defineProps<{ title: string; text?: string; mood?: KuzyaMood; size?
 
 <template>
   <section class="flex flex-col items-center px-4 py-8 text-center" role="status">
-    <KuzyaMascot :mood="mood" :size="size" />
+    <KuzyaMascot :mood="mood" :size="size" quiet />
     <h3 class="mt-3 mb-1 text-lg font-bold">{{ title }}</h3>
     <p v-if="text" class="text-muted m-0 max-w-[320px]">{{ text }}</p>
     <div v-if="$slots.default" class="mt-4 flex flex-wrap justify-center gap-2">

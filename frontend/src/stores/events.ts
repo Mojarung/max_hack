@@ -77,6 +77,28 @@ export const useEventsStore = defineStore('events', () => {
     return data
   }
 
+  async function updateDescription(id: number, description: string): Promise<EventDetail> {
+    const data = await eventsApi.update(id, description)
+    storeDetail(data)
+    return data
+  }
+
+  async function addPhotos(
+    id: number,
+    files: File[],
+    onProgress?: (fraction: number) => void,
+  ): Promise<EventDetail> {
+    const data = await eventsApi.addPhotos(id, files, onProgress)
+    storeDetail(data)
+    return data
+  }
+
+  async function removePhoto(id: number, index: number): Promise<EventDetail> {
+    const data = await eventsApi.removePhoto(id, index)
+    storeDetail(data)
+    return data
+  }
+
   /** «Иду / не иду» с оптимистичным обновлением. */
   async function toggleJoin(id: number): Promise<EventDetail> {
     const detail = details.value[id]
@@ -176,6 +198,9 @@ export const useEventsStore = defineStore('events', () => {
     fetchDetail,
     create,
     toggleJoin,
+    updateDescription,
+    addPhotos,
+    removePhoto,
     loadComments,
     addComment,
   }

@@ -104,7 +104,7 @@ async function refresh(): Promise<void> {
         Найти мои дома
       </v-btn>
       <p class="text-muted mt-3 mb-0 text-sm">
-        Нет нужного дома? Попросите администратора домового чата добавить Кузю в чат.
+        Нет нужного дома? Попросите администратора чата дома добавить туда Кузю.
       </p>
     </DrawerContent>
   </Drawer>
@@ -120,7 +120,7 @@ async function refresh(): Promise<void> {
   gap: 2px;
   padding: 0 4px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: inherit;
   font-size: 1.125rem;

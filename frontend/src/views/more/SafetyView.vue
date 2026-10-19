@@ -159,21 +159,7 @@ async function endAlert(): Promise<void> {
       <template v-else>Расстояние посчитано от того места, где вы сейчас.</template>
     </p>
 
-    <!-- Инструкция короткая и важная: всегда раскрыта, читать в стрессе без лишних нажатий -->
-    <section class="card-soft rules mt-3" aria-labelledby="rules-title">
-      <h2 id="rules-title" class="m-0 flex items-center gap-2 text-base font-bold">
-        <v-icon icon="mdi-shield-alert-outline" color="deep" />
-        Что делать при тревоге
-      </h2>
-      <ol class="m-0 flex list-none flex-col gap-2 p-0 pt-2">
-        <li v-for="item in ALERT_INSTRUCTIONS" :key="item.text" class="flex items-center gap-3">
-          <v-icon :icon="item.icon" color="primary" size="24" />
-          <span>{{ item.text }}</span>
-        </li>
-      </ol>
-    </section>
-
-    <h2 class="section-title">Укрытия рядом</h2>
+    <h2 class="section-title">Ближайшие укрытия</h2>
     <ListSkeleton v-if="loading && !shelters.length" :count="3" />
     <ErrorState
       v-else-if="error && !shelters.length"
@@ -181,7 +167,7 @@ async function endAlert(): Promise<void> {
       :retrying="loading"
       @retry="load()"
     />
-    <p v-else-if="!shelters.length" class="text-muted">Укрытия в базе пока не добавлены.</p>
+    <p v-else-if="!shelters.length" class="text-muted">Укрытия пока не добавлены.</p>
     <ol v-else ref="list" class="m-0 flex list-none flex-col gap-3 p-0">
       <li
         v-for="(s, i) in shelters"
@@ -219,6 +205,20 @@ async function endAlert(): Promise<void> {
         </div>
       </li>
     </ol>
+
+    <!-- Сначала адреса укрытий, потом инструкция: она раскрыта, читать в стрессе без лишних нажатий -->
+    <section class="card-soft rules mt-4" aria-labelledby="rules-title">
+      <h2 id="rules-title" class="m-0 flex items-center gap-2 text-base font-bold">
+        <v-icon icon="mdi-shield-alert-outline" color="deep" />
+        Что делать при тревоге
+      </h2>
+      <ol class="m-0 flex list-none flex-col gap-2 p-0 pt-2">
+        <li v-for="item in ALERT_INSTRUCTIONS" :key="item.text" class="flex items-center gap-3">
+          <v-icon :icon="item.icon" color="primary" size="24" />
+          <span>{{ item.text }}</span>
+        </li>
+      </ol>
+    </section>
 
     <section v-if="canTestAlert" class="card-soft mt-6 p-4" aria-label="Проверка оповещения">
       <h3 class="m-0 text-base font-bold">Проверка оповещения (демо)</h3>

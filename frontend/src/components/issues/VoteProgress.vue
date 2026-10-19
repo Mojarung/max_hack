@@ -58,7 +58,7 @@ onBeforeUnmount(() => tween?.kill())
         <strong class="text-on-surface">{{ count }}</strong> из {{ needed }}
         {{ plural(needed, ['голоса', 'голосов', 'голосов']) }}
       </span>
-      <span v-if="done || ratio >= 1" class="font-semibold text-success">Порог набран</span>
+      <span v-if="done || ratio >= 1" class="font-semibold text-success">Голосов хватает</span>
     </div>
   </div>
 </template>

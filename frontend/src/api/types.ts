@@ -21,6 +21,8 @@ export interface UserFull extends UserShort {
   next_level_points: number | null
   /** Житель прошёл обучалку при первом входе. */
   onboarded?: boolean
+  /** Выбор на экране аватара: «preset:N», «upload» или null (фото из MAX). */
+  avatar?: string | null
 }
 
 export interface House {
@@ -132,6 +134,9 @@ export interface ProfileOut {
     listings_active: number
   }
   achievements: { code: string; title: string; icon: string; awarded_at: string }[]
+  /** Сколько раз соседа благодарили; благодарил ли его текущий житель за сутки. */
+  thanks_count?: number
+  thanked_by_me?: boolean
 }
 
 export interface MeOut {
@@ -150,6 +155,8 @@ export interface PulseStats {
   upcoming_events: number
   active_listings: number
   active_alert: boolean
+  /** Заявки в голосовании, которые житель ещё не поддержал (свои не считаются). */
+  awaiting_my_vote?: number
 }
 
 export interface PulseOut {
@@ -270,6 +277,8 @@ export interface EventOut {
   kind_title: string
   starts_at: string
   place: string
+  /** Фото организатора, до пяти; первое - обложка. */
+  photos?: string[]
   max_participants: number | null
   participants_count: number
   joined_by_me: boolean

@@ -42,25 +42,34 @@ def make_title(text: str) -> str:
     return first[:1].upper() + first[1:] if first else "Проблема в доме"
 
 
+# Слова, которые чаще обозначают место, чем саму проблему: решают, только если других совпадений нет
+PLACE_WORDS = frozenset({"подъезд", "лестниц"})
+
+
 def classify_rules(text: str) -> Classification:
-    """Газ побеждает всегда (экстренный случай). Остальные: выигрывает категория, упомянутая раньше.
+    """Газ побеждает всегда (экстренный случай). Остальные: выигрывает категория, упомянутая раньше,
+    но слова-места («подъезд») уступают любому совпадению по сути проблемы.
 
     Житель обычно начинает с сути («Течёт крыша…»), а место и последствия пишет после
     («…лужа в подъезде»), поэтому первое упоминание надёжнее суммы совпадений.
     """
     low = _normalize(text)
-    hits: list[tuple[int, int, str]] = []
+    hits: list[tuple[int, int, int, str]] = []
     for cat in CATEGORIES:
-        positions = [low.find(k) for k in cat.keywords if k in low]
+        # «в подвале второго подъезда течёт кран»: подъезд здесь место, а не проблема подъезда
+        found = [k for k in cat.keywords if k in low]
+        strong = [k for k in found if k not in PLACE_WORDS] or found
+        positions = [low.find(k) for k in strong]
         if positions:
-            hits.append((min(positions), -len(positions), cat.code))
+            weak = all(k in PLACE_WORDS for k in strong)
+            hits.append((1 if weak else 0, min(positions), -len(positions), cat.code))
     if not hits:
         return Classification("other", make_title(text), 0.3, "rules")
     if any(code == "gas" for *_, code in hits):
         return Classification("gas", make_title(text), 0.9, "rules")
     hits.sort()
     confidence = 0.8 if len(hits) == 1 else 0.6
-    return Classification(hits[0][2], make_title(text), confidence, "rules")
+    return Classification(hits[0][3], make_title(text), confidence, "rules")
 
 
 PROMPT = """Ты классифицируешь обращения жителей многоквартирного дома.

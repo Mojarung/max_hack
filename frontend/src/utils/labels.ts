@@ -111,11 +111,11 @@ export function scoreColor(score: number): string {
 }
 
 export const ASSISTANT_TOOL_TITLES: Record<string, string> = {
-  search_issues: 'проблемы дома',
-  get_issue: 'карточку проблемы',
+  search_issues: 'заявки дома',
+  get_issue: 'заявку',
   search_events: 'события',
   create_event: 'создание события',
-  search_listings: 'барахолку',
+  search_listings: 'вещи соседей',
   find_shelters: 'укрытия',
   get_shelters: 'укрытия',
   house_pulse: 'состояние дома',

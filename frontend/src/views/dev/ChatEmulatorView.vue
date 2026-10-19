@@ -25,14 +25,20 @@ const pressing = ref<string | null>(null)
 const chatsError = ref<string | null>(null)
 const list = ref<HTMLElement | null>(null)
 
-const QUICK = [
-  '/start',
-  'Привет, Кузя!',
-  'Создай субботник в субботу в 11 у площадки',
-  'Какие проблемы в доме?',
-  'Где ближайшее укрытие?',
-  'Ты дурак, блин',
-  'Заработок от 100000 в день, пиши в личку t.me/xxx',
+// Команды подписаны по-человечески: житель видит «Меню», а боту уходит «/меню»
+const QUICK: { label: string; text: string }[] = [
+  { label: '🏠 Меню', text: '/меню' },
+  { label: '➕ Новая заявка', text: '/новая' },
+  { label: '📋 Заявки дома', text: '/проблемы' },
+  { label: '/start', text: '/start' },
+  ...[
+    'Привет, Кузя!',
+    'Создай субботник в субботу в 11 у площадки',
+    'Какие проблемы в доме?',
+    'Где ближайшее укрытие?',
+    'Ты дурак, блин',
+    'Заработок от 100000 в день, пиши в личку t.me/xxx',
+  ].map((text) => ({ label: text, text })),
 ]
 
 const chatId = computed(() => store.currentChatId)
@@ -72,15 +78,53 @@ async function scrollToEnd(): Promise<void> {
 }
 watch(() => messages.value.length, scrollToEnd)
 
+/** Фото к сообщению: уменьшаем в браузере до 1280 px, чтобы не гонять мегабайты через эмулятор. */
+const photos = ref<string[]>([])
+const fileInput = ref<HTMLInputElement | null>(null)
+const MAX_PHOTOS = 3
+
+function shrink(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = Math.min(1, 1280 / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(img.src)
+      resolve(canvas.toDataURL('image/jpeg', 0.85))
+    }
+    img.onerror = () => reject(new Error('Не удалось прочитать фото'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+async function onPhotos(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const files = Array.from(input.files ?? []).slice(0, MAX_PHOTOS - photos.value.length)
+  input.value = ''
+  try {
+    photos.value = [...photos.value, ...(await Promise.all(files.map(shrink)))]
+  } catch (e) {
+    notify.error(e, 'Фото не добавлено')
+  }
+}
+
 async function send(value?: string): Promise<void> {
   const message = (value ?? text.value).trim()
-  if (!message || chatId.value === null || me.value === null || sending.value) return
+  const attached = value === undefined ? photos.value : []
+  if ((!message && !attached.length) || chatId.value === null || me.value === null || sending.value)
+    return
   sending.value = true
   const before = messages.value.length
   const target = chatId.value
   try {
-    await devChatApi.send(target, me.value, message)
-    if (value === undefined) text.value = ''
+    await devChatApi.send(target, me.value, message, attached)
+    if (value === undefined) {
+      text.value = ''
+      photos.value = []
+    }
     haptic.impact('light')
     // Если SSE не успел доставить сообщение, добираем историю запросом
     setTimeout(() => {
@@ -262,16 +306,40 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
       <div class="chips-scroll mb-2">
         <v-chip
           v-for="q in QUICK"
-          :key="q"
+          :key="q.text"
           size="small"
           variant="outlined"
           :disabled="sending || chatId === null"
-          @click="send(q)"
+          @click="send(q.text)"
         >
-          {{ q }}
+          {{ q.label }}
         </v-chip>
       </div>
+      <div v-if="photos.length" class="mb-2 flex items-center gap-2">
+        <v-chip prepend-icon="mdi-image-outline" closable @click:close="photos = []">
+          Фото: {{ photos.length }}
+        </v-chip>
+      </div>
+      <input
+        ref="fileInput"
+        type="file"
+        accept="image/*"
+        multiple
+        class="sr-only"
+        tabindex="-1"
+        aria-hidden="true"
+        @change="onPhotos"
+      />
       <form class="flex items-end gap-2" @submit.prevent="send()">
+        <v-btn
+          icon="mdi-paperclip"
+          variant="tonal"
+          color="primary"
+          size="large"
+          :disabled="chatId === null || photos.length >= MAX_PHOTOS"
+          aria-label="Приложить фото"
+          @click="fileInput?.click()"
+        />
         <v-textarea
           v-model="text"
           placeholder="Сообщение"
@@ -290,7 +358,7 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
           color="primary"
           size="large"
           :loading="sending"
-          :disabled="!text.trim() || chatId === null"
+          :disabled="(!text.trim() && !photos.length) || chatId === null"
           aria-label="Отправить"
         />
       </form>
@@ -300,7 +368,7 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
 
 <style scoped>
 .chat-page {
-  padding-bottom: calc(var(--app-nav-height) + 150px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--nav-space) + 150px);
 }
 .chat {
   margin-top: 8px;
@@ -325,7 +393,7 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
 }
 .msg {
   padding: 7px 12px;
-  border-radius: 16px 16px 16px 4px;
+  border-radius: 20px 20px 20px 6px;
   font-size: 15.5px;
   line-height: 1.38;
   background: rgb(var(--v-theme-surface));
@@ -335,7 +403,7 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
   background: rgba(var(--v-theme-primary), 0.1);
 }
 .msg--me {
-  border-radius: 16px 16px 4px 16px;
+  border-radius: 20px 20px 6px 20px;
   color: rgb(var(--v-theme-on-primary));
   background: rgb(var(--v-theme-primary));
 }
@@ -348,7 +416,7 @@ function buttonIcon(type: ChatButton['type']): string | undefined {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--app-nav-height) + env(safe-area-inset-bottom));
+  bottom: var(--nav-space);
   z-index: 900;
   max-width: var(--app-max-width);
   margin: 0 auto;

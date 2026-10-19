@@ -45,6 +45,9 @@ export const usePulseStore = defineStore('pulse', () => {
     else softRefresh()
   })
   onRealtime('resync', softRefresh)
+  // цифра «ждут вашего голоса» меняется, когда соседи создают заявки и когда голосование закрывается
+  onRealtime('issue.created', softRefresh)
+  onRealtime('issue.updated', softRefresh)
 
   registerReset(() => {
     pulse.value = null

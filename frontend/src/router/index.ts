@@ -1,4 +1,10 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import {
+  createRouter,
+  createWebHistory,
+  type RouteLocationNormalized,
+  type RouteRecordRaw,
+} from 'vue-router'
+import { setNavDirection } from '@/composables/useMotion'
 
 export type TabKey = 'home' | 'issues' | 'market' | 'events' | 'more'
 
@@ -24,20 +30,20 @@ const routes: RouteRecordRaw[] = [
     path: '/issues',
     name: 'issues',
     component: () => import('@/views/issues/IssuesView.vue'),
-    meta: { tab: 'issues', title: 'Проблемы дома' },
+    meta: { tab: 'issues', title: 'Заявки дома' },
   },
   {
     path: '/issues/new',
     name: 'issue-new',
     component: () => import('@/views/issues/IssueNewView.vue'),
-    meta: { tab: 'issues', title: 'Новая проблема', inner: true, parent: '/issues' },
+    meta: { tab: 'issues', title: 'Новая заявка', inner: true, parent: '/issues' },
   },
   {
     path: '/issues/:id(\\d+)',
     name: 'issue',
     component: () => import('@/views/issues/IssueDetailView.vue'),
     props: (route) => ({ id: Number(route.params.id) }),
-    meta: { tab: 'issues', title: 'Проблема', inner: true, parent: '/issues' },
+    meta: { tab: 'issues', title: 'Заявка', inner: true, parent: '/issues' },
   },
   {
     path: '/market',
@@ -111,7 +117,7 @@ const routes: RouteRecordRaw[] = [
     path: '/more/mcp',
     name: 'mcp',
     component: () => import('@/views/more/McpView.vue'),
-    meta: { tab: 'more', title: 'Настройки MCP', inner: true, parent: '/more' },
+    meta: { tab: 'more', title: 'Навыки Кузи', inner: true, parent: '/more' },
   },
   {
     path: '/announcements',
@@ -165,6 +171,24 @@ export const router = createRouter({
   scrollBehavior(_to, _from, saved) {
     return saved ?? { top: 0 }
   },
+})
+
+/** Глубина экрана по цепочке parent: вкладка - 0, экран из вкладки - 1, профиль из «Соседей» - 2. */
+function depthOf(route: RouteLocationNormalized): number {
+  let depth = 0
+  let meta = route.meta
+  while (meta.inner && depth < 6) {
+    depth += 1
+    meta = router.resolve(meta.parent ?? '/').meta
+  }
+  return depth
+}
+
+// Направление анимации перехода: вглубь, назад или между вкладками (useMotion.pageEnter)
+router.beforeEach((to, from) => {
+  if (!from.matched.length) return setNavDirection('tab')
+  const delta = depthOf(to) - depthOf(from)
+  setNavDirection(delta > 0 ? 'push' : delta < 0 ? 'pop' : to.meta.inner ? 'push' : 'tab')
 })
 
 /** «Назад»: по истории, а если её нет (диплинк) - на родительский раздел. */

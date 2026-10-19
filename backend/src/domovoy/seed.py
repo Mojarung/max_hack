@@ -4,6 +4,7 @@
 """
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import structlog
 from sqlalchemy import func, select
@@ -11,6 +12,7 @@ from sqlalchemy import func, select
 from domovoy.core.config import get_settings
 from domovoy.core.db import get_sessionmaker
 from domovoy.core.embeddings import embed
+from domovoy.core.storage import save_bytes
 from domovoy.modules.events.models import Event, EventComment, EventParticipant
 from domovoy.modules.issues.catalog import category
 from domovoy.modules.issues.models import Issue, IssueUpdate, IssueVote
@@ -53,9 +55,61 @@ SHELTERS = [
 ]
 
 
+# Фото демо-заявок и вещей: файлы в demo_media (Unsplash, источники в frontend/public/demo/CREDITS.md).
+# Ключ - начало заголовка из сида, значение - файлы по порядку, первый идёт на обложку.
+DEMO_MEDIA = Path(__file__).parent / "demo_media"
+DEMO_PHOTOS = {
+    "Течёт крыша": ["roof-drip", "roof-stain"],
+    "Сломаны качели": ["swing", "swing-2"],
+    "Лифт в 3 подъезде": ["elevator"],
+    "Не вывозят мусор": ["garbage"],
+    "Не горит свет на лестнице": ["stairs-dark"],
+    "Детская коляска": ["stroller", "stroller-2", "stroller-3"],
+    "Дрель на выходные": ["drill", "drill-2", "drill-3"],
+    "Шкаф-купе": ["wardrobe", "wardrobe-2", "wardrobe-3"],
+    "Рассада помидоров": ["seedlings", "seedlings-2", "seedlings-3"],
+    "Книги для школьников": ["books", "books-2"],
+}
+
+
 async def seed_demo() -> None:
     await _seed_base()
     await _seed_extras()
+    await _seed_photos()
+
+
+def _photo_names(title: str) -> list[str]:
+    return next((names for prefix, names in DEMO_PHOTOS.items() if title.startswith(prefix)), [])
+
+
+async def _seed_photos() -> None:
+    """Догружает фото демо-заявкам и вещам без фото: и в новой базе, и в уже развёрнутой."""
+    async with get_sessionmaker()() as session:
+        demo_house_ids = select(House.id).where(House.is_demo.is_(True))
+        rows = [
+            *await session.scalars(select(Issue).where(Issue.house_id.in_(demo_house_ids))),
+            *await session.scalars(select(Listing).where(Listing.house_id.in_(demo_house_ids))),
+        ]
+        uploaded: dict[str, str] = {}
+        for row in rows:
+            names = _photo_names(row.title)
+            if row.photos or not names:
+                continue
+            keys: list[str] = []
+            for name in names:
+                path = DEMO_MEDIA / f"{name}.jpg"
+                if not path.is_file():
+                    continue
+                if name not in uploaded:
+                    try:
+                        uploaded[name] = await save_bytes("demo", path.read_bytes())
+                    except Exception:
+                        # без хранилища демо работает и без фото, просто карточки будут с иконкой
+                        log.warning("seed.photo_failed", photo=name, exc_info=True)
+                        continue
+                keys.append(uploaded[name])
+            row.photos = keys
+        await session.commit()
 
 
 async def _seed_extras() -> None:
@@ -107,7 +161,7 @@ async def _seed_extras() -> None:
                 MockChatMessage(
                     chat_id=SECOND_CHAT_ID,
                     text="Всем привет! Я Домовой Кузя, живу и в этом доме 🏠",
-                    buttons=[[{"type": "open_app", "text": "🏠 Открыть приложение дома", "payload": "home"}]],
+                    buttons=[[{"type": "open_app", "text": "🏠 Приложение дома", "payload": "home"}]],
                 )
             )
         if not first.info:
@@ -346,9 +400,9 @@ async def _seed_base() -> None:
                 chat_id=DEMO_CHAT_ID,
                 text=(
                     "Всем привет! Я Домовой Кузя 🏠 Обращайтесь ко мне по имени: "
-                    "«Кузя, какие проблемы в доме?» или «Кузя, создай субботник в субботу в 11 у площадки»."
+                    "«Кузя, какие заявки открыты?» или «Кузя, создай субботник в субботу в 11 у площадки»."
                 ),
-                buttons=[[{"type": "open_app", "text": "🏠 Открыть приложение дома", "payload": "home"}]],
+                buttons=[[{"type": "open_app", "text": "🏠 Приложение дома", "payload": "home"}]],
             )
         )
         await session.commit()

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from domovoy.agent.runtime import run_agent
 from domovoy.agent.tools import AgentContext
+from domovoy.bot import chat_flows
 from domovoy.bot.gateway import Gateway, media_of
 from domovoy.bot.identity import BOT
 from domovoy.core.config import get_settings
@@ -34,21 +35,22 @@ from domovoy.modules.users.service import (
 
 log = structlog.get_logger(__name__)
 
+# Короткое меню для общего чата: личные списки не засоряют чат дома, полное меню - в личке (/меню)
 MENU: list[list[dict[str, str]]] = [
-    [{"type": "open_app", "text": "🏠 Открыть приложение дома", "payload": "home"}],
-    [
-        {"type": "open_app", "text": "📸 Сообщить о проблеме", "payload": "new_issue"},
-        {"type": "open_app", "text": "🛡 Укрытия", "payload": "alert"},
-    ],
+    [chat_flows.button("📸 Сообщить о проблеме", "menu:report")],
+    [chat_flows.button("📋 Заявки дома", "menu:issues"), chat_flows.button("📅 События", "menu:events")],
+    [{"type": "open_app", "text": "🏠 Приложение дома", "payload": "home"}],
 ]
 HELP_TEXT = (
     "Я **Домовой Кузя**, хранитель вашего дома 🏠\n\n"
-    "• сфотографируйте проблему, соседи проголосуют, и я сам отправлю обращение ответственным;\n"
-    "• барахолка: отдайте или продайте вещь соседям;\n"
+    "• сообщите о поломке: соседи поддержат заявку голосами, и я сам отправлю обращение тому, кто за это отвечает;\n"
+    "• вещи соседей: отдайте или продайте ненужное;\n"
     "• субботники и события: напишите «Кузя, создай субботник в субботу в 11 у площадки»;\n"
     "• укрытия и оповещения о беспилотной опасности;\n"
-    "• за помощь дому начисляю очки и ачивки.\n\n"
-    "В общем чате обращайтесь ко мне по имени: «Кузя, какие проблемы в доме?». Грубость и рекламу я убираю."
+    "• за помощь дому начисляю очки и награды.\n\n"
+    "В общем чате обращайтесь ко мне по имени: «Кузя, какие заявки открыты?». Грубость и рекламу я удаляю.\n\n"
+    "Всё основное можно сделать прямо здесь, кнопками ниже или командами: /новая, /проблемы, /мои, "
+    "/события, /вещи, /укрытия, /профиль, /меню."
 )
 MENTION_RE = re.compile(r"\bкуз[яеиюь]", re.IGNORECASE)
 # Жалобы, на которые Кузя отвечает в общем чате без обращения к нему
@@ -152,14 +154,15 @@ async def on_bot_added(update: dict[str, Any], gw: Gateway) -> None:
         synced = await sync_chat(session, house)
         bot_is_admin = house.bot_is_admin
         await session.commit()
-    text = "Всем привет! Я Домовой Кузя, теперь живу в этом чате 🏠\n\n" + HELP_TEXT
+    # HELP_TEXT сам начинается с «Я Домовой Кузя», второй раз представляться не нужно
+    text = "Всем привет! Теперь я живу в этом чате.\n\n" + HELP_TEXT
     if bot_is_admin is False:
         text += (
-            "\n\n⚙️ Администраторы, сделайте меня администратором чата: так я смогу убирать спам "
-            "и узнавать соседей, чтобы дом сам появился у них в приложении."
+            "\n\n⚙️ Администраторам чата: назначьте меня администратором. Тогда я смогу удалять спам "
+            "и узнаю соседей, а дом сам появится у них в приложении."
         )
     elif synced:
-        text += f"\n\nЯ познакомился с {synced} соседями: дом уже есть у каждого в приложении."
+        text += f"\n\nЯ познакомился с соседями ({synced} чел.): дом уже есть у каждого в приложении."
     await gw.send(chat_id=chat_id, text=text, buttons=MENU)
 
 
@@ -170,7 +173,11 @@ async def on_bot_started(update: dict[str, Any], gw: Gateway) -> None:
         house = await current_house(session, db_user)
         await session.commit()
     where = f"Ваш дом: {house.title}. " if house else ""
-    await gw.send(chat_id=int(update["chat_id"]), text=f"Привет, {_name(user)}! {where}" + HELP_TEXT, buttons=MENU)
+    await gw.send(
+        chat_id=int(update["chat_id"]),
+        text=f"Привет, {_name(user)}! {where}" + HELP_TEXT,
+        buttons=chat_flows.main_menu(dm=True),
+    )
 
 
 async def on_user_added(update: dict[str, Any], gw: Gateway) -> None:
@@ -184,8 +191,8 @@ async def on_user_added(update: dict[str, Any], gw: Gateway) -> None:
     await gw.send(
         chat_id=chat_id,
         text=(
-            f"Добро пожаловать, {_name(user)}! Я Кузя, домовой. "
-            "Загляните в приложение дома: там проблемы, барахолка и события."
+            f"Добро пожаловать, {_name(user)}! Я Кузя, домовой. Если в доме что-то сломалось, нажмите кнопку ниже. "
+            "Заявки, вещи соседей и события есть в приложении дома."
         ),
         buttons=MENU[:1],
     )
@@ -230,7 +237,7 @@ async def _moderate_group_message(
     if strikes >= limit:
         warn += " Лимит предупреждений исчерпан, я сообщил администраторам чата."
         await _notify_admins(
-            session, gw, house, f"Житель {user.full_name} получил {strikes} предупреждения в чате дома."
+            session, gw, house, f"Житель {user.full_name} получил в чате дома предупреждений: {strikes}."
         )
     await gw.send(chat_id=chat_id, text=warn)
     return True
@@ -254,9 +261,10 @@ async def on_message(update: dict[str, Any], gw: Gateway) -> None:
     recipient = message.get("recipient") or {}
     body = message.get("body") or {}
     text: str = (body.get("text") or "").strip()
+    photo_urls = chat_flows.image_urls(body)
     chat_id = recipient.get("chat_id")
     is_group = recipient.get("chat_type") == "chat"
-    if chat_id is None or not text:
+    if chat_id is None or not (text or photo_urls):
         return
     chat_id = int(chat_id)
 
@@ -267,7 +275,7 @@ async def on_message(update: dict[str, Any], gw: Gateway) -> None:
             await ensure_membership(session, user, house)
             # пишет в чате дома - значит, сейчас он «в этом доме»: личка и приложение покажут его же
             user.active_house_id = house.id
-            if await _moderate_group_message(
+            if text and await _moderate_group_message(
                 session, gw, chat_id=chat_id, mid=str(body.get("mid", "")), text=text, user=user, house=house
             ):
                 return
@@ -284,15 +292,34 @@ async def on_message(update: dict[str, Any], gw: Gateway) -> None:
         role = await check_access(session, user, house) or "resident"
         await session.commit()
         user_id, house_id, house_title, full_name = user.id, house.id, house.title, user.full_name
+        who = chat_flows.Who(user=user, house=house, is_admin=role == "admin", chat_id=chat_id, is_group=is_group)
 
     low = text.lower()
+    max_user_id = int(sender.get("user_id") or 0)
+    addressed = not is_group or addressed_to_bot(text, body, message.get("link"))
     if low.startswith(("/start", "/help", "/помощь")):
-        await gw.send(chat_id=chat_id, text=HELP_TEXT, buttons=MENU)
+        await gw.send(chat_id=chat_id, text=HELP_TEXT, buttons=MENU if is_group else chat_flows.main_menu(dm=True))
         return
     if low.startswith("/app"):
         await gw.send(chat_id=chat_id, text="Приложение дома:", buttons=MENU)
         return
-    if is_group and not addressed_to_bot(text, body, message.get("link")):
+    command = chat_flows.command_of(text)
+    if command and (addressed or text.startswith("/")):
+        await chat_flows.run_command(gw, who, command)
+        return
+    clean = strip_mentions(text, body) if is_group and text else text
+    # открыт черновик заявки: описание, фото или исправление идут в него
+    if chat_flows.draft_wants(chat_id, max_user_id, has_photos=bool(photo_urls)) and (addressed or photo_urls):
+        await chat_flows.draft_message(gw, who, chat_flows.strip_kuzya(clean), photo_urls)
+        return
+    # фото Кузе в личку или с обращением в чате - это заявка: сразу показываем карточку
+    if photo_urls and addressed:
+        chat_flows.open_draft(who)
+        await chat_flows.draft_message(gw, who, chat_flows.strip_kuzya(clean), photo_urls)
+        return
+    if not text:
+        return
+    if is_group and not addressed:
         await _maybe_hint_problem(gw, chat_id=chat_id, text=text, house_id=house_id, user_id=user_id)
         return
 
@@ -301,7 +328,7 @@ async def on_message(update: dict[str, Any], gw: Gateway) -> None:
         thread_id=f"chat:{chat_id}" if is_group else f"dm:{sender.get('user_id')}",
         speaker=full_name,
         house_title=house_title,
-        text=strip_mentions(text, body) if is_group else text,
+        text=clean,
     )
     buttons = _buttons_for_tools(reply.tools_used)
     await gw.send(chat_id=chat_id, text=reply.text, buttons=buttons)
@@ -351,11 +378,10 @@ async def _maybe_hint_problem(gw: Gateway, *, chat_id: int, text: str, house_id:
     await gw.send(
         chat_id=chat_id,
         text=(
-            f"Похоже на проблему дома ({cat.title.lower()}). Сфотографируйте и отправьте заявку: "
-            "соседи поддержат, и я сам отправлю обращение ответственным. "
-            "Или напишите мне: «Кузя, заведи заявку: …»."
+            f"Похоже на поломку ({cat.title.lower()}). Нажмите кнопку ниже, и я помогу оформить заявку прямо здесь. "
+            "Соседи поддержат её, и я сам отправлю обращение тому, кто за это отвечает."
         ),
-        buttons=[[issues.app_button("📸 Сообщить о проблеме", "new_issue")]],
+        buttons=[[chat_flows.button("📸 Сообщить о проблеме", "menu:report")]],
     )
 
 
@@ -365,13 +391,13 @@ async def _default_house(session: AsyncSession) -> House | None:
 
 def _buttons_for_tools(tools: list[str]) -> list[list[dict[str, str]]] | None:
     mapping = {
-        "list_issues": ("📋 Все проблемы", "issues"),
+        "list_issues": ("📋 Заявки дома", "issues"),
         "create_issue": ("📋 Заявка в приложении", "issues"),
         "list_events": ("📅 События", "events"),
         "create_event": ("📅 Открыть событие", "events"),
-        "list_listings": ("🛍 Барахолка", "market"),
+        "list_listings": ("🛍 Вещи соседей", "market"),
         "nearest_shelters": ("🛡 Карта укрытий", "alert"),
-        "my_profile": ("🏆 Мои ачивки", "achievements"),
+        "my_profile": ("🏆 Мои награды", "achievements"),
     }
     for name in tools:
         if name in mapping:
@@ -388,6 +414,9 @@ async def on_callback(update: dict[str, Any], gw: Gateway) -> None:
     source_chat = (message.get("recipient") or {}).get("chat_id")
     mid = (message.get("body") or {}).get("mid")
     original_text = (message.get("body") or {}).get("text")
+    if chat_flows.is_flow_callback(payload):
+        await _flow_callback(update, gw, payload, callback_id, mid)
+        return
     action, _, raw_id = payload.partition(":")
     if action not in ("vote", "join") or not raw_id.isdigit():
         await gw.answer_callback(callback_id=callback_id, notification="Кнопка устарела")
@@ -405,9 +434,9 @@ async def on_callback(update: dict[str, Any], gw: Gateway) -> None:
                 is_issue_message = not issue.chat_message_id or issue.chat_message_id == mid
                 issue, reached = await issues.vote(session, issue, user, from_chat=is_issue_message)
                 note = (
-                    "Порог набран! Отправляю обращение 📨"
+                    "Голосов хватило! Отправляю обращение 📨"
                     if reached
-                    else f"Голос учтён: {issue.votes_count}/{issue.votes_needed}"
+                    else f"Голос учтён: {issue.votes_count} из {issue.votes_needed}"
                 )
                 buttons = issues.chat_buttons(issue)
                 if is_issue_message:
@@ -428,6 +457,35 @@ async def on_callback(update: dict[str, Any], gw: Gateway) -> None:
     if mid:
         # фото из исходного сообщения передаём обратно: PUT /messages заменяет все вложения
         await gw.edit(mid=mid, text=original_text, buttons=buttons, media=media_of(message.get("body")) or None)
+
+
+async def _flow_callback(update: dict[str, Any], gw: Gateway, payload: str, callback_id: str, mid: str | None) -> None:
+    """Кнопки меню, черновика и карточек: отвечаем в тот же чат, где нажали."""
+    cb = update.get("callback") or {}
+    recipient = (update.get("message") or {}).get("recipient") or {}
+    chat_id = recipient.get("chat_id")
+    if chat_id is None:
+        await gw.answer_callback(callback_id=callback_id, notification="Кнопка устарела")
+        return
+    is_group = recipient.get("chat_type") == "chat"
+    async with get_sessionmaker()() as session:
+        user = await upsert_user(session, cb.get("user") or {})
+        who = await chat_flows.resolve(session, user, int(chat_id), is_group)
+        if who is None and not is_group and get_settings().pilot_house_fallback:
+            house = await _default_house(session)
+            if house is not None:
+                await ensure_membership(session, user, house)
+                who = await chat_flows.resolve(session, user, int(chat_id), is_group)
+        await session.commit()
+    if who is None:
+        await gw.answer_callback(callback_id=callback_id, notification="Добавьте Кузю в чат вашего дома")
+        return
+    note = "Не получилось, попробуйте ещё раз"
+    try:
+        note = await chat_flows.on_callback(gw, who, payload, mid)
+    finally:
+        # без ответа кнопка в MAX так и «крутится»
+        await gw.answer_callback(callback_id=callback_id, notification=note)
 
 
 async def _join_from_house_chat(session: AsyncSession, user: User, house: House, source_chat: object) -> None:

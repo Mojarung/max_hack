@@ -39,7 +39,27 @@ INTENTS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("паспорт дома", "год постройки", "сколько этажей"), "gis_zhkh__house_passport"),
     (("укрыт", "убежищ", "бомбоуб", "беспилот", "тревог", "дрон", "бпла"), "nearest_shelters"),
     (
-        ("не работает", "сломал", "течет", "протека", "сообщи о проблем", "новая заявк", "прорвал", "засор"),
+        (
+            "не работает",
+            "сломал",
+            "течет",
+            "протека",
+            "сообщи о проблем",
+            "новая заявк",
+            "прорвал",
+            "засор",
+            # подсказки Кузи в чате советуют писать именно так: «Кузя, пахнет газом …», «заведи заявку: …»
+            "пахнет газ",
+            "запах газ",
+            "заведи заявк",
+            "создай заявк",
+            "оформи заявк",
+            "нет воды",
+            "нет света",
+            "нет горячей",
+            "не греет",
+            "застрял",
+        ),
         "create_issue",
     ),
     (("проблем", "заявк", "обращени", "жалоб"), "list_issues"),
@@ -48,6 +68,7 @@ INTENTS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("ачивк", "очк", "уровень", "рейтинг", "мой профиль", "награ"), "my_profile"),
     (("как дела", "как дом", "статус дома", "настроени", "как ты", "пульс"), "house_status"),
 )
+VOTE_RE = re.compile(r"(?:поддерж\w*|голосу\w*|голос)\s+(?:за\s+)?(?:заявк\w*\s*№?|№)\s*(\d{1,6})")
 ACTION_TOOLS = frozenset({"create_event", "create_issue", "vote_issue", "create_announcement"})
 GREETINGS = ("привет", "здравств", "добрый", "доброе", "hello", "/start", "хай", "салют")
 THANKS = ("спасибо", "благодар", "спс")
@@ -124,6 +145,10 @@ def pick_intent(text: str, tool_names: set[str] | frozenset[str]) -> tuple[str, 
     wants_event = any(w in low for w in CREATE_EVENT_WORDS) and any(w in low for w in EVENT_WORDS)
     if wants_event and "create_event" in tool_names:
         return "create_event", {"title": _event_title(low), "when": text, "place": _place(text)}
+    # «поддерживаю заявку 5», «голосую за №12» - голос текстом, без кнопки
+    vote = VOTE_RE.search(low)
+    if vote and "vote_issue" in tool_names:
+        return "vote_issue", {"issue_id": int(vote.group(1))}
     for words, tool in INTENTS:
         if tool in tool_names and any(w in low for w in words):
             if tool == "create_issue":
@@ -219,12 +244,12 @@ class StubChatModel(BaseChatModel):
                 content=(
                     f"Привет, {name}! Я Домовой Кузя, хранитель вашего дома. "
                     "Могу завести заявку о поломке, собрать соседей на субботник, "
-                    "подсказать ближайшее укрытие или найти вещь на барахолке. Чем помочь?"
+                    "подсказать ближайшее укрытие или найти вещь у соседей. Чем помочь?"
                 )
             )
         return AIMessage(
             content=(
-                f"{name}, я пока не понял, чем помочь. Попробуй так: «Какие проблемы в доме?», "
+                f"{name}, я пока не понял, чем помочь. Попробуйте так: «Какие заявки открыты?», "
                 "«Создай субботник в субботу в 11 у площадки» или «Где ближайшее укрытие?»."
             )
         )

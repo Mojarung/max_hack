@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ListingOut } from '@/api/types'
+import PhotoCarousel from '@/components/common/PhotoCarousel.vue'
 import { formatPrice } from '@/utils/format'
 import { LISTING_CATEGORY_ICONS, LISTING_STATUS_META } from '@/utils/labels'
 
@@ -12,21 +13,16 @@ defineProps<{ listing: ListingOut }>()
     class="card-soft tap-card flex flex-col overflow-hidden text-inherit no-underline"
     :aria-label="`${listing.title}, ${formatPrice(listing.price, listing.is_free)}`"
   >
-    <div class="relative aspect-square w-full bg-surface-variant">
-      <img
-        v-if="listing.photos[0]"
-        :src="listing.photos[0]"
-        alt=""
-        loading="lazy"
-        class="h-full w-full object-cover"
-      />
-      <div v-else class="flex h-full items-center justify-center">
+    <div class="relative aspect-square w-full overflow-hidden bg-surface-variant">
+      <!-- несколько фото листаются прямо в карточке, нажатие открывает объявление.
+           Для диктора и клавиатуры карточка - одна ссылка с подписью, все фото есть на экране вещи -->
+      <PhotoCarousel :photos="listing.photos" :alt="listing.title" aria-hidden="true">
         <v-icon
           :icon="LISTING_CATEGORY_ICONS[listing.category] ?? 'mdi-shape-outline'"
           size="44"
           color="primary"
         />
-      </div>
+      </PhotoCarousel>
       <v-chip
         v-if="listing.status !== 'active'"
         class="!absolute top-2 right-2"

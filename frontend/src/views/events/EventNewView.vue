@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { EventKind } from '@/api/types'
+import PhotoPicker from '@/components/common/PhotoPicker.vue'
 import { useDirtyGuard } from '@/composables/useDirtyGuard'
 import { notify } from '@/lib/notify'
 import { haptic } from '@/max/bridge'
@@ -23,6 +24,7 @@ const date = ref(isoDate(tomorrow))
 const time = ref('11:00')
 const place = ref('')
 const description = ref('')
+const photos = ref<File[]>([])
 const limited = ref(false)
 const maxParticipants = ref<string>('')
 const saving = ref(false)
@@ -48,7 +50,11 @@ const errors = computed(() => ({
       : '',
 }))
 const valid = computed(() => Object.values(errors.value).every((e) => !e))
-const dirty = computed(() => !done.value && (!!title.value || !!place.value || !!description.value))
+const dirty = computed(
+  () =>
+    !done.value &&
+    (!!title.value || !!place.value || !!description.value || photos.value.length > 0),
+)
 useDirtyGuard(dirty)
 
 function pickKind(value: EventKind): void {
@@ -81,6 +87,14 @@ async function submit(): Promise<void> {
       max_participants: limited.value ? limit.value : null,
     })
     done.value = true
+    // фото грузим вторым запросом: событие уже создано, и сбой загрузки его не отменяет
+    if (photos.value.length) {
+      try {
+        await store.addPhotos(event.id, photos.value)
+      } catch (e) {
+        notify.error(e, 'Событие создано, но фото не загрузились. Добавьте их на странице события')
+      }
+    }
     notify.success('Событие создано', 'Кузя позовёт соседей в чате дома')
     await router.replace(`/events/${event.id}`)
   } catch (e) {
@@ -94,9 +108,9 @@ async function submit(): Promise<void> {
 <template>
   <div class="page">
     <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
-      <section>
-        <h2 class="mt-0 mb-2 text-base font-bold">Что за событие?</h2>
-        <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Тип события">
+      <section class="card-soft flex flex-col gap-3 p-4">
+        <h2 class="m-0 text-base font-bold">Что за событие?</h2>
+        <div class="chips-scroll kinds" role="radiogroup" aria-label="Тип события">
           <button
             v-for="k in EVENT_KINDS"
             :key="k.value"
@@ -107,48 +121,37 @@ async function submit(): Promise<void> {
             :class="{ 'kind--on': kind === k.value }"
             @click="pickKind(k.value)"
           >
-            <v-icon :icon="k.icon" size="28" />
+            <v-icon :icon="k.icon" size="20" />
             <span>{{ k.title }}</span>
           </button>
         </div>
+        <v-text-field
+          v-model="title"
+          label="Название"
+          placeholder="Осенний субботник"
+          maxlength="120"
+          :error-messages="showErrors ? errors.title : ''"
+        />
       </section>
 
-      <v-text-field
-        v-model="title"
-        label="Название"
-        placeholder="Осенний субботник"
-        maxlength="120"
-        :error-messages="showErrors ? errors.title : ''"
-      />
+      <section class="card-soft flex flex-col gap-3 p-4">
+        <h2 class="m-0 text-base font-bold">Когда и где</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <v-text-field v-model="date" type="date" label="Дата" :min="isoDate(new Date())" />
+          <v-text-field v-model="time" type="time" label="Время" step="300" />
+        </div>
+        <p v-if="showErrors && errors.when" class="m-0 -mt-2 text-sm text-error" role="alert">
+          {{ errors.when }}
+        </p>
 
-      <div class="grid grid-cols-2 gap-3">
-        <v-text-field v-model="date" type="date" label="Дата" :min="isoDate(new Date())" />
-        <v-text-field v-model="time" type="time" label="Время" step="300" />
-      </div>
-      <p v-if="showErrors && errors.when" class="m-0 -mt-2 text-sm text-error" role="alert">
-        {{ errors.when }}
-      </p>
-
-      <v-text-field
-        v-model="place"
-        label="Место"
-        placeholder="Двор, у детской площадки"
-        prepend-inner-icon="mdi-map-marker-outline"
-        maxlength="200"
-        :error-messages="showErrors ? errors.place : ''"
-      />
-
-      <v-textarea
-        v-model="description"
-        label="Подробности"
-        placeholder="Что взять с собой, кто за что отвечает"
-        rows="3"
-        auto-grow
-        maxlength="2000"
-        counter="2000"
-      />
-
-      <div class="card-soft px-4 py-2">
+        <v-text-field
+          v-model="place"
+          label="Место"
+          placeholder="Двор, у детской площадки"
+          prepend-inner-icon="mdi-map-marker-outline"
+          maxlength="200"
+          :error-messages="showErrors ? errors.place : ''"
+        />
         <v-switch
           v-model="limited"
           color="primary"
@@ -161,10 +164,26 @@ async function submit(): Promise<void> {
           v-model="maxParticipants"
           label="Сколько человек максимум"
           inputmode="numeric"
-          class="mb-2"
           :error-messages="showErrors ? errors.limit : ''"
         />
-      </div>
+      </section>
+
+      <v-textarea
+        v-model="description"
+        label="Подробности"
+        placeholder="Что взять с собой, кто за что отвечает"
+        rows="3"
+        auto-grow
+        maxlength="2000"
+        counter="2000"
+      />
+
+      <section aria-labelledby="event-photos">
+        <h3 id="event-photos" class="mt-0 mb-2 text-base font-bold">
+          Фото <span class="text-muted font-normal">(необязательно)</span>
+        </h3>
+        <PhotoPicker v-model="photos" :max="5" />
+      </section>
 
       <v-btn
         type="submit"
@@ -182,30 +201,35 @@ async function submit(): Promise<void> {
 </template>
 
 <style scoped>
+.kinds {
+  padding-top: 2px;
+}
 .kind {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-height: 76px;
-  padding: 8px 4px;
-  border-radius: 16px;
-  border: 1.5px solid rgba(var(--v-border-color), 0.2);
-  background: rgb(var(--v-theme-surface));
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(var(--v-theme-on-surface), 0.065);
   color: inherit;
   font: inherit;
-  font-size: 14px;
+  font-size: 1rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.3s var(--ease-spring);
+}
+.kind:active {
+  transform: scale(0.95);
 }
 .kind--on {
-  border-color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.12);
-  color: rgb(var(--v-theme-primary));
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
 }
 .kind:focus-visible {
   outline: 3px solid rgb(var(--v-theme-primary));

@@ -19,6 +19,7 @@ from domovoy.modules.announcements import service as announcements
 from domovoy.modules.events import service as events
 from domovoy.modules.events.models import Event
 from domovoy.modules.issues import service as issues
+from domovoy.modules.issues.catalog import STATUS_TITLES
 from domovoy.modules.issues.models import Issue
 from domovoy.modules.market import service as market
 from domovoy.modules.market.models import Listing
@@ -77,7 +78,7 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
         user = await session.get(User, ctx.user_id)
         house = await session.get(House, ctx.house_id)
         if user is None or house is None:
-            raise HTTPException(404, "Контекст не найден")
+            raise HTTPException(404, "Не нашёл ваш дом")
         return user, house
 
     @tool
@@ -89,29 +90,29 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
         return (
             f"Здоровье дома {p.score}/100, уровень дома {p.level}. {p.phrase}\n"
             f"Открытых заявок: {s.open_issues}, просрочено: {s.overdue_issues}, решено за 30 дней: {s.resolved_30d}, "
-            f"ближайших событий: {s.upcoming_events}, объявлений на барахолке: {s.active_listings}."
+            f"ближайших событий: {s.upcoming_events}, объявлений в «Вещах соседей»: {s.active_listings}."
         )
 
     @tool
     async def list_issues(status: str = "open") -> str:
-        """Список проблем дома. status: open (открытые) или all (все)."""
+        """Список заявок дома. status: open (открытые) или all (все)."""
         async with sm() as session:
             items = await issues.list_issues(
                 session, ctx.house_id, ctx.user_id, None if status == "all" else "open", limit=50
             )
         if not items:
-            return "Открытых проблем нет. Дом в порядке!"
+            return "Открытых заявок нет. Дом в порядке!"
         lines = [
             f"№{i.id} «{i.title}» - {i.status_title}"
             + (f", голосов {i.votes_count}/{i.votes_needed}" if i.status == "voting" else "")
             + (" (срок истёк!)" if i.is_overdue else "")
             for i in items
         ]
-        return short_list(f"Проблемы дома ({len(items)})", lines, "все заявки в приложении")
+        return short_list(f"Заявки дома ({len(items)})", lines, "все заявки в приложении")
 
     @tool
     async def create_issue(description: str) -> str:
-        """Создать заявку о проблеме в доме по описанию жителя. Запускает голосование соседей."""
+        """Создать заявку о поломке в доме по описанию жителя. Запускает голосование соседей."""
         async with sm() as session:
             user, house = await load(session)
             similar = await issues.similar_issues(session, house.id, user.id, description)
@@ -119,7 +120,7 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
                 d = similar[0]
                 return (
                     f"Похожая заявка уже есть: №{d.id} «{d.title}» ({d.votes_count}/{d.votes_needed} голосов). "
-                    "Лучше поддержать её, чтобы голоса не делились: нажми «Поддерживаю» в чате или в приложении."
+                    "Лучше поддержать её, чтобы голоса не делились: нажмите «Поддерживаю» в чате или в приложении."
                 )
             issue = await issues.create_issue(session, user=user, house=house, description=description)
             org = issue.responsible_org.name if issue.responsible_org else "исполнителю"
@@ -139,8 +140,8 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
             except HTTPException as exc:
                 return str(exc.detail)
         if reached:
-            return f"Голос учтён, порог набран! Отправляю обращение по заявке №{issue.id}."
-        return f"Голос учтён: {issue.votes_count}/{issue.votes_needed}."
+            return f"Голос учтён, и голосов теперь хватает. Отправляю обращение по заявке №{issue.id}."
+        return f"Голос учтён: {issue.votes_count} из {issue.votes_needed}."
 
     @tool
     async def list_events() -> str:
@@ -151,7 +152,7 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
             return "Ближайших событий нет. Можно организовать субботник или встречу соседей!"
         lines = [
             f"№{e.id} «{e.title}» {_fmt_dt(e.starts_at)}, {e.place}, идут {e.participants_count}"
-            + (" (ты записан(а))" if e.joined_by_me else "")
+            + (" (вы записаны)" if e.joined_by_me else "")
             for e in items
         ]
         return short_list(f"Ближайшие события ({len(items)})", lines, "все события в приложении")
@@ -167,7 +168,7 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
         """
         starts_at = parse_when(when)
         if starts_at is None:
-            return "Не понял дату. Уточни, пожалуйста, день и время, например «в субботу в 11»."
+            return "Не понял дату. Уточните, пожалуйста, день и время, например «в субботу в 11»."
         if kind not in events.KINDS or kind == "other":
             kind = infer_kind(title)
         async with sm() as session:
@@ -222,7 +223,7 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
                     if not text:
                         text = (
                             f"Приглашаем всех соседей! Когда: {_fmt_dt(ev.starts_at)} (МСК). Место: {ev.place}. "
-                            "Жмите «Иду», я напомню заранее."
+                            "Нажмите «Иду», и я напомню заранее."
                         )
                 item = await announcements.create_announcement(
                     session,
@@ -250,13 +251,13 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
 
     @tool
     async def list_listings(query: str = "") -> str:
-        """Объявления барахолки дома. query: что ищем (необязательно)."""
+        """Вещи соседей: объявления «отдам» и «продам» в доме. query: что ищем (необязательно)."""
         async with sm() as session:
             items = await market.list_listings(session, ctx.house_id, ctx.user_id, q=query or None, limit=50)
         if not items:
-            return "На барахолке пока пусто по этому запросу."
+            return "В «Вещах соседей» по этому запросу пока пусто."
         lines = [f"№{i.id} «{i.title}» - {'даром' if i.is_free else f'{i.price} ₽'}" for i in items]
-        return short_list(f"Барахолка ({len(items)})", lines, "все объявления в приложении")
+        return short_list(f"Вещи соседей ({len(items)})", lines, "все объявления в приложении")
 
     @tool
     async def nearest_shelters() -> str:
@@ -267,7 +268,7 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
             alert = await safety.active_alert(session, house.id)
         head = "Сейчас действует тревога! " if alert else ""
         if not items:
-            return head + "Укрытия рядом не найдены в справочнике."
+            return head + "В справочнике нет укрытий рядом с домом."
         return (
             head
             + "Ближайшие укрытия:\n"
@@ -276,21 +277,24 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
 
     @tool
     async def my_profile() -> str:
-        """Очки, уровень и ачивки собеседника."""
+        """Очки, уровень и награды собеседника."""
         async with sm() as session:
             user, _ = await load(session)
         level, title, next_points = level_for(user.points)
         tail = f", до следующего уровня {next_points - user.points} очков" if next_points else ""
-        return f"У тебя {user.points} очков, уровень {level} «{title}»{tail}. Ачивки смотри во вкладке «Ещё»."
+        return (
+            f"У вас {user.points} очков, уровень {level} «{title}»{tail}. Награды есть в приложении, во вкладке «Ещё»."
+        )
 
     @tool
     async def search_house(query: str) -> str:
-        """Поиск по проблемам, событиям и объявлениям дома (RAG). Используй, если вопрос про конкретную тему."""
+        """Поиск по заявкам, событиям и объявлениям дома (RAG). Используй, если вопрос про конкретную тему."""
         async with sm() as session:
             found_i = await hybrid_search(session, Issue, query, where=[Issue.house_id == ctx.house_id], limit=3)
             found_e = await hybrid_search(session, Event, query, where=[Event.house_id == ctx.house_id], limit=3)
             found_l = await hybrid_search(session, Listing, query, where=[Listing.house_id == ctx.house_id], limit=3)
-        lines = [f"Заявка №{i.id} «{i.title}» ({i.status})" for i, _ in found_i]
+        # статус словами, а не кодом «voting»: строка уходит жителю как есть
+        lines = [f"Заявка №{i.id} «{i.title}» ({STATUS_TITLES.get(i.status, i.status).lower()})" for i, _ in found_i]
         lines += [f"Событие №{e.id} «{e.title}» {_fmt_dt(e.starts_at)}" for e, _ in found_e]
         lines += [f"Объявление №{x.id} «{x.title}»" for x, _ in found_l]
         return "Нашёл:\n" + "\n".join(lines) if lines else "По этому запросу ничего не нашлось."

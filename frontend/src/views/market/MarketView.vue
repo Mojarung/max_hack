@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import AppFab from '@/components/common/AppFab.vue'
 import { watchDebounced } from '@vueuse/core'
 import { computed, onMounted, ref, watch } from 'vue'
+import AnimatedList from '@/components/common/AnimatedList.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import RefreshBar from '@/components/common/RefreshBar.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import ListSkeleton from '@/components/common/ListSkeleton.vue'
+import SegmentedControl from '@/components/common/SegmentedControl.vue'
 import ListingCard from '@/components/market/ListingCard.vue'
 import { useStagger } from '@/composables/useMotion'
 import { haptic } from '@/max/bridge'
@@ -70,19 +74,12 @@ watchDebounced(
       class="mb-2"
     />
 
-    <v-btn-toggle
+    <SegmentedControl
       v-model="store.scope"
-      mandatory
-      divided
-      color="primary"
-      variant="outlined"
-      class="scope-toggle mb-2 w-full"
-      aria-label="Какие объявления показать"
-    >
-      <v-btn v-for="s in SCOPES" :key="s.value" :value="s.value" class="flex-1 px-1">
-        {{ s.title }}
-      </v-btn>
-    </v-btn-toggle>
+      class="mb-2"
+      label="Какие объявления показать"
+      :options="SCOPES.map((s) => ({ value: s.value, label: s.title }))"
+    />
 
     <div class="chips-scroll" role="toolbar" aria-label="Категории">
       <v-chip
@@ -124,53 +121,38 @@ watchDebounced(
       </v-chip>
     </div>
 
-    <v-progress-linear
-      v-if="store.loading && store.loaded"
-      indeterminate
-      color="primary"
-      height="3"
-      class="my-1"
-    />
+    <RefreshBar :active="store.loading && store.loaded" />
 
-    <div class="mt-2">
-      <ListSkeleton v-if="store.loading && !store.loaded" variant="grid" :count="6" />
-      <ErrorState
-        v-else-if="store.error && store.items.length === 0"
-        :message="store.error"
-        :retrying="store.loading"
-        @retry="store.load()"
-      />
-      <EmptyState
-        v-else-if="store.loaded && store.items.length === 0"
-        :title="isFiltered && store.scope === 'active' ? 'Ничего не нашлось' : 'Пока пусто'"
-        :text="emptyText"
-      >
-        <v-btn color="primary" size="large" to="/market/new" prepend-icon="mdi-plus"
-          >Разместить</v-btn
+    <div class="list-area mt-1">
+      <Transition name="swap" mode="out-in">
+        <ListSkeleton v-if="store.loading && !store.loaded" variant="grid" :count="6" />
+        <ErrorState
+          v-else-if="store.error && store.items.length === 0"
+          :message="store.error"
+          :retrying="store.loading"
+          @retry="store.load()"
+        />
+        <EmptyState
+          v-else-if="store.loaded && store.items.length === 0"
+          :title="isFiltered && store.scope === 'active' ? 'Ничего не нашлось' : 'Пока пусто'"
+          :text="emptyText"
         >
-      </EmptyState>
-      <div v-else ref="grid" class="grid grid-cols-2 gap-3">
-        <div v-for="listing in store.items" :key="listing.id" data-stagger class="flex">
-          <ListingCard :listing="listing" class="w-full" />
+          <v-btn color="primary" size="large" to="/market/new" prepend-icon="mdi-plus"
+            >Отдать или продать</v-btn
+          >
+        </EmptyState>
+        <div v-else ref="grid">
+          <AnimatedList class="grid grid-cols-2 gap-3">
+            <div v-for="listing in store.items" :key="listing.id" data-stagger class="flex">
+              <ListingCard :listing="listing" class="w-full" />
+            </div>
+          </AnimatedList>
         </div>
-      </div>
+      </Transition>
     </div>
 
-    <v-btn
-      to="/market/new"
-      color="primary"
-      size="large"
-      rounded="xl"
-      prepend-icon="mdi-plus"
-      class="fab"
-    >
-      Отдать или продать
-    </v-btn>
+    <AppFab icon="mdi-plus" label="Отдать или продать" to="/market/new" />
   </div>
 </template>
 
-<style scoped>
-.scope-toggle {
-  height: 48px;
-}
-</style>
+<style scoped></style>

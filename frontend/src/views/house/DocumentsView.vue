@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppFab from '@/components/common/AppFab.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { errorMessage } from '@/api/client'
 import { documentsApi } from '@/api/endpoints'
@@ -6,6 +7,7 @@ import type { DocumentOut, DocumentScope } from '@/api/types'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import ListSkeleton from '@/components/common/ListSkeleton.vue'
+import SegmentedControl from '@/components/common/SegmentedControl.vue'
 import { Drawer, DrawerContent, DrawerHeader } from '@/components/ui/drawer'
 import { notify } from '@/lib/notify'
 import { openLink } from '@/max/bridge'
@@ -139,18 +141,15 @@ async function upload(): Promise<void> {
 
 <template>
   <div class="page page--with-fab">
-    <v-btn-toggle
+    <SegmentedControl
       v-model="tab"
-      mandatory
-      divided
-      color="primary"
-      variant="outlined"
-      class="doc-tabs mb-3 w-full"
-      aria-label="Какие документы показать"
-    >
-      <v-btn value="house" class="flex-1" prepend-icon="mdi-home-city-outline">Дома</v-btn>
-      <v-btn value="personal" class="flex-1" prepend-icon="mdi-lock-outline">Мои</v-btn>
-    </v-btn-toggle>
+      class="mb-3"
+      label="Какие документы показать"
+      :options="[
+        { value: 'house', label: 'Дома', icon: 'mdi-home-city-outline' },
+        { value: 'personal', label: 'Мои', icon: 'mdi-lock-outline' },
+      ]"
+    />
     <p class="text-muted mt-0 mb-3 text-sm">
       {{
         tab === 'house'
@@ -182,8 +181,8 @@ async function upload(): Promise<void> {
         Загрузить
       </v-btn>
     </EmptyState>
-    <ul v-else class="m-0 flex list-none flex-col gap-2 p-0">
-      <li v-for="d in items" :key="d.id" class="card-soft flex items-center gap-2 p-2 pl-3">
+    <ul v-else class="group-list m-0 list-none p-0" style="--group-inset: 56px">
+      <li v-for="d in items" :key="d.id" class="flex items-center gap-2 p-2 pl-3">
         <button
           type="button"
           class="doc-row min-w-0 flex-1"
@@ -218,17 +217,12 @@ async function upload(): Promise<void> {
       </li>
     </ul>
 
-    <v-btn
+    <AppFab
       v-if="(tab === 'personal' || session.isAdmin) && items.length > 0"
-      color="primary"
-      size="large"
-      rounded="xl"
-      prepend-icon="mdi-upload"
-      class="fab"
+      icon="mdi-upload"
+      label="Загрузить"
       @click="startUpload"
-    >
-      Загрузить
-    </v-btn>
+    />
 
     <!-- Удаление необратимо: спрашиваем, как у объявлений -->
     <Drawer v-model:open="deleteOpen">
@@ -304,9 +298,6 @@ async function upload(): Promise<void> {
 </template>
 
 <style scoped>
-.doc-tabs {
-  height: 48px;
-}
 .doc-row {
   display: flex;
   min-height: 52px;

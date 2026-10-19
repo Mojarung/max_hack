@@ -40,17 +40,17 @@ def vote_buttons(issue: Issue) -> list[list[dict[str, str]]]:
 
 def issue_chat_text(issue: Issue) -> str:
     """Текст сообщения заявки в чате дома. Им же бот обновляет сообщение после каждого голоса."""
-    org = issue.responsible_org.name if issue.responsible_org else "исполнителю"
-    head = f"🏠 Проблема: **{issue.title}**\n{issue.author.full_name}: {issue.description[:300]}"
+    org = issue.responsible_org.name if issue.responsible_org else "ответственная служба"
+    head = f"🏠 Заявка №{issue.id}: **{issue.title}**\n{issue.author.full_name}: {issue.description[:300]}"
     if issue.status == "voting":
         left = max(issue.votes_needed - issue.votes_count, 0)
         return (
             f"{head}\n\nПоддержали {issue.votes_count} из {issue.votes_needed}, нужно ещё {left}. "
-            f"Когда голосов хватит, я сам отправлю обращение: {org}."
+            f"Когда голосов хватит, я сам отправлю обращение. Кому: {org}."
         )
     if issue.status in ("resolved", "rejected"):
         return f"{head}\n\n{STATUS_TITLES.get(issue.status, issue.status)}. Спасибо всем, кто поддержал!"
-    return f"{head}\n\n✅ Голоса собраны ({issue.votes_count}). Обращение отправлено: {org}. Слежу за сроком."
+    return f"{head}\n\n✅ Голоса собраны ({issue.votes_count}), обращение составлено. Кому: {org}. Слежу за сроком."
 
 
 async def responsible_org(session: AsyncSession, house: House, org_kind: str) -> Organization | None:
@@ -102,7 +102,7 @@ async def create_issue(
 ) -> Issue:
     description = description.strip()
     if len(description) < 5:
-        raise HTTPException(422, "Опишите проблему хотя бы парой слов")
+        raise HTTPException(422, "Опишите хотя бы парой слов, что случилось")
     result = await classify(description if not title else f"{title}. {description}")
     cat = category(result.category)
     org = await responsible_org(session, house, cat.org_kind)
@@ -253,7 +253,7 @@ async def set_status(session: AsyncSession, issue: Issue, user: User, is_admin: 
     if status == "resolved" and issue.house.max_chat_id:
         await bus.bot_send(
             chat_id=issue.house.max_chat_id,
-            text=f"🎉 Проблема решена: **{issue.title}**. Спасибо всем, кто голосовал! Кузя доволен.",
+            text=f"🎉 Решено: **{issue.title}**. Спасибо всем, кто поддержал заявку!",
         )
     return issue
 

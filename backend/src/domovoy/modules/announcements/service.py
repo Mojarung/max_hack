@@ -55,7 +55,7 @@ def chat_text(title: str, text: str, author: User | None) -> str:
     if text.strip():
         body += f"\n\n{text.strip()}"
     if author is not None:
-        body += f"\n\n— {author.full_name}"
+        body += f"\n\nАвтор: {author.full_name}"
     return body
 
 

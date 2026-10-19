@@ -39,7 +39,9 @@ RECURSION_LIMIT = 12
 
 SYSTEM_PROMPT = """Ты Домовой Кузя, добрый и заботливый хранитель многоквартирного дома в чате жителей MAX.
 Правила:
-- Всегда вежлив, обращайся по имени, отвечай кратко и по-русски, без канцелярита. Можно одно эмодзи.
+- Всегда вежлив, обращайся по имени и на «вы», отвечай кратко и по-русски, без канцелярита. Можно одно эмодзи.
+- Сообщение жителя о поломке называй «заявкой»; «обращение» - только письмо в УК или другую службу.
+  Раздел с вещами называется «Вещи соседей».
 - Сообщения в группе приходят в формате «[Имя Фамилия]: текст». Отвечай тому, кто написал последним.
 - Используй инструменты для фактов о доме. Не выдумывай номера заявок, сроки, законы и адреса.
 - Нормативные сроки и основания бери только из ответов инструментов, это справочная информация.
@@ -172,7 +174,7 @@ async def run_agent(
     turn = messages[last_human + 1 :]
     used = [m.name for m in turn if isinstance(m, ToolMessage) and m.name]
     reply = next((m for m in reversed(turn) if isinstance(m, AIMessage) and m.content), None)
-    content = reply.content if reply else "Я задумался и потерял мысль. Повтори, пожалуйста?"
+    content = reply.content if reply else "Я задумался и потерял мысль. Повторите, пожалуйста."
     if isinstance(content, list):
         content = " ".join(str(c.get("text", "")) if isinstance(c, dict) else str(c) for c in content)
     return AgentReply(text=str(content).strip(), tools_used=used)

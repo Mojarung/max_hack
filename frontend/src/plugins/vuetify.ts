@@ -134,13 +134,16 @@ export const vuetify = createVuetify({
       },
     },
   },
+  // Форма как в iOS 26: кнопки и чипы - капсулы, карточки и поля со скруглением из шкалы main.css
   defaults: {
-    VBtn: { rounded: 'lg' },
+    VBtn: { rounded: 'pill' },
     VCard: { rounded: 'xl' },
-    VTextField: { variant: 'outlined', rounded: 'lg', color: 'primary', hideDetails: 'auto' },
-    VTextarea: { variant: 'outlined', rounded: 'lg', color: 'primary', hideDetails: 'auto' },
-    VSelect: { variant: 'outlined', rounded: 'lg', color: 'primary', hideDetails: 'auto' },
-    VChip: { rounded: 'lg' },
+    // Поля - мягкие плашки без рамки (как в настройках iOS), фокус - синее кольцо в main.css
+    VTextField: { variant: 'solo-filled', flat: true, color: 'primary', hideDetails: 'auto' },
+    VTextarea: { variant: 'solo-filled', flat: true, color: 'primary', hideDetails: 'auto' },
+    VSelect: { variant: 'solo-filled', flat: true, color: 'primary', hideDetails: 'auto' },
+    VAutocomplete: { variant: 'solo-filled', flat: true, color: 'primary', hideDetails: 'auto' },
+    VChip: { rounded: 'pill' },
     VProgressLinear: { rounded: true },
   },
 })

@@ -18,7 +18,8 @@ from domovoy.core.storage import read_object
 
 router = APIRouter()
 
-KEY_RE = re.compile(r"^(issues|listings)/[0-9a-f]{32}\.jpg$")
+# Ключи, которые кладёт save_bytes: папка, у фото из чата и аватарок ещё номер дома или жителя
+KEY_RE = re.compile(r"^(issues|listings|events|avatars|demo)(/\d{1,10})?/[0-9a-f]{32}\.jpg$")
 PING_SECONDS = 15
 
 

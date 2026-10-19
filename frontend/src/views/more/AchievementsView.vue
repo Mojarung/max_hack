@@ -5,12 +5,13 @@ import { achievementsApi } from '@/api/endpoints'
 import type { AchievementOut, AchievementsOut } from '@/api/types'
 import AnimatedNumber from '@/components/common/AnimatedNumber.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
+import SegmentedControl from '@/components/common/SegmentedControl.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useStagger } from '@/composables/useMotion'
 import { onRealtime } from '@/realtime/sse'
 import { useSessionStore } from '@/stores/session'
-import { formatDate, fullName } from '@/utils/format'
+import { formatDate, fullName, plural, pluralize } from '@/utils/format'
 
 const session = useSessionStore()
 const data = ref<AchievementsOut | null>(null)
@@ -18,6 +19,7 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const selected = ref<AchievementOut | null>(null)
 const grid = ref<HTMLElement | null>(null)
+const tab = ref<'badges' | 'top'>('badges')
 
 const earned = computed(() => data.value?.items.filter((a) => a.earned).length ?? 0)
 const total = computed(() => data.value?.items.length ?? 0)
@@ -70,7 +72,7 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
           <div class="text-2xl font-extrabold text-primary">
             <AnimatedNumber :value="user.points" />
           </div>
-          <div class="text-muted text-sm">очков</div>
+          <div class="text-muted text-sm">{{ plural(user.points, ['очко', 'очка', 'очков']) }}</div>
         </div>
       </div>
       <v-progress-linear
@@ -81,7 +83,10 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
         aria-label="Прогресс до следующего уровня"
       />
       <div v-if="user.next_level_points" class="text-muted mt-1 text-sm">
-        До следующего уровня: {{ Math.max(0, user.next_level_points - user.points) }} очков
+        До следующего уровня:
+        {{
+          pluralize(Math.max(0, user.next_level_points - user.points), ['очко', 'очка', 'очков'])
+        }}
       </div>
     </section>
 
@@ -91,19 +96,16 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
     <ErrorState v-else-if="error && !data" :message="error" :retrying="loading" @retry="load" />
 
     <template v-else-if="data">
-      <div class="mt-5 flex items-baseline justify-between">
-        <h2 class="section-title !my-0">Награды</h2>
-        <span class="text-muted text-sm">{{ earned }} из {{ total }}</span>
-      </div>
-      <v-progress-linear
-        :model-value="total ? (earned / total) * 100 : 0"
-        color="primary"
-        height="6"
-        class="mt-2 mb-3"
-        aria-label="Сколько наград получено"
+      <SegmentedControl
+        v-model="tab"
+        class="mt-4 mb-3"
+        label="Что показать"
+        :options="[
+          { value: 'badges', label: `Награды ${earned} из ${total}` },
+          { value: 'top', label: 'Рейтинг соседей' },
+        ]"
       />
-
-      <div ref="grid" class="grid grid-cols-3 gap-3">
+      <div v-if="tab === 'badges'" ref="grid" class="grid grid-cols-3 gap-3">
         <button
           v-for="a in sorted"
           :key="a.code"
@@ -115,15 +117,16 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
           @click="selected = a"
         >
           <span class="badge__icon">
-            <v-icon :icon="a.earned ? a.icon : 'mdi-lock-outline'" size="30" />
+            <v-icon :icon="a.icon" size="30" />
+            <v-icon v-if="!a.earned" class="badge__lock" icon="mdi-lock" size="16" />
           </span>
           <span class="badge__title">{{ a.title }}</span>
-          <span class="text-muted text-sm">+{{ a.points }}</span>
+          <span v-if="a.earned" class="text-muted text-sm">+{{ a.points }}</span>
+          <!-- условие видно сразу, без нажатия: как открыть награду -->
+          <span v-else class="badge__hint">{{ a.description }}</span>
         </button>
       </div>
-
-      <h2 class="section-title">Рейтинг соседей</h2>
-      <ol class="card-soft m-0 list-none p-0">
+      <ol v-else class="group-list m-0 list-none p-0">
         <li v-for="row in data.leaderboard" :key="row.user.id">
           <router-link
             :to="`/people/${row.user.id}`"
@@ -156,7 +159,7 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
       <v-card v-if="selected" rounded="xl" class="p-2 text-center">
         <v-card-text>
           <v-avatar :color="selected.earned ? 'warning' : 'surface-variant'" size="72">
-            <v-icon :icon="selected.earned ? selected.icon : 'mdi-lock-outline'" size="40" />
+            <v-icon :icon="selected.icon" size="40" />
           </v-avatar>
           <h3 class="mt-3 mb-1 text-lg font-bold">{{ selected.title }}</h3>
           <p class="m-0">{{ selected.description }}</p>
@@ -165,7 +168,9 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
               >Получено {{ formatDate(selected.awarded_at) }}</template
             >
             <template v-else-if="!selected.earned"
-              >Ещё не получено · +{{ selected.points }} очков</template
+              >Ещё не получено · +{{
+                pluralize(selected.points, ['очко', 'очка', 'очков'])
+              }}</template
             >
           </p>
         </v-card-text>
@@ -178,13 +183,32 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
 </template>
 
 <style scoped>
+.badge__lock {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  padding: 2px;
+  border-radius: 50%;
+  background: rgb(var(--v-theme-surface));
+  color: rgba(var(--v-theme-on-surface), 0.7);
+}
+.badge__hint {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  text-align: center;
+  color: rgba(var(--v-theme-on-surface), var(--muted-alpha));
+}
 .badge {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   padding: 12px 6px 10px;
-  border-radius: 18px;
+  border-radius: var(--r-md);
   border: 1px solid rgba(var(--v-border-color), 0.1);
   background: rgb(var(--v-theme-surface));
   color: inherit;
@@ -192,6 +216,7 @@ const MEDALS = ['#00B4D8', '#90E0EF', '#0077B6']
   cursor: pointer;
 }
 .badge__icon {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;

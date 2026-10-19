@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import PhotoCarousel from '@/components/common/PhotoCarousel.vue'
 
 defineProps<{ photos: string[]; alt: string; height?: number }>()
 
@@ -14,25 +15,12 @@ function show(i: number): void {
 
 <template>
   <div v-if="photos.length" class="gallery">
-    <div class="chips-scroll !gap-2 !pb-1" role="list" :aria-label="`Фото: ${alt}`">
-      <button
-        v-for="(src, i) in photos"
-        :key="src"
-        type="button"
-        role="listitem"
-        class="gallery__item tap-card shrink-0 overflow-hidden rounded-2xl border-0 bg-surface-variant p-0"
-        :class="photos.length === 1 ? 'w-full' : 'w-[82%]'"
-        :style="{ height: `${height ?? 240}px` }"
-        :aria-label="`Открыть фото ${i + 1} из ${photos.length}`"
-        @click="show(i)"
-      >
-        <img
-          :src="src"
-          :alt="`${alt}, фото ${i + 1}`"
-          class="h-full w-full object-cover"
-          loading="lazy"
-        />
-      </button>
+    <!-- кадр во всю ширину, соседние фото листаются свайпом, нажатие открывает на весь экран -->
+    <div
+      class="gallery__frame overflow-hidden rounded-3xl bg-surface-variant"
+      :style="{ height: `${height ?? 240}px` }"
+    >
+      <PhotoCarousel :photos="photos" :alt="alt" focusable @open="show" />
     </div>
 
     <v-dialog v-model="open" fullscreen transition="fade-transition">
@@ -62,7 +50,7 @@ function show(i: number): void {
 </template>
 
 <style scoped>
-.gallery__item {
-  scroll-snap-align: start;
+.gallery__frame {
+  cursor: zoom-in;
 }
 </style>

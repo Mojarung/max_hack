@@ -45,6 +45,14 @@ export const meApi = {
   pulse: () => api<PulseOut>('/house/pulse'),
   devUsers: () => api<DevUser[]>('/dev/users', { timeoutMs: 6000 }),
   onboarded: () => api<MeOut>('/me/onboarded', { method: 'POST' }),
+  /** Готовая картинка 1..9 вместо фото; null - вернуть фото из MAX. */
+  setAvatar: (preset: number | null) =>
+    api<MeOut>('/me/avatar', { method: 'PUT', body: { preset } }),
+  uploadAvatar: (file: File, onProgress?: (fraction: number) => void) => {
+    const form = new FormData()
+    form.append('photo', file)
+    return upload<MeOut>('/me/avatar/photo', form, onProgress)
+  },
 }
 
 export const houseApi = {
@@ -80,6 +88,11 @@ export const documentsApi = {
 export const peopleApi = {
   list: () => api<Neighbour[]>('/people'),
   profile: (id: number) => api<ProfileOut>(`/people/${id}`),
+  /** Спасибо соседу: +5 очков ему, раз в сутки. */
+  thank: (id: number) => api<ProfileOut>(`/people/${id}/thanks`, { method: 'POST' }),
+  /** Кузя перешлёт сообщение соседу в личку MAX. */
+  message: (id: number, text: string) =>
+    api<{ ok: boolean }>(`/people/${id}/message`, { method: 'POST', body: { text } }),
 }
 
 export const issuesApi = {
@@ -136,6 +149,16 @@ export const eventsApi = {
   list: (scope: 'upcoming' | 'past') => api<EventOut[]>('/events', { query: { scope } }),
   get: (id: number) => api<EventDetail>(`/events/${id}`),
   create: (body: EventIn) => api<EventDetail>('/events', { method: 'POST', body }),
+  /** Организатор дописывает описание уже созданного события. */
+  update: (id: number, description: string) =>
+    api<EventDetail>(`/events/${id}`, { method: 'PATCH', body: { description } }),
+  addPhotos: (id: number, files: File[], onProgress?: (fraction: number) => void) => {
+    const form = new FormData()
+    for (const f of files) form.append('photos', f)
+    return upload<EventDetail>(`/events/${id}/photos`, form, onProgress)
+  },
+  removePhoto: (id: number, index: number) =>
+    api<EventDetail>(`/events/${id}/photos/${index}`, { method: 'DELETE' }),
   join: (id: number) => api<EventDetail>(`/events/${id}/join`, { method: 'POST' }),
   leave: (id: number) => api<EventDetail>(`/events/${id}/join`, { method: 'DELETE' }),
   comments: (id: number) => api<CommentOut[]>(`/events/${id}/comments`),
@@ -172,10 +195,11 @@ export const devChatApi = {
   chats: () => api<DevChat[]>('/dev/chats'),
   messages: (chatId: number) =>
     api<ChatMessage[]>('/dev/chat/messages', { query: { chat_id: chatId } }),
-  send: (chatId: number, userId: number, text: string) =>
+  /** Фото - data:-ссылки: бот получит их вложениями, как из настоящего MAX. */
+  send: (chatId: number, userId: number, text: string, photos: string[] = []) =>
     api<OkOut>('/dev/chat/send', {
       method: 'POST',
-      body: { chat_id: chatId, user_id: userId, text },
+      body: { chat_id: chatId, user_id: userId, text, photos },
       timeoutMs: 60_000,
     }),
   callback: (chatId: number, userId: number, messageId: string, payload: string) =>
