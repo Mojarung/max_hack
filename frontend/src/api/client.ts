@@ -143,6 +143,8 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   const timer = setTimeout(() => controller.abort('timeout'), timeoutMs)
   const onAbort = () => controller.abort('aborted')
   signal?.addEventListener('abort', onAbort, { once: true })
+  // сигнал отменили ещё до вызова: событие abort уже не придёт, отменяем сразу
+  if (signal?.aborted) onAbort()
 
   let response: Response
   try {

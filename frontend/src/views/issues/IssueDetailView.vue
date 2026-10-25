@@ -26,6 +26,7 @@ import {
   orgTitle,
   orgTitleCap,
   plainOrgWords,
+  plural,
   pluralize,
 } from '@/utils/format'
 import { ISSUE_STATUS_META, ISSUE_STATUS_TITLES, issueCategoryIcon } from '@/utils/labels'
@@ -238,7 +239,8 @@ async function share(text: string | null | undefined): Promise<void> {
         <VoteProgress :count="issue.votes_count" :needed="issue.votes_needed" />
         <p class="mt-3 mb-4">
           <template v-if="remaining > 0">
-            <strong>Пока не чинят:</strong> обращение ещё не отправлено. Когда поддержат ещё
+            <strong>Пока не чинят:</strong> обращение ещё не отправлено. Когда
+            {{ plural(remaining, ['поддержит', 'поддержат', 'поддержат']) }} ещё
             <strong>{{ pluralize(remaining, ['сосед', 'соседа', 'соседей']) }}</strong
             >, Кузя отправит его {{ orgTo }}.
           </template>
