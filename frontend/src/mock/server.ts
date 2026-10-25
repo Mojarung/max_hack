@@ -21,6 +21,7 @@ import type {
   IssueDetail,
   IssueOut,
   ListingOut,
+  McpServerOut,
   MeOut,
   Mood,
   PulseOut,
@@ -46,11 +47,17 @@ import { scenario } from './scenario'
 import { haversine } from '@/utils/format'
 import { LISTING_CATEGORY_TITLES } from '@/utils/labels'
 
-const users = buildUsers(scenario)
-let me = scenario.role === 'admin' ? users[1]! : users[0]!
+let users = buildUsers(scenario)
+let me = pickMe()
 /** Кто кого поблагодарил в этой вкладке: «кто:кому». */
 const thanked = new Set<string>()
 const needed = Math.max(3, Math.ceil((HOUSE.members_count * HOUSE.vote_threshold_pct) / 100))
+
+function pickMe(): (typeof users)[number] {
+  const picked = scenario.role === 'admin' ? users[1]! : users[0]!
+  picked.onboarded = !scenario.onboarding
+  return picked
+}
 
 /** Второй дом того же жителя: видно переключение домов. */
 const HOUSE2: House = {
@@ -62,24 +69,29 @@ const HOUSE2: House = {
   info: '',
   setup_done: true,
 }
-const houses: House[] = [
-  {
-    ...HOUSE,
-    info: 'Диспетчерская УК: +7 (8422) 00-00-01, круглосуточно.\nПредседатель совета дома: Анна Петрова, кв. 12.',
-    uk_email: 'uk@example.org',
-    uk_phone: '+7 (8422) 00-00-01',
-    setup_done: !scenario.setup,
-    has_chat: true,
-    bot_is_admin: true,
-    is_demo: true,
-  },
-  HOUSE2,
-]
-if (scenario.setup) Object.assign(houses[0]!, { address: '', uk_name: null, info: '' })
-me.onboarded = !scenario.onboarding
+
+function buildHouses(): House[] {
+  const list: House[] = [
+    {
+      ...HOUSE,
+      info: 'Диспетчерская УК: +7 (8422) 00-00-01, круглосуточно.\nПредседатель совета дома: Анна Петрова, кв. 12.',
+      uk_email: 'uk@example.org',
+      uk_phone: '+7 (8422) 00-00-01',
+      setup_done: !scenario.setup,
+      has_chat: true,
+      bot_is_admin: true,
+      is_demo: true,
+    },
+    { ...HOUSE2 },
+  ]
+  if (scenario.setup) Object.assign(list[0]!, { address: '', uk_name: null, info: '' })
+  return list
+}
+
+let houses = buildHouses()
 const currentHouse = (): House => houses.find((h) => h.id === getHouseId()) ?? houses[0]!
 
-const db = {
+const buildDb = () => ({
   announcements: [
     {
       id: 901,
@@ -132,8 +144,11 @@ const db = {
   comments: buildComments(users),
   achievements: buildAchievements(scenario),
   alert: buildAlert(scenario) as AlertOut | null,
+  mcpServers: MCP_SERVERS.map((m) => ({ ...m })),
   nextId: 1000,
-}
+})
+
+let db = buildDb()
 
 type Query = Record<string, string | number | boolean | null | undefined>
 type Body = Record<string, unknown>
@@ -203,6 +218,19 @@ const matches = (q: unknown, ...fields: string[]) => {
 
 /** Кто поддержал заявку: в демо жителей переключают, и голос у каждого свой. */
 const voters = new Map<number, Set<number>>()
+
+/**
+ * Возвращает «базу» к исходным данным текущего сценария, как перезагрузка вкладки.
+ * Приложение это не вызывает: нужно тестам, чтобы каждый начинал с чистого дома.
+ */
+export function resetMockState(): void {
+  users = buildUsers(scenario)
+  me = pickMe()
+  thanked.clear()
+  voters.clear()
+  houses = buildHouses()
+  db = buildDb()
+}
 
 function votersOf(i: IssueDetail): Set<number> {
   let set = voters.get(i.id)
@@ -785,7 +813,31 @@ const routes: [string, RegExp, Handler][] = [
     }),
   ],
 
-  ['GET', /^\/mcp\/servers$/, () => MCP_SERVERS],
+  ['GET', /^\/mcp\/servers$/, () => db.mcpServers],
+  [
+    'POST',
+    /^\/mcp\/servers$/,
+    (_, __, b) => {
+      const server: McpServerOut = {
+        id: db.nextId++,
+        name: String(b.name ?? ''),
+        transport: b.transport === 'sse' ? 'sse' : 'streamable_http',
+        url: String(b.url ?? ''),
+        enabled: true,
+        has_headers: !!b.headers && Object.keys(b.headers as object).length > 0,
+      }
+      db.mcpServers.push(server)
+      return server
+    },
+  ],
+  [
+    'DELETE',
+    /^\/mcp\/servers\/(\d+)$/,
+    ([id]) => {
+      db.mcpServers = db.mcpServers.filter((m) => m.id !== Number(id))
+      return null
+    },
+  ],
   [
     'GET',
     /^\/mcp\/servers\/(\d+)\/tools$/,

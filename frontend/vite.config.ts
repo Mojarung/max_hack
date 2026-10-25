@@ -13,7 +13,12 @@ export default defineConfig(({ mode }) => {
     base: '/',
     // npm run dev:mock: фронтенд без бэкенда на данных из src/mock
     define: mode === 'mock' ? { 'import.meta.env.VITE_MOCK_API': JSON.stringify('true') } : {},
-    plugins: [vue(), vuetify({ autoImport: true }), tailwindcss()],
+    plugins: [
+      // В тестах картинки из public (src="/kuzya-head.png") остаются строками: Node их не импортирует
+      vue(mode === 'test' ? { template: { transformAssetUrls: { includeAbsolute: false } } } : {}),
+      vuetify({ autoImport: true }),
+      tailwindcss(),
+    ],
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     },
@@ -52,6 +57,28 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'jsdom',
       include: ['src/**/*.test.ts'],
+      // экраны в тестах ходят в мок-бэкенд src/mock, как в npm run dev:mock
+      env: { VITE_MOCK_API: 'true', TZ: 'Europe/Ulyanovsk' },
+      setupFiles: ['src/test/setup.ts'],
+      // vuetify импортирует свои .css: пусть их обработает Vite, а не Node
+      server: { deps: { inline: ['vuetify'] } },
+      restoreMocks: true,
+      unstubGlobals: true,
+      coverage: {
+        provider: 'v8',
+        include: ['src/**/*.{ts,vue}'],
+        exclude: [
+          'src/mock/**',
+          'src/main.ts',
+          'src/test/**',
+          '**/*.test.ts',
+          'src/components/ui/**',
+          'src/**/sprites/**',
+          'src/**/*.d.ts',
+        ],
+        reporter: ['text', 'text-summary', 'html'],
+        reportsDirectory: 'coverage',
+      },
     },
   }
 })

@@ -143,3 +143,56 @@ describe('boldSegments', () => {
     expect(boldSegments('')).toEqual([])
   })
 })
+
+describe('даты, имена и расстояния', () => {
+  // время в тестах по Ульяновску (TZ в vite.config.ts)
+  const now = new Date('2026-10-21T10:00:00+04:00').getTime()
+  const MIN = 60_000
+
+  it('относительное время по-человечески', async () => {
+    const { formatRelative } = await import('./format')
+    expect(formatRelative(new Date(now - 20_000), now)).toBe('только что')
+    expect(formatRelative(new Date(now - 5 * MIN), now)).toBe('5 мин назад')
+    expect(formatRelative(new Date(now - 3 * 60 * MIN), now)).toBe('3 ч назад')
+    expect(formatRelative(new Date(now - 30 * 60 * MIN), now)).toBe('вчера')
+    expect(formatRelative('2026-10-12T09:00:00+04:00', now)).toBe('12 октября')
+  })
+
+  it('дата и время события', async () => {
+    const { formatDate, formatDateTime, formatTime } = await import('./format')
+    const start = '2026-10-24T10:00:00+04:00'
+    expect(formatDate(start)).toBe('24 октября')
+    expect(formatTime(start)).toBe('10:00')
+    expect(formatDateTime(new Date(start))).toMatch(/^сб, 24 октября,? (в )?10:00$/)
+  })
+
+  it('число со словом', async () => {
+    const { pluralize } = await import('./format')
+    expect(pluralize(1, ['голос', 'голоса', 'голосов'])).toBe('1 голос')
+    expect(pluralize(12, ['голос', 'голоса', 'голосов'])).toBe('12 голосов')
+  })
+
+  it('имя и инициалы жителя', async () => {
+    const { fullName, initials } = await import('./format')
+    expect(fullName({ first_name: 'Анна', last_name: 'Петрова' })).toBe('Анна Петрова')
+    expect(fullName({ first_name: 'Ильдар', last_name: null })).toBe('Ильдар')
+    expect(fullName({ first_name: '', last_name: '' })).toBe('Житель')
+    expect(fullName(null)).toBe('Житель')
+    expect(initials({ first_name: 'анна', last_name: 'петрова' })).toBe('АП')
+    expect(initials({ first_name: '', last_name: null })).toBe('?')
+    expect(initials(undefined)).toBe('?')
+  })
+
+  it('расстояние между точками на карте', async () => {
+    const { haversine } = await import('./format')
+    expect(haversine(54.3857, 48.6072, 54.3857, 48.6072)).toBe(0)
+    // один градус широты - около 111 км
+    expect(Math.round(haversine(54, 48, 55, 48) / 1000)).toBe(111)
+  })
+
+  it('пустое название организации', async () => {
+    const { capitalize, orgTitleCap } = await import('./format')
+    expect(orgTitleCap('')).toBe('')
+    expect(capitalize('')).toBe('')
+  })
+})
