@@ -87,6 +87,7 @@
   ul.big li { font-size: 22px; margin-bottom: 8px; }
   .plaque { background: var(--teal-soft); border-radius: var(--r-in); padding: 14px 18px; font-size: 17px; line-height: 1.4; }
   .compact td { padding: 6px 14px 6px 0; }
+  ul.tight li { font-size: 18px; margin-bottom: 4px; }
   .ready td { padding: 6px 12px 6px 0; } .ready .chip { font-size: 13px; padding: 3px 9px; }
   .qr { width: 196px; height: 196px; background: #FFFFFF; border-radius: var(--r-in); padding: 12px; display: block; }
 </style>
@@ -198,12 +199,13 @@
   <h2>Всё основное доступно прямо в чате, без перехода в мини-приложение</h2>
   <div class="bento" style="grid-template-rows: 1fr 1fr">
     <div class="c" style="grid-column: 1 / 5; grid-row: 1 / 3">
-      <p class="lead">Для бытовых вопросов жителю не нужно открывать приложение: всё работает кнопками в чате MAX.</p>
-      <ul style="margin-top:16px">
+      <p class="lead">Жителю не нужно открывать приложение: всё работает кнопками в чате MAX.</p>
+      <ul style="margin-top:14px" class="tight">
         <li>заявка с фото и карточкой проверки</li>
         <li>голосование соседей, отправка обращения в УК и жалоба в ГЖИ</li>
         <li>список заявок дома, события и объявления соседей</li>
         <li>адреса ближайших укрытий текстом</li>
+        <li>дом и права берутся из чата: без регистрации и паролей</li>
       </ul>
       <p class="note bottom">Важно для регионов: когда в Ульяновске ограничивают мобильный интернет, MAX продолжает работать, он в «белом списке». Бот остаётся на связи.</p>
     </div>
@@ -223,58 +225,20 @@
   </div>
 </section>
 
-<!-- Как сейчас и как с Кузей -->
+<!-- Интерфейс и польза каждую неделю -->
 <section class="slide">
-  <h2>Кузя снимает с жителей рутину и превращает хаос чата в работу с УК по правилам</h2>
-  <div class="bento" style="grid-template-rows: 1fr auto">
-    <div class="c" style="grid-column: 1 / 13">
-      <table style="font-size:17.5px" class="compact">
-        <tr><th style="width:170px">Шаг</th><th style="width:360px">Сейчас</th><th>С Кузей</th></tr>
-        <tr><td><b>Заметили</b></td><td>«у нас течёт» и 20 ответов «у нас тоже»</td><td>фото и описание; Кузя проверяет, нет ли уже такой заявки, чтобы не плодить дубли</td></tr>
-        <tr><td><b>Кому писать</b></td><td>ищут в интернете, путают УК и регоператора</td><td>исполнитель виден сразу, из справочника</td></tr>
-        <tr><td><b>Заявление</b></td><td>пишет один активист, остальные в стороне</td><td>соседи жмут «Поддерживаю», текст Кузя собирает сам</td></tr>
-        <tr><td><b>Срок</b></td><td>никто не знает</td><td>в обращении, со ссылкой на норматив</td></tr>
-        <tr><td><b>Контроль</b></td><td>никто не помнит, когда подавали</td><td>таймер срока в карточке заявки; при просрочке готовая жалоба в ГЖИ в одно нажатие</td></tr>
-        <tr><td><b>Итог</b></td><td>проблема висит неделями</td><td>статус «Решено», соседи видят результат</td></tr>
-      </table>
-    </div>
-    <div class="c teal" style="grid-column: 1 / 7"><h3 style="color:var(--teal)">Жителям больше не нужно</h3><p>искать ответственного, писать заявление вручную, звонить в УК с вопросом «а подавали ли уже»</p></div>
-    <div class="c blue" style="grid-column: 7 / 13"><h3>Кузя делает сам</h3><p>находит адресата, собирает текст обращения, следит за сроком, готовит жалобу при просрочке</p></div>
-  </div>
-</section>
-
-<!-- Новый интерфейс -->
-<section class="slide">
-  <h2>Доступный интерфейс, понятный жителям любого возраста</h2>
+  <h2>Удобно в любом возрасте и полезно каждую неделю</h2>
   <div class="bento" style="grid-template-rows: 1fr 1fr">
     <div class="c tone" style="grid-column: 1 / 4; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="home.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/home.png" alt="Главная в светлой теме"></span></figure><div class="cap-under">Главная: от срочного к справке</div></div>
-    <div class="c tone" style="grid-column: 4 / 7; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="home_dark.png" style="--w:82%;--bar:#10151C;--ink:#FFFFFF"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/home_dark.png" alt="Главная в тёмной теме"></span></figure><div class="cap-under">Тёмная тема</div></div>
-    <div class="c tone" style="grid-column: 7 / 10; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="issues.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/issues.png" alt="Заявки дома с подсказкой о голосе"></span></figure><div class="cap-under">Счётчик на вкладке: только заявки, где нужен ваш голос</div></div>
+    <div class="c tone" style="grid-column: 4 / 7; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="event.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/event.png" alt="Событие с фото и описанием"></span></figure><div class="cap-under">Субботник одной фразой в чате, запись «Иду»</div></div>
+    <div class="c amber" style="grid-column: 7 / 10; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="market.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/market.png" alt="Вещи соседей с каруселью фото"></span></figure><div class="cap-under">Вещи соседей: отдать или продать</div></div>
     <div class="c" style="grid-column: 10 / 13">
       <span class="num m">44 px</span>
-      <p>минимум для кнопки. Шрифт от 14 px, подписи словами, а не значками</p>
+      <p style="font-size:17.5px">минимум для кнопки. Шрифт от 14 px, подписи словами, а не значками</p>
     </div>
     <div class="c blue" style="grid-column: 10 / 13">
-      <h3>Удобно и бережно</h3>
-      <p>свайпы между вкладками, плавные переходы, тёмная тема. Если в телефоне включено «уменьшить движение», анимации выключаются</p>
-    </div>
-  </div>
-</section>
-
-<!-- Повод открывать каждую неделю -->
-<section class="slide">
-  <h2>Польза каждую неделю: зачем открывать Кузю между поломками</h2>
-  <div class="bento" style="grid-template-rows: 1fr 1fr">
-    <div class="c tone" style="grid-column: 1 / 4; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="event.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/event.png" alt="Событие с фото и описанием"></span></figure><div class="cap-under">События с фото и подробностями</div></div>
-    <div class="c amber" style="grid-column: 4 / 7; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="market.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/market.png" alt="Вещи соседей с каруселью фото"></span></figure><div class="cap-under">Вещи соседей: отдать рассаду, продать коляску</div></div>
-    <div class="c" style="grid-column: 7 / 10">
-      <h3>События двора</h3>
-      <p>субботник или собрание одной фразой в чате: анонс, запись кнопкой «Иду», напоминание за пару часов</p>
-    </div>
-    <div class="c teal" style="grid-column: 10 / 13; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="avatars.png" style="--w:82%;--bar:#626364;--ink:#FFFFFF"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/avatars.png" alt="Выбор аватарки из войлочных шариков"></span></figure><div class="cap-under">Аватарка из набора или своё фото</div></div>
-    <div class="c soft" style="grid-column: 7 / 10">
-      <h3>Рейтинг и приватность</h3>
-      <p>очки за заявки, голоса и субботники, звание «Добрый сосед». Написать соседу можно без раскрытия номера телефона</p>
+      <h3>Повод заходить</h3>
+      <p style="font-size:17px">события двора, вещи соседей, очки «Доброго соседа», сообщение соседу без номера телефона. Тёмная тема и свайпы</p>
     </div>
   </div>
 </section>
@@ -296,30 +260,6 @@
     <div class="c teal" style="grid-column: 7 / 13; padding: 18px 26px">
       <h3 style="color:var(--teal)">Укрытия для любого дома в стране</h3>
       <p style="font-size:17px">Есть реестр региона - показываем его. Реестра нет - подсказываем заглублённые объекты из OpenStreetMap: подземные паркинги, переходы, метро. Маршрут пешком строится прямо в приложении.</p>
-    </div>
-  </div>
-</section>
-
-<!-- Дом из чата и MAX -->
-<section class="slide">
-  <h2>Запуск за минуту: без регистрации, паролей и ручной настройки</h2>
-  <div class="bento" style="grid-template-rows: 1fr 1fr">
-    <div class="c" style="grid-column: 1 / 5">
-      <h3>Дом появляется сам</h3>
-      <p>Достаточно добавить Кузю в домовой чат: дом и список соседей появятся в приложении сами. Вышел из чата, и доступ к данным дома закрылся.</p>
-    </div>
-    <div class="c tone" style="grid-column: 5 / 8; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="people.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/people.png" alt="Соседи с ролями"></span></figure><div class="cap-under">Соседи и администраторы</div></div>
-    <div class="c" style="grid-column: 8 / 13">
-      <h3>Живое голосование в чате</h3>
-      <p>Счётчик на кнопке «Поддерживаю (4/6)» обновляется после каждого нажатия. Кузя закрепляет важные объявления, удаляет спам, показывает фото заявки прямо в чате.</p>
-    </div>
-    <div class="c soft" style="grid-column: 1 / 5">
-      <h3>Права из чата</h3>
-      <p>Администратор чата, например старший по дому, сразу получает права администратора в приложении: адрес, УК, порог голосов, объявления.</p>
-    </div>
-    <div class="c blue" style="grid-column: 8 / 13">
-      <h3>Мини-приложение внутри MAX</h3>
-      <p>Вход по подписи MAX без паролей, прямая ссылка сразу в нужную заявку, системная кнопка «Назад», виброотклик, приглашение соседей в одно нажатие.</p>
     </div>
   </div>
 </section>
@@ -346,8 +286,8 @@
       <p style="font-size:17.5px">Фото в заявках и событиях, свайпы, тёмная тема, счётчик заявок, где нужен ваш голос.</p>
     </div>
     <div class="c" style="grid-column: 10 / 13">
-      <span class="num m">356</span>
-      <p style="font-size:17.5px">автоматических проверок и нагрузочный замер API</p>
+      <span class="num m">1374</span>
+      <p style="font-size:17.5px">автоматические проверки, покрытие кода тестами 98%</p>
     </div>
   </div>
 </section>
@@ -468,100 +408,6 @@
   </div>
 </section>
 
-<!-- Фронтенд -->
-<section class="slide">
-  <h2>Фронтенд: быстро открывается на слабом телефоне и проверен на доступность</h2>
-  <div class="bento" style="grid-template-rows: 1fr 1fr">
-    <div class="c blue" style="grid-column: 1 / 4">
-      <span class="num m">306 КБ</span>
-      <p>весит первая загрузка: приложение открывается за доли секунды даже на бюджетном смартфоне и медленной сети</p>
-    </div>
-    <div class="c" style="grid-column: 4 / 7">
-      <span class="num">0</span>
-      <p>нарушений доступности по WCAG AA: все 22 экрана в двух темах, 44 прогона аудита</p>
-    </div>
-    <div class="c tone" style="grid-column: 7 / 10; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="market_dark.png" style="--w:82%;--bar:#10151C;--ink:#FFFFFF"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/market_dark.png" alt="Вещи соседей в тёмной теме"></span></figure></div>
-    <div class="c" style="grid-column: 10 / 13; grid-row: 1 / 3">
-      <h3>Стек</h3>
-      <p>Vue 3 и TypeScript, Vuetify 4, Tailwind 4, Pinia, GSAP. Обновления приходят в реальном времени, без перезагрузки.</p>
-      <h3 style="margin-top:18px">Демо без сервера</h3>
-      <p>Весь API повторён в браузере: сценарии «тревога», «просрочка», «пусто», «ошибка» открываются по ссылке.</p>
-    </div>
-    <div class="c soft" style="grid-column: 1 / 7">
-      <h3>Проверки на каждый коммит</h3>
-      <p>Проверка типов, линтер и форматирование, 48 юнит-тестов. Правила дизайна записаны в <code>frontend/DESIGN.md</code>: цвета, размеры, состояния каждого экрана.</p>
-    </div>
-  </div>
-</section>
-
-<!-- Бэкенд -->
-<section class="slide">
-  <h2>Бэкенд: защита данных жителей и запас на рост</h2>
-  <div class="bento" style="grid-template-rows: 1fr 1fr">
-    <div class="c" style="grid-column: 1 / 4">
-      <span class="num">55</span>
-      <p>эндпоинтов REST, все описаны в <code>docs/openapi.json</code></p>
-    </div>
-    <div class="c blue" style="grid-column: 4 / 7">
-      <span class="num">4</span>
-      <p>процесса из одного образа: api, bot, worker, mcp. Связь через очередь RabbitMQ</p>
-    </div>
-    <div class="c" style="grid-column: 7 / 13; grid-row: 1 / 3">
-      <h3>Что внутри</h3>
-      <table style="font-size:17px">
-        <tr><td style="width:170px"><b>FastAPI</b></td><td>12 модулей: заявки, события, вещи, укрытия, модерация, награды</td></tr>
-        <tr><td><b>Postgres</b></td><td>поиск дублей заявок по словам и по смыслу (pgvector)</td></tr>
-        <tr><td><b>Агент</b></td><td>понимает свободный текст, память в базе; без сети отвечает на правилах</td></tr>
-        <tr><td><b>MCP</b></td><td>навыки Кузи подключаются как отдельные серверы, свои и внешние</td></tr>
-        <tr><td><b>MinIO</b></td><td>фото пересжаты до 1600 px, EXIF и геотеги удалены</td></tr>
-        <tr><td><b>Справочник</b></td><td>исполнители и сроки из закона, а не из нейросети</td></tr>
-      </table>
-    </div>
-    <div class="c soft" style="grid-column: 1 / 7">
-      <h3>Защита и надёжность</h3>
-      <p>Голоса считаются под транзакционной блокировкой в базе: повторный голос невозможен. Фото проверяются по типу и размеру, ссылки в чате фильтруются. Если нейросеть недоступна, бот переходит на правила без остановки сервиса.</p>
-    </div>
-  </div>
-</section>
-
-<!-- Проверки -->
-<section class="slide">
-  <h2>356 автоматических проверок: обновления выходят без риска сломать работающий сервис</h2>
-  <div class="bento" style="grid-template-rows: 1fr">
-    <div class="c" style="grid-column: 1 / 8">
-      <svg id="tests" width="680" height="380" viewBox="0 0 680 380" role="img" aria-label="Число автоматических проверок по уровням"></svg>
-    </div>
-    <div class="c blue" style="grid-column: 8 / 13">
-      <span class="num">356</span>
-      <p>проверок и прогонов аудита. Все проходят на текущем коммите</p>
-      <p style="margin-top:18px">Плюс статический анализ кода: типы и линтеры с правилами безопасности на бэкенде и фронтенде.</p>
-      <ul class="bottom" style="font-size:17px">
-        <li>юнит-тесты бэкенда и фронтенда</li>
-        <li>сквозные проверки на поднятом стенде: API, функции, бот</li>
-        <li>аудит экранов в браузере: доступность, тач-зоны, мелкий текст</li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<!-- Нагрузка и масштабирование -->
-<section class="slide">
-  <h2>Запас прочности: один сервер выдержит пиковую нагрузку всех 5 000 домов Ульяновска</h2>
-  <div class="bento" style="grid-template-rows: 1fr auto">
-    <div class="c" style="grid-column: 1 / 8; grid-row: 1 / 3">
-      <svg id="load" width="680" height="420" viewBox="0 0 680 420" role="img" aria-label="Пропускная способность и задержка: 1 и 3 процесса API"></svg>
-    </div>
-    <div class="c blue" style="grid-column: 8 / 13">
-      <h3>Что это значит для пилота</h3>
-      <p style="font-size:17px">Житель за визит делает около 10 запросов. Даже если все 5 000 домовых чатов Ульяновска откроют приложение в один час, это примерно 60 запросов в секунду: с запасом для одного процесса.</p>
-      <p class="note bottom">Оценка, а не замер: 40 участников в чате, каждый заходит раз в день, на вечерний час приходится 10% заходов.</p>
-    </div>
-    <div class="c soft" style="grid-column: 8 / 13">
-      <p style="font-size:15px;line-height:1.4">Замер: 60 клиентов 20 секунд читают заявки, вещи, события и пульс дома. Ryzen 5 5600X, 32 ГБ, Docker Desktop на Windows; база, очередь и генератор нагрузки на той же машине, поэтому три процесса дают +37%, а не втрое. Ошибок 0.</p>
-    </div>
-  </div>
-</section>
-
 <!-- Архитектура -->
 <section class="slide">
   <h2>Архитектура</h2>
@@ -600,6 +446,92 @@
   </div>
 </section>
 
+<!-- Стек -->
+<section class="slide">
+  <h2>Стек: быстро на слабом телефоне, надёжно на сервере</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c blue" style="grid-column: 1 / 4">
+      <span class="num m">306 КБ</span>
+      <p style="font-size:17.5px">первая загрузка: приложение открывается за доли секунды на бюджетном смартфоне</p>
+    </div>
+    <div class="c" style="grid-column: 4 / 7">
+      <span class="num m">0</span>
+      <p style="font-size:17.5px">нарушений доступности WCAG AA на 22 экранах в двух темах</p>
+    </div>
+    <div class="c" style="grid-column: 1 / 4">
+      <span class="num m">55</span>
+      <p style="font-size:17.5px">эндпоинтов REST, все описаны в <code>docs/openapi.json</code></p>
+    </div>
+    <div class="c soft" style="grid-column: 4 / 7">
+      <span class="num m">4</span>
+      <p style="font-size:17.5px">процесса из одного образа: api, bot, worker, mcp. Связь через RabbitMQ</p>
+    </div>
+    <div class="c" style="grid-column: 7 / 13; grid-row: 1 / 3">
+      <h3>Что внутри</h3>
+      <table style="font-size:16px" class="compact">
+        <tr><td style="width:150px"><b>Фронтенд</b></td><td>Vue 3 и TypeScript, Vuetify 4, Tailwind 4; обновления в реальном времени, без перезагрузки</td></tr>
+        <tr><td><b>Демо без сервера</b></td><td>весь API повторён в браузере, сценарии «тревога», «просрочка», «пусто» по ссылке</td></tr>
+        <tr><td><b>Бэкенд</b></td><td>FastAPI, 12 модулей: заявки, события, вещи, укрытия, модерация, награды</td></tr>
+        <tr><td><b>Postgres</b></td><td>поиск дублей заявок по словам и по смыслу (pgvector)</td></tr>
+        <tr><td><b>Агент</b></td><td>понимает свободный текст; без сети отвечает на правилах</td></tr>
+        <tr><td><b>Голоса</b></td><td>считаются под блокировкой в базе: повторный голос невозможен</td></tr>
+        <tr><td><b>Фото</b></td><td>пересжаты до 1600 px, EXIF и геотеги удалены</td></tr>
+        <tr><td><b>Справочник</b></td><td>исполнители и сроки из закона, а не из нейросети</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Проверки и нагрузка -->
+<section class="slide">
+  <h2><span data-n="checks">1374</span> автоматические проверки и запас прочности на пилот всего города</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c" style="grid-column: 1 / 7; grid-row: 1 / 3">
+      <svg id="tests" width="100%" viewBox="0 0 680 380" role="img" aria-label="Число автоматических проверок по уровням"></svg>
+      <p class="note bottom">Плюс статический анализ: типы и линтеры с правилами безопасности. Все проверки проходят на текущем коммите.</p>
+    </div>
+    <div class="c blue" style="grid-column: 7 / 10">
+      <span class="num m" data-n="cov_be">98%</span>
+      <p style="font-size:17px">строк бэкенда покрыто тестами</p>
+    </div>
+    <div class="c" style="grid-column: 10 / 13">
+      <span class="num m" data-n="cov_fe">98%</span>
+      <p style="font-size:17px">строк фронтенда покрыто тестами</p>
+    </div>
+    <div class="c soft" style="grid-column: 7 / 13">
+      <h3>Нагрузка</h3>
+      <p style="font-size:17px">Один процесс API держит 219 запросов в секунду, три процесса 300, ошибок 0. Пик пилота на весь Ульяновск оценён в 60 запросов в секунду: хватает одного процесса.</p>
+      <p class="note bottom">Замер на Ryzen 5 5600X, база и генератор нагрузки на той же машине. Пик - оценка: 5 000 чатов по 40 жителей, 10% заходов в вечерний час.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Призыв: попробовать бота и контакты -->
+<section class="slide">
+  <div class="bento" style="grid-template-rows: 1fr 1fr 1fr">
+    <div class="c blue" style="grid-column: 1 / 8; grid-row: 1 / 4; padding: 40px 42px">
+      <h2 style="color:#FFFFFF;max-width:640px;margin-bottom:18px">Добавьте Кузю в чат дома, и первая заявка уйдёт в УК уже сегодня</h2>
+      <p class="lead" style="max-width:560px">Откройте бота в MAX, нажмите «Сообщить о проблеме» и пришлите фото. Остальное Кузя сделает сам.</p>
+      <div class="bottom" style="display:flex;align-items:flex-end;gap:28px">
+        <img class="qr" src="shots/qr_bot.svg" alt="QR-код: бот Домовой Кузя в MAX">
+        <div>
+          <p style="font-size:26px;font-weight:700;color:#FFFFFF">max.ru/id732818139220_bot</p>
+          <p class="note" style="margin-top:6px">Наведите камеру: откроется чат с Кузей в MAX. Для проверки в группе добавьте бота в чат администратором.</p>
+        </div>
+      </div>
+    </div>
+    <div class="c" style="grid-column: 8 / 13; grid-row: 1 / 3">
+      <h3>Команда MISIS MOJARUNG</h3>
+      <p><b>Симаков Максим</b>, ML и DevOps<br><b>Вериялов Кирилл</b>, бэкенд<br><b>Храмов Альберт</b>, бэкенд</p>
+      <p class="bottom" style="font-size:17px">По пилоту пишите через GitHub: <b>github.com/Mojarung/max_hack</b>. Пилот в Ульяновске стартует по договорённости с УК и управлением ЖКХ города.</p>
+    </div>
+    <div class="c amber" style="grid-column: 8 / 13; grid-row: 3 / 4; padding: 0">
+      <img class="kuzya" src="shots/kuzya_proud.png" alt="" style="width:50%;right:5%;top:14px">
+      <p style="position:absolute;left:26px;top:24px;max-width:240px;font-size:18px;font-weight:600">Спасибо! Вопросы и предложения по пилоту ждём прямо сейчас.</p>
+    </div>
+  </div>
+</section>
+
 <!-- Источники -->
 <section class="slide">
   <h2>Источники</h2>
@@ -634,32 +566,6 @@
     </div>
     <div class="c amber" style="grid-column: 10 / 13; padding: 0">
       <img class="kuzya" src="shots/kuzya_happy.png" alt="" style="left:6%;top:6%;width:88%;height:90%;object-fit:contain;object-position:center bottom">
-    </div>
-  </div>
-</section>
-
-<!-- Призыв: попробовать бота и контакты -->
-<section class="slide">
-  <div class="bento" style="grid-template-rows: 1fr 1fr 1fr">
-    <div class="c blue" style="grid-column: 1 / 8; grid-row: 1 / 4; padding: 40px 42px">
-      <h2 style="color:#FFFFFF;max-width:640px;margin-bottom:18px">Добавьте Кузю в чат дома, и первая заявка уйдёт в УК уже сегодня</h2>
-      <p class="lead" style="max-width:560px">Откройте бота в MAX, нажмите «Сообщить о проблеме» и пришлите фото. Остальное Кузя сделает сам.</p>
-      <div class="bottom" style="display:flex;align-items:flex-end;gap:28px">
-        <img class="qr" src="shots/qr_bot.svg" alt="QR-код: бот Домовой Кузя в MAX">
-        <div>
-          <p style="font-size:26px;font-weight:700;color:#FFFFFF">max.ru/id732818139220_bot</p>
-          <p class="note" style="margin-top:6px">Наведите камеру: откроется чат с Кузей в MAX. Для проверки в группе добавьте бота в чат администратором.</p>
-        </div>
-      </div>
-    </div>
-    <div class="c" style="grid-column: 8 / 13; grid-row: 1 / 3">
-      <h3>Команда MISIS MOJARUNG</h3>
-      <p><b>Симаков Максим</b>, ML и DevOps<br><b>Вериялов Кирилл</b>, бэкенд<br><b>Храмов Альберт</b>, бэкенд</p>
-      <p class="bottom" style="font-size:17px">По пилоту пишите через GitHub: <b>github.com/Mojarung/max_hack</b>. Пилот в Ульяновске стартует по договорённости с УК и управлением ЖКХ города.</p>
-    </div>
-    <div class="c amber" style="grid-column: 8 / 13; grid-row: 3 / 4; padding: 0">
-      <img class="kuzya" src="shots/kuzya_proud.png" alt="" style="width:50%;right:5%;top:14px">
-      <p style="position:absolute;left:26px;top:24px;max-width:240px;font-size:18px;font-weight:600">Спасибо! Вопросы и предложения по пилоту ждём прямо сейчас.</p>
     </div>
   </div>
 </section>
@@ -740,12 +646,12 @@
   (() => {
     const svg = document.getElementById('tests');
     const rows = [
-      ['Юнит-тесты бэкенда', 'заявки, укрытия, ленты тревог', 190],
+      ['Тесты фронтенда', 'компоненты, экраны, сторы', 837],
+      ['Тесты бэкенда', 'юнит и интеграционные с Postgres', 419],
       ['Сквозные проверки', 'API, функции и бот на стенде', 74],
-      ['Юнит-тесты фронтенда', 'формат, состояния, компоненты', 48],
       ['Аудит экранов', '22 экрана × 2 темы', 44],
     ];
-    const max = 190, x0 = 250, w = 380, rowH = 88;
+    const max = Math.max(...rows.map((r) => r[2])), x0 = 250, w = 380, rowH = 88;
     rows.forEach(([title, sub, n], i) => {
       const y = 20 + i * rowH;
       T(svg, 0, y + 26, title, 19, { weight: 700 });
@@ -753,25 +659,6 @@
       el(svg, 'rect', { x: x0, y: y + 6, width: w, height: 48, rx: 14, fill: C.cell2 });
       el(svg, 'rect', { x: x0, y: y + 6, width: Math.max(60, (n / max) * w), height: 48, rx: 14, fill: i === 0 ? C.accent : C.soft });
       T(svg, x0 + 16, y + 38, String(n), 22, { weight: 800, fill: i === 0 ? '#FFFFFF' : C.ink });
-    });
-  })();
-
-  // Нагрузка: 1 и 3 процесса api, запросы в секунду и медиана ответа
-  (() => {
-    const svg = document.getElementById('load');
-    const data = [['1 процесс', 219, 235], ['3 процесса', 300, 130]];
-    T(svg, 0, 24, 'Запросов в секунду', 19, { weight: 700 });
-    T(svg, 360, 24, 'Медиана ответа, мс', 19, { weight: 700 });
-    const base = 380, hMax = 300;
-    data.forEach(([label, rps, p50], i) => {
-      const x = 10 + i * 150, h = (rps / 300) * hMax;
-      el(svg, 'rect', { x, y: base - h, width: 120, height: h, rx: 16, fill: i ? C.accent : C.soft });
-      T(svg, x + 60, base - h + 42, String(rps), 30, { weight: 800, anchor: 'middle', fill: i ? '#FFFFFF' : C.ink });
-      T(svg, x + 60, base + 30, label, 15, { anchor: 'middle', fill: C.muted });
-      const x2 = 370 + i * 150, h2 = (p50 / 235) * hMax;
-      el(svg, 'rect', { x: x2, y: base - h2, width: 120, height: h2, rx: 16, fill: i ? C.accent : C.soft });
-      T(svg, x2 + 60, base - h2 + 42, String(p50), 30, { weight: 800, anchor: 'middle', fill: i ? '#FFFFFF' : C.ink });
-      T(svg, x2 + 60, base + 30, label, 15, { anchor: 'middle', fill: C.muted });
     });
   })();
 
