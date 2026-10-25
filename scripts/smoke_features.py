@@ -9,6 +9,7 @@ import asyncio
 import io
 import sys
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import httpx
 from PIL import Image
@@ -38,10 +39,18 @@ def jpeg():
     return b.getvalue()
 
 
+STARTED = datetime.now(UTC) - timedelta(seconds=5)
+
+
+def fresh(m):
+    """Сообщение этого прогона: в истории чата лежат ответы прошлых запусков с теми же словами."""
+    return datetime.fromisoformat(m["created_at"].replace("Z", "+00:00")) >= STARTED
+
+
 async def wait_chat(c, chat_id, pred, timeout=20):
     for _ in range(timeout * 2):
         msgs = (await c.get("/dev/chat/messages", params={"chat_id": chat_id})).json()
-        hit = [m for m in msgs if pred(m)]
+        hit = [m for m in msgs if fresh(m) and pred(m)]
         if hit:
             return hit[-1]
         await asyncio.sleep(0.5)
@@ -165,9 +174,9 @@ async def main():
             hit[:1],
         )
         m = await wait_chat(
-            c, -100, lambda m: m["from"] is None and "модельная интеграция" in m["text"] and issue["title"] in m["text"]
+            c, -100, lambda m: m["from"] is None and "тестовом режиме" in m["text"] and issue["title"] in m["text"]
         )
-        check("в чате сказано про модельную интеграцию", m is not None)
+        check("в чате сказано, что отправка тестовая", m is not None)
 
         # 5. барахолка: закрытые не пропадают
         mine = (
