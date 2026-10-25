@@ -47,9 +47,7 @@ export default defineConfig(({ mode }) => {
       rolldownOptions: {
         output: {
           codeSplitting: {
-            groups: [
-              { name: 'vue', test: /node_modules[\\/](@vue|vue|pinia|vue-router)[\\/]/ },
-            ],
+            groups: [{ name: 'vue', test: /node_modules[\\/](@vue|vue|pinia|vue-router)[\\/]/ }],
           },
         },
       },
