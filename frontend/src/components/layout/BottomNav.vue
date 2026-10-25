@@ -123,13 +123,13 @@ const awaiting = computed(() => pulse.pulse?.stats.awaiting_my_vote ?? 0)
 .v-theme--dark .bottom-nav__item:not(.bottom-nav__item--active) {
   color: rgba(var(--v-theme-on-surface), 0.86);
 }
-/* Активная вкладка: «линза» под иконкой и подписью */
+/*
+ * Активная вкладка: «линза» под иконкой и подписью. Заливка непрозрачная: полупрозрачная
+ * смешивалась со стеклом и фото под меню, и контраст подписи падал ниже 4,5:1
+ */
 .bottom-nav__item--active {
-  color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.13);
-}
-.v-theme--dark .bottom-nav__item--active {
-  background: rgba(var(--v-theme-primary), 0.2);
+  color: rgb(var(--v-theme-on-primary-container));
+  background: rgb(var(--v-theme-primary-container));
 }
 .bottom-nav__item:focus-visible {
   outline: 3px solid rgb(var(--v-theme-primary));

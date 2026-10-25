@@ -16,6 +16,8 @@ declare module 'vue-router' {
     inner?: boolean
     /** Куда вернуться, если истории нет (открыли по диплинку). */
     parent?: string
+    /** Экран рисует свою шапку и не показывает меню приложения (эмулятор чата MAX). */
+    bare?: boolean
   }
 }
 
@@ -160,7 +162,7 @@ const routes: RouteRecordRaw[] = [
     path: '/dev/chat',
     name: 'dev-chat',
     component: () => import('@/views/dev/ChatEmulatorView.vue'),
-    meta: { tab: 'more', title: 'Эмулятор чата MAX', inner: true, parent: '/more' },
+    meta: { tab: 'more', title: 'Эмулятор чата MAX', inner: true, parent: '/more', bare: true },
   },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]

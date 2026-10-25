@@ -73,8 +73,8 @@ watch(
     <BootScreen v-if="session.status !== 'ready'" />
     <template v-else>
       <!-- Пока открыт экран тревоги, всё под ним недоступно для фокуса и диктора -->
-      <AppHeader :inert="alertOpen" />
-      <BrowserDemoBar v-if="BROWSER_DEMO" :inert="alertOpen" />
+      <AppHeader v-if="!route.meta.bare" :inert="alertOpen" />
+      <BrowserDemoBar v-if="BROWSER_DEMO && !route.meta.bare" :inert="alertOpen" />
       <main ref="mainEl" :inert="alertOpen">
         <router-view v-slot="{ Component, route: current }">
           <Transition :css="false" mode="out-in" @enter="pageEnter" @leave="pageLeave">
@@ -82,7 +82,7 @@ watch(
           </Transition>
         </router-view>
       </main>
-      <BottomNav :inert="alertOpen" />
+      <BottomNav v-if="!route.meta.bare" :inert="alertOpen" />
       <OnboardingSheet v-if="!alertOpen" />
     </template>
     <!-- слой для плавающей кнопки «создать» (AppFab): вне анимируемой страницы -->

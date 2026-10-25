@@ -338,7 +338,7 @@ async function share(text: string | null | undefined): Promise<void> {
           </div>
         </div>
         <div v-if="slaActive && !overdue" class="text-muted mt-2 text-sm">
-          Не успеют - Кузя подготовит жалобу в Госжилинспекцию и напишет в чат дома.
+          Если не успеют, Кузя подготовит жалобу в Госжилинспекцию и напишет в чат дома.
         </div>
         <div v-if="issue.sent_at" class="text-muted mt-2 text-sm">
           Обращение отправлено {{ formatDateTime(issue.sent_at) }}

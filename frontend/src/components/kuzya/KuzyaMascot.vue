@@ -72,33 +72,35 @@ function currentLids(): HTMLElement | null {
 function scheduleBlink(): void {
   blinkCall?.kill()
   if (disposed || calm.value || !layers.value.lids) return
-  blinkCall = gsap.delayedCall(gsap.utils.random(2.4, 5.5), () => {
+  blinkCall = gsap.delayedCall(gsap.utils.random(2.8, 6), () => {
     const lids = currentLids()
     if (!lids) return scheduleBlink()
     const tl = gsap.timeline({ onComplete: scheduleBlink })
     // иногда моргает дважды подряд, так живее
     const times = Math.random() < 0.2 ? 2 : 1
     for (let i = 0; i < times; i++) {
-      tl.to(lids, { opacity: 1, duration: 0.05, delay: i ? 0.1 : 0 }).to(lids, {
+      // веки опускаются и поднимаются плавно: резкое мигание читается как дёрганье
+      tl.to(lids, { opacity: 1, duration: 0.1, ease: 'sine.inOut', delay: i ? 0.18 : 0 }).to(lids, {
         opacity: 0,
-        duration: 0.08,
-        delay: 0.07,
+        duration: 0.16,
+        ease: 'sine.inOut',
+        delay: 0.08,
       })
     }
   })
 }
 
-/** Сплющиться и распрямиться, как тряпичная кукла. */
+/** Мягко осесть и выпрямиться после смены позы. */
 function squash(): void {
   if (calm.value || !bounce.value) return
   gsap.fromTo(
     bounce.value,
-    { scaleX: 1.06, scaleY: 0.9 },
+    { scaleX: 1.025, scaleY: 0.965 },
     {
       scaleX: 1,
       scaleY: 1,
-      duration: 0.6,
-      ease: 'elastic.out(1, 0.45)',
+      duration: 0.55,
+      ease: 'back.out(1.3)',
       transformOrigin: GROUND,
       overwrite: 'auto',
     },
@@ -116,24 +118,25 @@ async function switchPose(next: KuzyaMood, animate: boolean): Promise<void> {
   })
 }
 
+/** Один плавный прыжок: присел, взлетел по дуге, мягко приземлился. */
 function hop(): void {
   if (calm.value || !bounce.value || !shadow.value) return
   gsap.killTweensOf([bounce.value, shadow.value])
   gsap
     .timeline({ defaults: { transformOrigin: GROUND } })
-    .to(bounce.value, { scaleX: 1.05, scaleY: 0.92, yPercent: 0, duration: 0.08 })
+    .to(bounce.value, { scaleX: 1.03, scaleY: 0.95, yPercent: 0, duration: 0.16, ease: 'sine.in' })
     .to(bounce.value, {
-      scaleX: 0.97,
-      scaleY: 1.05,
-      yPercent: -13,
-      duration: 0.22,
+      scaleX: 0.985,
+      scaleY: 1.025,
+      yPercent: -11,
+      duration: 0.3,
       ease: 'power2.out',
     })
-    .to(shadow.value, { scale: 0.7, opacity: 0.5, duration: 0.22, ease: 'power2.out' }, '<')
-    .to(bounce.value, { scaleX: 1, scaleY: 1, yPercent: 0, duration: 0.2, ease: 'power2.in' })
-    .to(shadow.value, { scale: 1, opacity: 1, duration: 0.2, ease: 'power2.in' }, '<')
-    .to(bounce.value, { scaleX: 1.06, scaleY: 0.92, duration: 0.07 })
-    .to(bounce.value, { scaleX: 1, scaleY: 1, duration: 0.5, ease: 'elastic.out(1, 0.4)' })
+    .to(shadow.value, { scale: 0.78, opacity: 0.6, duration: 0.3, ease: 'power2.out' }, '<')
+    .to(bounce.value, { scaleX: 1, scaleY: 1, yPercent: 0, duration: 0.28, ease: 'power2.in' })
+    .to(shadow.value, { scale: 1, opacity: 1, duration: 0.28, ease: 'power2.in' }, '<')
+    .to(bounce.value, { scaleX: 1.025, scaleY: 0.97, duration: 0.12, ease: 'sine.out' })
+    .to(bounce.value, { scaleX: 1, scaleY: 1, duration: 0.45, ease: 'back.out(1.2)' })
 }
 
 /** По нажатию Кузя подпрыгивает и на секунду радуется (если в доме всё спокойно). */
@@ -219,12 +222,17 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .kuzya {
-  /* характер движения по настроению: амплитуда и темп покачивания головы и дыхания */
-  --kz-sway: 1.6deg;
+  /*
+   * Характер движения по настроению: амплитуда и темп покачивания головы и дыхания.
+   * Циклы не короче 2,4 с и амплитуда до 2°: быстрее и шире читается как дёрганье.
+   */
+  --kz-sway: 1.3deg;
   --kz-tilt: 0deg;
-  --kz-sway-time: 4.6s;
-  --kz-breath: 1.018;
-  --kz-breath-time: 3.2s;
+  --kz-sway-time: 5.6s;
+  --kz-breath: 1.014;
+  --kz-breath-time: 4.2s;
+  /* синусоида: без ускорений на концах хода */
+  --kz-ease: cubic-bezier(0.37, 0, 0.63, 1);
   position: relative;
   display: inline-block;
   flex-shrink: 0;
@@ -237,31 +245,31 @@ onBeforeUnmount(() => {
   -webkit-tap-highlight-color: transparent;
 }
 .kuzya--happy {
-  --kz-sway: 3deg;
-  --kz-sway-time: 1.8s;
-  --kz-breath: 1.03;
-  --kz-breath-time: 1.2s;
+  --kz-sway: 2deg;
+  --kz-sway-time: 3.6s;
+  --kz-breath: 1.02;
+  --kz-breath-time: 2.8s;
 }
 .kuzya--proud {
   --kz-tilt: 1.5deg;
-  --kz-sway-time: 3.4s;
+  --kz-sway-time: 4.8s;
 }
 .kuzya--sad {
-  --kz-sway: 1deg;
+  --kz-sway: 0.9deg;
   --kz-tilt: -2.5deg;
-  --kz-sway-time: 6s;
-  --kz-breath: 1.012;
-  --kz-breath-time: 4.4s;
+  --kz-sway-time: 7s;
+  --kz-breath: 1.011;
+  --kz-breath-time: 5.2s;
 }
 .kuzya--alarm {
-  --kz-sway: 0.8deg;
-  --kz-sway-time: 1.1s;
-  --kz-breath: 1.025;
-  --kz-breath-time: 1.3s;
+  --kz-sway: 1deg;
+  --kz-sway-time: 2.4s;
+  --kz-breath: 1.018;
+  --kz-breath-time: 2.4s;
 }
 .kuzya--worried {
-  --kz-sway: 1.2deg;
-  --kz-sway-time: 2.2s;
+  --kz-sway: 1.1deg;
+  --kz-sway-time: 4s;
 }
 button.kuzya {
   cursor: pointer;
@@ -313,27 +321,39 @@ button.kuzya:focus-visible {
 
 .kuzya:not(.kuzya--calm) .kuzya__figure {
   transform-origin: var(--kz-ground);
-  animation: kz-breathe var(--kz-breath-time) ease-in-out var(--kz-phase) infinite;
+  animation: kz-breathe var(--kz-breath-time) var(--kz-ease) var(--kz-phase) infinite;
   will-change: transform;
 }
 .kuzya:not(.kuzya--calm) .kuzya__head {
-  animation: kz-sway var(--kz-sway-time) ease-in-out var(--kz-phase) infinite alternate;
+  animation: kz-sway var(--kz-sway-time) var(--kz-ease) var(--kz-phase) infinite alternate;
   will-change: transform;
+}
+/* растровые слои под трансформацией: без мерцания краёв при масштабе и повороте */
+.kuzya__figure,
+.kuzya__head,
+.kuzya__layer {
+  backface-visibility: hidden;
 }
 .kuzya--calm .kuzya__head {
   transform: rotate(var(--kz-tilt));
 }
 .kuzya--alarm:not(.kuzya--calm) .kuzya__glow {
-  animation: kz-alarm 0.7s ease-in-out infinite alternate;
+  animation: kz-alarm 1.6s var(--kz-ease) infinite alternate;
 }
 
-/* новая поза встаёт сразу, старая тает под ней: читается как смена кадра, без двоения */
+/* смена позы: новая проявляется, старая тает под ней одновременно, без пустого кадра */
 .kuzya__pose {
   z-index: 1;
 }
+.kz-pose-enter-active {
+  transition: opacity 0.26s ease-out;
+}
+.kz-pose-enter-from {
+  opacity: 0;
+}
 .kz-pose-leave-active {
   z-index: 0;
-  transition: opacity 0.16s ease-in;
+  transition: opacity 0.26s ease-in;
 }
 .kz-pose-leave-to {
   opacity: 0;
@@ -348,22 +368,23 @@ button.kuzya:focus-visible {
     transform: scale(calc(2 - var(--kz-breath)), var(--kz-breath));
   }
 }
+/* голова только качается, без подскоков по вертикали */
 @keyframes kz-sway {
   from {
     transform: rotate(calc(var(--kz-tilt) - var(--kz-sway)));
   }
   to {
-    transform: rotate(calc(var(--kz-tilt) + var(--kz-sway))) translateY(-0.5%);
+    transform: rotate(calc(var(--kz-tilt) + var(--kz-sway)));
   }
 }
 @keyframes kz-alarm {
   from {
-    opacity: 0.85;
+    opacity: 0.75;
     transform: scale(1);
   }
   to {
-    opacity: 0.25;
-    transform: scale(1.12);
+    opacity: 0.35;
+    transform: scale(1.08);
   }
 }
 </style>
