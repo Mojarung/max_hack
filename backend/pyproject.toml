@@ -66,4 +66,12 @@ plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# одна петля событий на сессию: пул соединений Postgres и приложение живут всю сессию
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
+markers = ["integration: тесты с Postgres в базе domovoy_test; без Postgres пропускаются"]
+
+[tool.coverage.run]
+# SQLAlchemy async переключает greenlet-ы: без этого coverage теряет строки после await в эндпоинтах
+concurrency = ["greenlet", "thread"]
