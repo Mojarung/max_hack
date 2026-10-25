@@ -11,12 +11,15 @@ from domovoy.modules.misc_models import (
     MockChatMessage,
     ModerationLog,
     Shelter,
+    ShelterFetch,
     UserAchievement,
 )
+from domovoy.modules.safety.feed_models import AlertSource
 from domovoy.modules.users.models import House, Membership, Organization, PointsLog, User
 
 __all__ = [
     "Alert",
+    "AlertSource",
     "Announcement",
     "Document",
     "Event",
@@ -34,6 +37,7 @@ __all__ = [
     "Organization",
     "PointsLog",
     "Shelter",
+    "ShelterFetch",
     "User",
     "UserAchievement",
 ]

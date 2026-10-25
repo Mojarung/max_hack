@@ -66,6 +66,15 @@ ADD_COLUMNS = (
     "ALTER TABLE issues ADD COLUMN IF NOT EXISTS appeal_channel VARCHAR(256)",
     "ALTER TABLE mock_chat_messages ADD COLUMN IF NOT EXISTS photos JSONB NOT NULL DEFAULT '[]'::jsonb",
     "ALTER TABLE events ADD COLUMN IF NOT EXISTS photos JSONB NOT NULL DEFAULT '[]'::jsonb",
+    "ALTER TABLE shelters ADD COLUMN IF NOT EXISTS region VARCHAR(8)",
+    "ALTER TABLE shelters ADD COLUMN IF NOT EXISTS osm_id BIGINT",
+    "CREATE UNIQUE INDEX IF NOT EXISTS uq_shelters_osm_id ON shelters (osm_id)",
+    "ALTER TABLE shelters ADD COLUMN IF NOT EXISTS official BOOLEAN NOT NULL DEFAULT false",
+    "ALTER TABLE shelters ADD COLUMN IF NOT EXISTS fetched_at TIMESTAMPTZ",
+    "ALTER TABLE houses ADD COLUMN IF NOT EXISTS region VARCHAR(8)",
+    "CREATE INDEX IF NOT EXISTS ix_houses_region ON houses (region)",
+    "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS region VARCHAR(8)",
+    "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS source VARCHAR(256)",
 )
 
 

@@ -16,6 +16,7 @@ from domovoy.modules.events.models import Event, EventParticipant
 from domovoy.modules.issues.models import Issue, IssueUpdate
 from domovoy.modules.issues.schemas import issue_out
 from domovoy.modules.issues.service import app_button
+from domovoy.modules.safety import feeds
 from domovoy.modules.users.models import House, Organization
 from domovoy.worker import mailer
 from domovoy.worker.appeal import business_description, render_appeal, render_escalation
@@ -176,7 +177,8 @@ async def main() -> None:
     await broker.start()
     log.info("worker.started")
     try:
-        await scheduler()
+        # рядом с напоминаниями и эскалациями крутится опрос официальных оповещений (docs/ALERTS.md)
+        await asyncio.gather(scheduler(), feeds.run_forever())
     finally:
         await broker.stop()
 

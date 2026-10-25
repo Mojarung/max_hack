@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { gsap } from 'gsap'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import KuzyaMascot from '@/components/kuzya/KuzyaMascot.vue'
 import { ALERT_INSTRUCTIONS as INSTRUCTIONS } from '@/components/safety/instructions'
 import { prefersReducedMotion } from '@/composables/useMotion'
@@ -12,6 +13,7 @@ import { formatDistance, formatTime } from '@/utils/format'
 
 const alerts = useAlertsStore()
 const session = useSessionStore()
+const router = useRouter()
 const pulseLayer = ref<HTMLElement | null>(null)
 const panel = ref<HTMLElement | null>(null)
 const ending = ref(false)
@@ -41,8 +43,8 @@ watch(
     if (pulseLayer.value) {
       pulseTween = gsap.fromTo(
         pulseLayer.value,
-        { opacity: 0.35 },
-        { opacity: 1, duration: 0.9, repeat: -1, yoyo: true, ease: 'sine.inOut' },
+        { opacity: 0.4 },
+        { opacity: 1, duration: 1.6, repeat: -1, yoyo: true, ease: 'sine.inOut' },
       )
     }
   },
@@ -51,10 +53,17 @@ watch(
 
 onBeforeUnmount(() => pulseTween?.kill())
 
-function route(): void {
+/** Маршрут на карте приложения: сворачиваем тревогу в полосу и открываем укрытие на экране «Безопасность». */
+function showRoute(): void {
+  if (!alerts.nearest) return
+  alerts.minimized = true
+  void router.push({ path: '/more/safety', query: { shelter: String(alerts.nearest.id) } })
+}
+
+function openYandex(): void {
   if (!alerts.nearest) return
   // карта открывается не мгновенно: без подсказки житель нажмёт ещё раз
-  notify.info('Открываю карту с маршрутом...')
+  notify.info('Открываю Яндекс Карты с маршрутом...')
   openLink(alerts.nearest.yandex_url)
 }
 
@@ -127,30 +136,53 @@ async function endAlert(): Promise<void> {
         <template v-else-if="alerts.nearest">
           <div class="mt-1 text-lg leading-snug font-bold">{{ alerts.nearest.name }}</div>
           <div class="text-sm opacity-90">
-            {{ alerts.nearest.address }}
+            {{ alerts.nearest.kind_title
+            }}<template v-if="alerts.nearest.address"> · {{ alerts.nearest.address }}</template>
             <template v-if="alerts.nearest.distance_m !== null">
               · {{ formatDistance(alerts.nearest.distance_m) }}
             </template>
           </div>
+          <div class="mt-1 text-sm opacity-80">
+            {{
+              alerts.nearest.official
+                ? 'Из реестра укрытий'
+                : `По данным: ${alerts.nearest.source_title}`
+            }}
+          </div>
         </template>
         <div v-else class="mt-1">
-          Не удалось найти укрытие. Спуститесь в подвал или коридор без окон.
+          Рядом не нашлось укрытий в реестре и на карте. Спуститесь в подвал или встаньте в
+          помещении без окон.
           <v-btn variant="text" color="light" size="small" @click="alerts.findNearest()">
             Повторить
           </v-btn>
         </div>
       </div>
 
+      <!-- Две кнопки маршрута друг под другом: в ряд «В Яндекс Картах» не влезает на 375px -->
       <v-btn
         block
         size="x-large"
         color="light"
         class="alert-route mt-4"
-        prepend-icon="mdi-walk"
+        prepend-icon="mdi-map-marker-path"
         :disabled="!alerts.nearest"
-        @click="route"
+        @click="showRoute"
       >
-        Маршрут до укрытия
+        Маршрут
+      </v-btn>
+      <v-btn
+        block
+        size="large"
+        variant="outlined"
+        color="light"
+        class="mt-2"
+        prepend-icon="mdi-open-in-new"
+        aria-label="Маршрут до укрытия в Яндекс Картах"
+        :disabled="!alerts.nearest"
+        @click="openYandex"
+      >
+        В Яндекс Картах
       </v-btn>
       <div class="mt-2 flex gap-2">
         <v-btn

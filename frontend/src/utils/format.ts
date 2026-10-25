@@ -102,6 +102,19 @@ export function formatDistance(meters: number | null | undefined): string {
   return `${(meters / 1000).toFixed(1).replace('.', ',')} км`
 }
 
+/**
+ * Строка маршрута пешком: «≈ 7 мин пешком · 540 м», от часа - «≈ 1 ч 10 мин пешком · 5,2 км».
+ * Меньше минуты округляем до одной: «меньше минуты» в тревоге читается хуже цифры.
+ */
+export function formatWalk(distanceM: number, durationS: number): string {
+  const minutes = Math.max(1, Math.round(durationS / 60))
+  const time =
+    minutes < 60
+      ? `${minutes} мин`
+      : `${Math.floor(minutes / 60)} ч${minutes % 60 ? ` ${minutes % 60} мин` : ''}`
+  return `≈ ${time} пешком · ${formatDistance(distanceM)}`
+}
+
 const priceFmt = new Intl.NumberFormat('ru-RU')
 
 export function formatPrice(price: number, isFree: boolean): string {

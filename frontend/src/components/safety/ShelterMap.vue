@@ -2,7 +2,7 @@
 import 'leaflet/dist/leaflet.css'
 import type * as Leaflet from 'leaflet'
 import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import type { ShelterOut } from '@/api/types'
+import type { RouteOut, ShelterOut } from '@/api/types'
 import { formatDistance } from '@/utils/format'
 
 const props = defineProps<{
@@ -10,6 +10,8 @@ const props = defineProps<{
   shelters: ShelterOut[]
   me?: { lat: number; lon: number; source: 'gps' | 'house' } | null
   selectedId?: number | null
+  /** Маршрут до выбранного укрытия: сплошная линия от OSRM, пунктир - прямая по воздуху. */
+  route?: RouteOut | null
 }>()
 const emit = defineEmits<{ select: [id: number] }>()
 
@@ -18,9 +20,16 @@ const failed = ref(false)
 const L = shallowRef<typeof Leaflet | null>(null)
 const map = shallowRef<Leaflet.Map | null>(null)
 let layer: Leaflet.LayerGroup | null = null
+let routeLayer: Leaflet.Polyline | null = null
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
+}
+
+/** Цвет из токена темы Vuetify (`--v-theme-primary` хранит «r,g,b»), чтобы линия жила в обеих темах. */
+function themeColor(token: string): string {
+  const rgb = getComputedStyle(document.documentElement).getPropertyValue(`--v-theme-${token}`)
+  return `rgb(${rgb.trim() || '0,0,0'})`
 }
 
 /** Кружок `size` px, но зона нажатия не меньше 44px (DESIGN.md). */
@@ -73,8 +82,10 @@ function render(): void {
         title: s.name,
         zIndexOffset: selected ? 1000 : 0,
       })
+      // подпись над точкой: сбоку у края карты она обрезалась
       .bindTooltip(
         `${escapeHtml(s.name)}${s.distance_m !== null ? ` · ${formatDistance(s.distance_m)}` : ''}`,
+        { direction: 'top', offset: [0, -20] },
       )
       .on('click', () => emit('select', s.id))
       .addTo(layer!)
@@ -82,8 +93,32 @@ function render(): void {
     if (selected) marker.openTooltip()
   })
 
-  if (points.length > 1) m.fitBounds(lib.latLngBounds(points), { padding: [36, 36], maxZoom: 16 })
+  // Пока маршрут выбран, карта держит его в кадре, а не весь список укрытий
+  if (routeLayer) m.fitBounds(routeLayer.getBounds(), { padding: [36, 36], maxZoom: 17 })
+  else if (points.length > 1)
+    m.fitBounds(lib.latLngBounds(points), { padding: [36, 36], maxZoom: 16 })
   else m.setView([props.house.lat, props.house.lon], 15)
+}
+
+function renderRoute(): void {
+  const lib = L.value
+  const m = map.value
+  if (!lib || !m) return
+  routeLayer?.remove()
+  routeLayer = null
+  if (!props.route || props.route.points.length < 2) return
+  routeLayer = lib
+    .polyline(props.route.points, {
+      color: themeColor('primary'),
+      weight: 5,
+      opacity: 0.9,
+      lineCap: 'round',
+      lineJoin: 'round',
+      dashArray: props.route.provider === 'straight' ? '8 12' : undefined,
+      interactive: false,
+    })
+    .addTo(m)
+  m.fitBounds(routeLayer.getBounds(), { padding: [36, 36], maxZoom: 17 })
 }
 
 onMounted(async () => {
@@ -103,12 +138,14 @@ onMounted(async () => {
       })
       .addTo(map.value)
     render()
+    renderRoute()
   } catch {
     failed.value = true
   }
 })
 
 watch(() => [props.shelters, props.me, props.selectedId], render, { deep: false })
+watch(() => props.route, renderRoute)
 
 onBeforeUnmount(() => {
   map.value?.remove()

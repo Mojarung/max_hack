@@ -25,8 +25,26 @@ class Shelter(TimestampMixin, Base):
     lat: Mapped[float] = mapped_column(Float)
     lon: Mapped[float] = mapped_column(Float)
     capacity: Mapped[int | None] = mapped_column(Integer)
+    # shelter | basement | parking | underpass | metro | bunker (подписи в safety/catalog.py)
     kind: Mapped[str] = mapped_column(String(32), default="shelter")
+    # demo | osm | registry:<имя реестра>
     source: Mapped[str] = mapped_column(String(64), default="demo")
+    # Регион по ISO 3166-2, например RU-ULY; у точек из OSM пусто
+    region: Mapped[str | None] = mapped_column(String(8))
+    # Объект OSM: id * 10 + код типа (1 узел, 2 линия, 3 отношение), см. safety/osm.py
+    osm_id: Mapped[int | None] = mapped_column(BigInteger, unique=True)
+    # Из официального реестра региона (True) или заглублённое место из OSM / демо (False)
+    official: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ShelterFetch(Base):
+    """Когда ячейку карты (0,02° × 0,02°) последний раз спрашивали у Overpass: не чаще раза в неделю."""
+
+    __tablename__ = "shelter_fetches"
+
+    cell: Mapped[str] = mapped_column(String(32), primary_key=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class Alert(TimestampMixin, Base):
@@ -38,6 +56,10 @@ class Alert(TimestampMixin, Base):
     message: Mapped[str] = mapped_column(Text, default="")
     active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Регион, по которому тревога пришла из официальной ленты (ISO 3166-2); у ручных тревог пусто
+    region: Mapped[str | None] = mapped_column(String(8))
+    # Откуда тревога: None - запустил администратор дома, «feed:<тип>:<источник>:<id поста>» - из ленты
+    source: Mapped[str | None] = mapped_column(String(256))
 
 
 class ModerationLog(TimestampMixin, Base):

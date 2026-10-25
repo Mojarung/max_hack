@@ -34,6 +34,7 @@ import type {
   MeOut,
   OkOut,
   PulseOut,
+  RouteOut,
   SearchOut,
   ShelterOut,
 } from './types'
@@ -171,7 +172,11 @@ export const achievementsApi = {
 }
 
 export const safetyApi = {
-  shelters: (lat?: number, lon?: number) => api<ShelterOut[]>('/shelters', { query: { lat, lon } }),
+  // первый запрос для нового места может ждать OpenStreetMap до 20 с: даём серверу время ответить
+  shelters: (lat?: number, lon?: number) =>
+    api<ShelterOut[]>('/shelters', { query: { lat, lon }, timeoutMs: 30_000 }),
+  route: (id: number, lat?: number, lon?: number) =>
+    api<RouteOut>(`/shelters/${id}/route`, { query: { lat, lon }, timeoutMs: 15_000 }),
   activeAlert: () => api<AlertOut | null>('/alerts/active'),
   startAlert: (message: string) =>
     api<AlertOut>('/alerts', { method: 'POST', body: { kind: 'drone', message } }),

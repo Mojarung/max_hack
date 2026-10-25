@@ -24,6 +24,7 @@ import type {
   MeOut,
   Mood,
   PulseOut,
+  RouteOut,
 } from '@/api/types'
 import {
   HOUSE,
@@ -42,6 +43,7 @@ import {
 } from './fixtures'
 import { presetAvatar } from '@/utils/avatar'
 import { scenario } from './scenario'
+import { haversine } from '@/utils/format'
 import { LISTING_CATEGORY_TITLES } from '@/utils/labels'
 
 const users = buildUsers(scenario)
@@ -139,6 +141,44 @@ type Handler = (params: string[], query: Query, body: Body) => unknown
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const notFound = () => new ApiError('http', 404, 'Не нашли: возможно, запись уже удалили')
+
+/** Маршрут пешком, как от OSRM: ломаная из пяти точек с изгибом «по улицам», скорость 5 км/ч. */
+function mockRoute(
+  lat: number,
+  lon: number,
+  to: { lat: number; lon: number },
+  provider: RouteOut['provider'],
+): RouteOut {
+  const straight = haversine(lat, lon, to.lat, to.lon)
+  if (provider === 'straight') {
+    return {
+      distance_m: Math.round(straight),
+      duration_s: Math.round(straight / (5000 / 3600)),
+      points: [
+        [lat, lon],
+        [to.lat, to.lon],
+      ],
+      provider,
+    }
+  }
+  const steps = 4
+  const points: [number, number][] = Array.from({ length: steps + 1 }, (_, i) => {
+    const t = i / steps
+    // изгиб поперёк прямой, нулевой в концах: похоже на обход квартала
+    const bend = Math.sin(t * Math.PI) * 0.0006
+    return [
+      lat + (to.lat - lat) * t + bend * Math.sign(to.lon - lon || 1),
+      lon + (to.lon - lon) * t - bend,
+    ]
+  })
+  const distance = Math.round(straight * 1.3)
+  return {
+    distance_m: distance,
+    duration_s: Math.round(distance / (5000 / 3600)),
+    points,
+    provider,
+  }
+}
 const toOut = ({
   legal_basis,
   deadline_hours,
@@ -685,7 +725,23 @@ const routes: [string, RegExp, Handler][] = [
         })),
     }),
   ],
-  ['GET', /^\/shelters$/, () => SHELTERS],
+  // сценарий empty: ни реестра, ни объектов OSM рядом - виден совет «спуститесь в подвал»
+  ['GET', /^\/shelters$/, () => (scenario.name === 'empty' ? [] : SHELTERS)],
+  [
+    'GET',
+    /^\/shelters\/(\d+)\/route$/,
+    ([id], q) => {
+      const shelter = SHELTERS.find((s) => s.id === Number(id))
+      if (!shelter) throw notFound()
+      return mockRoute(
+        Number(q.lat ?? HOUSE.lat),
+        Number(q.lon ?? HOUSE.lon),
+        shelter,
+        // у объекта OpenStreetMap роутер «не ответил»: видно пунктир и оценку по прямой
+        shelter.source === 'osm' ? 'straight' : 'osrm',
+      )
+    },
+  ],
   ['GET', /^\/alerts\/active$/, () => db.alert],
   [
     'POST',

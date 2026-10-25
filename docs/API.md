@@ -40,9 +40,9 @@ X-Max-Init-Data: <initData>
 | GET | `/houses?refresh=true` | `HouseBrief[]`, дома жителя; `refresh` заново ищет чаты с Кузей |
 | GET | `/house/pulse` | `PulseOut`, состояние маскота Кузи |
 | GET | `/dev/users` | `DevUser[]`, только в мок-режиме |
-| PATCH | `/house` | `MeOut`. Тело: `title`, `address`, `lat`, `lon`, `vote_threshold_pct`, `info`, `uk_name`, `uk_email`, `uk_phone`, `setup_done` (только администратор дома), `apartment` (своя квартира, любой житель). Общую демо-УК не меняет, а заводит дому свою запись |
+| PATCH | `/house` | `MeOut`. Тело: `title`, `address`, `lat`, `lon`, `region`, `vote_threshold_pct`, `info`, `uk_name`, `uk_email`, `uk_phone`, `setup_done` (только администратор дома), `apartment` (своя квартира, любой житель). Общую демо-УК не меняет, а заводит дому свою запись. `region` - субъект РФ по ISO 3166-2 (`RU-ULY`); если его нет, а координаты изменились, сервер определяет регион по координатам через Nominatim |
 | POST | `/house/sync` | `{"members": 40, "bot_is_admin": true}`, сверка жителей и администраторов с чатом MAX (администратор) |
-| GET | `/house/geocode?q=` | `[{"title", "lat", "lon"}]`, координаты по адресу через OpenStreetMap Nominatim (администратор) |
+| GET | `/house/geocode?q=` | `[{"title", "lat", "lon", "region"}]`, координаты и регион (`ISO3166-2-lvl4`, например `RU-ULY`) по адресу через OpenStreetMap Nominatim (администратор) |
 | GET | `/people` | `Neighbour[]`, жители дома |
 | GET | `/people/{id}` | `ProfileOut`: уровень, статистика помощи дому, награды, `thanks_count`, `thanked_by_me`. Только жители того же дома |
 | POST | `/people/{id}/thanks` | `ProfileOut`. Спасибо соседу: +5 очков ему, не чаще раза в сутки от одного жителя (`409` при повторе). Кузя сообщает соседу в личку |
@@ -58,7 +58,8 @@ X-Max-Init-Data: <initData>
             "lat": 54.38, "lon": 48.60, "members_count": 40, "vote_threshold_pct": 15,
             "uk_name": "УК ...", "uk_email": "uk@example.org", "uk_phone": "+7 ...",
             "info": "Диспетчерская ...", "setup_done": true, "is_demo": false,
-            "has_chat": true, "bot_is_admin": true},
+            "has_chat": true, "bot_is_admin": true,
+            "region": "RU-ULY", "region_name": "Ульяновская область"},
   "role": "resident",           // resident | admin
   "mock": true                  // сервер в мок-режиме
 }
@@ -185,17 +186,40 @@ X-Max-Init-Data: <initData>
 
 | Метод | Путь | Тело | Ответ |
 |---|---|---|---|
-| GET | `/shelters?lat=&lon=` | | `ShelterOut[]`, отсортированы по расстоянию |
+| GET | `/shelters?lat=&lon=` | | `ShelterOut[]`, отсортированы по расстоянию. Реестр региона, демо-точки и заглублённые объекты OpenStreetMap (Overpass, не чаще раза в неделю на ячейку 0,02°) |
+| GET | `/shelters/{id}/route?lat=&lon=` | | `RouteOut`: пешеходный маршрут OSRM, при ошибке прямая линия (`provider: "straight"`) и время по 5 км/ч |
 | GET | `/alerts/active` | | `AlertOut` или `null` |
 | POST | `/alerts` | `{"kind": "drone", "message": "..."}` (admin или мок-режим) | `AlertOut` |
 | POST | `/alerts/{id}/end` | | `AlertOut` |
+| GET | `/alerts/sources` | admin или мок-режим | `AlertSourcesOut`: регион дома и источники официальных оповещений этого региона, которые опрашивает воркер ([docs/ALERTS.md](ALERTS.md)) |
+
+Тревоги приходят не только от администратора: воркер читает официальные источники региона (канал MAX, публичные Telegram-каналы, RSS сайтов МЧС, ВКонтакте) и сам вызывает те же `alert.started` и `alert.ended` для домов с совпадающим `house.region`. У таких тревог `source` начинается с `feed:`.
 
 ```jsonc
-// ShelterOut
+// AlertSourcesOut
+{"region": "RU-ULY", "region_name": "Ульяновская область", "feeds_enabled": true,
+ "sources": [
+   {"id": 90, "type": "telegram_web", "ref": "mchs_ulyanovsk", "title": "МЧС Ульяновской области (Telegram)",
+    "enabled": true, "last_checked_at": "2026-10-20T09:00:00Z", "last_post_id": "14154", "last_error": null},
+   {"id": 73, "type": "mchs_rss", "ref": "https://73.mchs.gov.ru/deyatelnost/press-centr/operativnaya-informaciya/rss",
+    "title": "ГУ МЧС России: Ульяновская область, оперативная информация",
+    "enabled": true, "last_checked_at": "2026-10-20T08:55:00Z", "last_post_id": "https://73.mchs.gov.ru/.../5844763",
+    "last_error": null}
+ ]}
+```
+
+```jsonc
+// ShelterOut. kind: shelter | basement | parking | underpass | metro | bunker;
+// source: demo | osm | registry:<имя реестра>; official = true только у точек из реестра региона
 {"id": 1, "name": "Укрытие (подвал школы № 12)", "address": "...", "lat": 54.38, "lon": 48.60,
- "capacity": 300, "kind": "shelter", "distance_m": 420,
+ "capacity": 300, "kind": "basement", "kind_title": "Подвал", "official": true,
+ "source": "registry:Реестр укрытий Ульяновской области", "source_title": "Реестр укрытий Ульяновской области",
+ "distance_m": 420,
  "yandex_url": "https://yandex.ru/maps/?rtext=54.38,48.60~54.381,48.605&rtt=pd",
  "osm_url": "https://www.openstreetmap.org/?mlat=...&mlon=...#map=18/..."}
+// RouteOut: точки [lat, lon] от жителя до укрытия
+{"distance_m": 540, "duration_s": 390, "points": [[54.3857, 48.606], [54.3861, 48.6074], [54.3868, 48.609]],
+ "provider": "osrm"}
 // AlertOut
 {"id": 1, "kind": "drone", "kind_title": "Беспилотная опасность", "message": "...",
  "active": true, "created_at": "...", "ended_at": null}

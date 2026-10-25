@@ -44,15 +44,16 @@ USERS = [
     (1007, "Елена", "Смирнова", "88", "resident", 10),
     (1008, "Рустам", "Зарипов", "23", "resident", 0),
 ]
-# (смещение по широте, по долготе, название, адрес, вместимость)
+# (смещение по широте, по долготе, название, адрес, вместимость, вид из safety/catalog.py)
 SHELTERS = [
-    (0.0021, 0.0034, "Укрытие в подвале школы (демо)", "ул. Демонстрационная, 12", 400),
-    (-0.0030, 0.0012, "Подземный переход (демо)", "пересечение ул. Примерной и ул. Тестовой", 250),
-    (0.0048, -0.0041, "Укрытие ТЦ «Пример» (демо)", "ул. Макетная, 3", 800),
-    (-0.0062, -0.0035, "Паркинг жилого комплекса (демо)", "ул. Образцовая, 20", 300),
-    (0.0075, 0.0060, "Цокольный этаж Дома культуры (демо)", "пл. Условная", 600),
-    (-0.0015, 0.0081, "Укрытие поликлиники (демо)", "ул. Шаблонная, 8", 150),
+    (0.0021, 0.0034, "Укрытие в подвале школы (демо)", "ул. Демонстрационная, 12", 400, "basement"),
+    (-0.0030, 0.0012, "Подземный переход (демо)", "пересечение ул. Примерной и ул. Тестовой", 250, "underpass"),
+    (0.0048, -0.0041, "Укрытие ТЦ «Пример» (демо)", "ул. Макетная, 3", 800, "shelter"),
+    (-0.0062, -0.0035, "Паркинг жилого комплекса (демо)", "ул. Образцовая, 20", 300, "parking"),
+    (0.0075, 0.0060, "Цокольный этаж Дома культуры (демо)", "пл. Условная", 600, "basement"),
+    (-0.0015, 0.0081, "Укрытие поликлиники (демо)", "ул. Шаблонная, 8", 150, "shelter"),
 ]
+SHELTER_REGION = "RU-ULY"
 
 
 # Фото демо-заявок и вещей: файлы в demo_media (Unsplash, источники в frontend/public/demo/CREDITS.md).
@@ -150,6 +151,7 @@ async def _seed_extras() -> None:
                 vote_threshold_pct=get_settings().default_vote_threshold_pct,
                 uk_org_id=first.uk_org_id,
                 is_demo=True,
+                region="RU-ULY",
                 info="Председатель совета дома: Анна Иванова, кв. 3.",
             )
             session.add(second)
@@ -170,6 +172,9 @@ async def _seed_extras() -> None:
                 "Председатель совета дома: Анна Иванова, кв. 12.\n"
                 "Вывоз крупногабарита: по средам, площадка у 3 подъезда."
             )
+        # регион демо-домов (Ульяновск) для официальных оповещений: доезжает и в уже развёрнутую базу
+        for demo_house in await session.scalars(select(House).where(House.is_demo.is_(True), House.region.is_(None))):
+            demo_house.region = "RU-ULY"
         await session.commit()
 
 
@@ -192,6 +197,7 @@ async def _seed_base() -> None:
             vote_threshold_pct=get_settings().default_vote_threshold_pct,
             uk_org_id=orgs["uk"].id,
             is_demo=True,
+            region="RU-ULY",
         )
         session.add(house)
         users = [
@@ -381,9 +387,12 @@ async def _seed_base() -> None:
                 lat=HOUSE_LAT + dlat,
                 lon=HOUSE_LON + dlon,
                 capacity=cap,
+                kind=kind,
                 source="demo",
+                region=SHELTER_REGION,
+                official=False,
             )
-            for dlat, dlon, name, addr, cap in SHELTERS
+            for dlat, dlon, name, addr, cap, kind in SHELTERS
         )
         session.add_all(
             [

@@ -17,6 +17,7 @@ from domovoy.modules.issues.catalog import OPEN_STATUSES
 from domovoy.modules.issues.models import Issue, IssueVote
 from domovoy.modules.market.models import Listing
 from domovoy.modules.misc_models import UserAchievement
+from domovoy.modules.safety.regions import normalize_code, region_name
 from domovoy.modules.users import neighbours
 from domovoy.modules.users.avatar import (
     PRESET_COUNT,
@@ -34,6 +35,10 @@ log = structlog.get_logger(__name__)
 router = APIRouter(tags=["Профиль и дом"])
 
 GEOCODER_URL = "https://nominatim.openstreetmap.org/search"
+REVERSE_GEOCODER_URL = "https://nominatim.openstreetmap.org/reverse"
+GEOCODER_HEADERS = {"User-Agent": "domovoy-kuzya/1.0"}
+# Ключ субъекта РФ в адресе Nominatim (ISO 3166-2, например RU-ULY)
+REGION_KEY = "ISO3166-2-lvl4"
 
 
 class UserOut(BaseModel):
@@ -69,6 +74,9 @@ class HouseOut(BaseModel):
     is_demo: bool = False
     has_chat: bool = False
     bot_is_admin: bool | None = None
+    # субъект РФ по ISO 3166-2 (RU-ULY) и его название: по региону дом получает официальные оповещения
+    region: str | None = None
+    region_name: str | None = None
 
 
 class MeOut(BaseModel):
@@ -133,6 +141,8 @@ def house_out(h: House) -> HouseOut:
         is_demo=h.is_demo,
         has_chat=h.max_chat_id is not None,
         bot_is_admin=h.bot_is_admin,
+        region=h.region,
+        region_name=region_name(h.region),
     )
 
 
@@ -225,10 +235,39 @@ class HouseIn(BaseModel):
     uk_email: EmailStr | None = Field(default=None, description="E-mail УК для обращений")
     uk_phone: str | None = Field(default=None, max_length=64)
     setup_done: bool | None = None
+    region: str | None = Field(
+        default=None,
+        min_length=4,
+        max_length=8,
+        pattern=r"^[A-Za-z]{2}-[A-Za-z0-9]{1,5}$",
+        description="Субъект РФ по ISO 3166-2, например RU-ULY; пусто - определить по координатам",
+    )
     apartment: str | None = Field(default=None, max_length=16, description="Квартира текущего жителя")
 
 
 UK_FIELDS = {"uk_name", "uk_email", "uk_phone"}
+
+
+async def region_by_coords(lat: float, lon: float) -> str | None:
+    """Субъект РФ по координатам дома (Nominatim, поле ISO3166-2-lvl4). Нет ответа - None, дом сохраняется без него."""
+    params: dict[str, str | int | float] = {
+        "lat": lat,
+        "lon": lon,
+        "format": "json",
+        "zoom": 5,
+        "addressdetails": 1,
+        "accept-language": "ru",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=8, headers=GEOCODER_HEADERS) as http:
+            resp = await http.get(REVERSE_GEOCODER_URL, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+    except (httpx.HTTPError, ValueError):
+        log.warning("reverse_geocode.failed", exc_info=True)
+        return None
+    address = data.get("address") if isinstance(data, dict) else None
+    return normalize_code((address or {}).get(REGION_KEY))
 
 
 async def _own_uk(session: SessionDep, house: House) -> Organization:
@@ -263,9 +302,15 @@ async def update_house(body: HouseIn, session: SessionDep, ctx: CtxDep) -> MeOut
     user = await session.get(User, ctx.user.id)
     if house is None or user is None:
         raise HTTPException(404, "Дом не найден")
+    old_coords = (house.lat, house.lon)
     for key, value in fields.items():
-        if key not in UK_FIELDS and value is not None:
+        if key not in UK_FIELDS and key != "region" and value is not None:
             setattr(house, key, value.strip() if isinstance(value, str) else value)
+    if "region" in fields:
+        house.region = normalize_code(body.region)
+    elif {"lat", "lon"} & fields.keys() and (house.region is None or (house.lat, house.lon) != old_coords):
+        # приложение присылает только координаты выбранного адреса: регион для оповещений узнаём по ним
+        house.region = await region_by_coords(house.lat, house.lon) or house.region
     if UK_FIELDS & fields.keys():
         org = await _own_uk(session, house)
         if body.uk_name:
@@ -302,26 +347,41 @@ class GeoResult(BaseModel):
     title: str
     lat: float
     lon: float
+    # субъект РФ (ISO 3166-2) из адреса Nominatim: приложение может передать его в PATCH /house
+    region: str | None = None
 
 
 @router.get("/house/geocode", response_model=list[GeoResult])
 async def geocode(q: str, ctx: CtxDep) -> list[GeoResult]:
-    """Координаты дома по адресу (OpenStreetMap Nominatim): нужны для карты укрытий."""
+    """Координаты и регион дома по адресу (OpenStreetMap Nominatim): карта укрытий и оповещения региона."""
     require_admin(ctx)
     if len(q.strip()) < 5:
         return []
+    params: dict[str, str | int] = {
+        "q": q,
+        "format": "json",
+        "limit": 5,
+        "countrycodes": "ru",
+        "accept-language": "ru",
+        "addressdetails": 1,
+    }
     try:
-        async with httpx.AsyncClient(timeout=8, headers={"User-Agent": "domovoy-kuzya/1.0"}) as http:
-            resp = await http.get(
-                GEOCODER_URL,
-                params={"q": q, "format": "json", "limit": 5, "countrycodes": "ru", "accept-language": "ru"},
-            )
+        async with httpx.AsyncClient(timeout=8, headers=GEOCODER_HEADERS) as http:
+            resp = await http.get(GEOCODER_URL, params=params)
             resp.raise_for_status()
             rows = resp.json()
     except (httpx.HTTPError, ValueError):
         log.warning("geocode.failed", exc_info=True)
         raise HTTPException(502, "Поиск адреса сейчас недоступен, поставьте точку на карте вручную") from None
-    return [GeoResult(title=r["display_name"], lat=float(r["lat"]), lon=float(r["lon"])) for r in rows]
+    return [
+        GeoResult(
+            title=r["display_name"],
+            lat=float(r["lat"]),
+            lon=float(r["lon"]),
+            region=normalize_code((r.get("address") or {}).get(REGION_KEY)),
+        )
+        for r in rows
+    ]
 
 
 class Neighbour(BaseModel):

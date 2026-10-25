@@ -64,6 +64,9 @@ class House(TimestampMixin, Base):
     setup_done: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     # Кузя администратор чата: может удалять сообщения и видеть участников
     bot_is_admin: Mapped[bool | None] = mapped_column(Boolean)
+    # Субъект РФ по ISO 3166-2 (RU-ULY): по нему дом получает официальные оповещения своего региона.
+    # Заполняется из Nominatim при выборе адреса (поле ISO3166-2-lvl4) или вручную
+    region: Mapped[str | None] = mapped_column(String(8), index=True)
 
     uk_org: Mapped[Organization | None] = relationship(lazy="joined")
 

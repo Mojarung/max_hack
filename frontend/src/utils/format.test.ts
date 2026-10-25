@@ -5,6 +5,7 @@ import {
   formatDistance,
   formatHours,
   formatPrice,
+  formatWalk,
   plural,
 } from './format'
 
@@ -69,6 +70,18 @@ describe('formatDistance and formatPrice', () => {
   it('shows "Даром" for free listings', () => {
     expect(formatPrice(0, true)).toBe('Даром')
     expect(formatPrice(1500, false)).toMatch(/^1\s500 ₽$/)
+  })
+})
+
+describe('formatWalk', () => {
+  it('shows minutes and distance', () => {
+    expect(formatWalk(540, 7 * 60 + 10)).toBe('≈ 7 мин пешком · 540 м')
+  })
+
+  it('rounds short walks up to a minute and long ones to hours', () => {
+    expect(formatWalk(30, 20)).toBe('≈ 1 мин пешком · 30 м')
+    expect(formatWalk(5200, 70 * 60)).toBe('≈ 1 ч 10 мин пешком · 5,2 км')
+    expect(formatWalk(4800, 60 * 60)).toBe('≈ 1 ч пешком · 4,8 км')
   })
 })
 

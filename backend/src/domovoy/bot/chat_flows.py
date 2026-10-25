@@ -620,15 +620,18 @@ async def contact(who: Who, listing_id: int) -> str:
 async def send_shelters(gw: Gateway, who: Who) -> None:
     async with get_sessionmaker()() as session:
         items = await safety.nearest_shelters(session, who.house.lat, who.house.lon, limit=3)
+    map_button = issues.app_button("🗺 Карта укрытий", "alert")
     if not items:
-        await gw.send(chat_id=who.chat_id, text="Укрытия для дома ещё не добавлены.")
+        await gw.send(chat_id=who.chat_id, text=safety.NO_SHELTERS_ADVICE, buttons=[[map_button]])
         return
     lines = ["🛡 **Ближайшие укрытия**", ""]
     buttons: Buttons = []
     for n, s in enumerate(items, 1):
         cap = f", до {s.capacity} чел." if s.capacity else ""
-        lines.append(f"{n}. {s.name}: {s.distance_m} м{cap}\n{s.address}")
-        buttons.append([{"type": "link", "text": f"🚶 Маршрут до №{n}", "url": s.yandex_url}])
+        addr = f"\n{s.address}" if s.address else ""
+        lines.append(f"{n}. {s.name} ({s.kind_title.lower()}): {s.distance_m} м{cap}, {safety.shelter_note(s)}{addr}")
+        buttons.append([{"type": "link", "text": f"🚶 №{n}: маршрут в Яндекс Картах", "url": s.yandex_url}])
+    buttons.append([map_button])
     lines += ["", "При тревоге: отойдите от окон, спуститесь в укрытие или встаньте в коридоре без окон."]
     await gw.send(chat_id=who.chat_id, text="\n".join(lines), buttons=buttons)
 

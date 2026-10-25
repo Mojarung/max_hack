@@ -662,6 +662,7 @@ export function buildAchievements(s: MockScenario): AchievementOut[] {
   }))
 }
 
+/** Три источника укрытий, как в бою: реестр региона, демо-точка сида и объект OpenStreetMap. */
 export const SHELTERS: ShelterOut[] = [
   {
     id: 1,
@@ -671,6 +672,10 @@ export const SHELTERS: ShelterOut[] = [
     lon: 48.609,
     capacity: 300,
     kind: 'basement',
+    kind_title: 'Подвал',
+    official: true,
+    source: 'registry:Реестр укрытий Ульяновской области (демо)',
+    source_title: 'Реестр укрытий Ульяновской области (демо)',
     distance_m: 180,
     yandex_url: 'https://yandex.ru/maps/?rtext=~54.3868,48.609',
     osm_url: 'https://www.openstreetmap.org/?mlat=54.3868&mlon=48.609',
@@ -683,21 +688,29 @@ export const SHELTERS: ShelterOut[] = [
     lon: 48.6031,
     capacity: 600,
     kind: 'basement',
+    kind_title: 'Подвал',
+    official: false,
+    source: 'demo',
+    source_title: 'Демо-точка',
     distance_m: 420,
     yandex_url: 'https://yandex.ru/maps/?rtext=~54.3846,48.6031',
     osm_url: 'https://www.openstreetmap.org/?mlat=54.3846&mlon=48.6031',
   },
   {
     id: 3,
-    name: 'Подземный паркинг ТЦ (демо)',
+    name: 'Подземный паркинг',
     address: 'пр-т Ленинского Комсомола, 30',
     lat: 54.3889,
     lon: 48.6118,
-    capacity: 800,
+    capacity: null,
     kind: 'parking',
+    kind_title: 'Подземный паркинг',
+    official: false,
+    source: 'osm',
+    source_title: 'OpenStreetMap',
     distance_m: 650,
     yandex_url: 'https://yandex.ru/maps/?rtext=~54.3889,48.6118',
-    osm_url: 'https://www.openstreetmap.org/?mlat=54.3889&mlon=48.6118',
+    osm_url: 'https://www.openstreetmap.org/way/1',
   },
 ]
 

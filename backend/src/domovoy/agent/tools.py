@@ -261,19 +261,20 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
 
     @tool
     async def nearest_shelters() -> str:
-        """Ближайшие укрытия к дому с маршрутом в Яндекс Картах и текущая тревога."""
+        """Ближайшие укрытия к дому (реестр региона или заглублённые места из OpenStreetMap) с маршрутом и тревога."""
         async with sm() as session:
             _, house = await load(session)
             items = await safety.nearest_shelters(session, house.lat, house.lon, limit=3)
             alert = await safety.active_alert(session, house.id)
         head = "Сейчас действует тревога! " if alert else ""
         if not items:
-            return head + "В справочнике нет укрытий рядом с домом."
-        return (
-            head
-            + "Ближайшие укрытия:\n"
-            + "\n".join(f"{s.name}, {s.address}, ~{s.distance_m} м. Маршрут: {s.yandex_url}" for s in items)
-        )
+            return head + safety.NO_SHELTERS_ADVICE
+        lines = [
+            f"{s.name} ({s.kind_title.lower()}, {safety.shelter_note(s)}){', ' + s.address if s.address else ''}, "
+            f"~{s.distance_m} м. Маршрут в Яндекс Картах: {s.yandex_url}"
+            for s in items
+        ]
+        return head + "Ближайшие укрытия:\n" + "\n".join(lines) + "\nКарта с маршрутом пешком есть в приложении."
 
     @tool
     async def my_profile() -> str:

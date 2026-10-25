@@ -330,10 +330,28 @@ export interface ShelterOut {
   lat: number
   lon: number
   capacity: number | null
+  /** shelter | basement | parking | underpass | metro | bunker */
   kind: string
+  /** Вид словами: «Подземный паркинг», «Подземный переход» */
+  kind_title: string
+  /** Из официального реестра региона, а не заглублённое место из OpenStreetMap */
+  official: boolean
+  /** demo | osm | registry:<имя реестра> */
+  source: string
+  /** «Реестр ...», «OpenStreetMap», «Демо-точка» */
+  source_title: string
   distance_m: number | null
   yandex_url: string
   osm_url: string
+}
+
+/** Пешеходный маршрут до укрытия: OSRM или прямая линия, если роутер не ответил. */
+export interface RouteOut {
+  distance_m: number
+  duration_s: number
+  /** [[lat, lon], ...] от жителя до укрытия */
+  points: [number, number][]
+  provider: 'osrm' | 'straight'
 }
 
 export interface AlertOut {

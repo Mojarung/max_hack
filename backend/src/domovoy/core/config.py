@@ -75,6 +75,29 @@ class Settings(BaseSettings):
     # Житель без членства в доме (открыл приложение из лички) подключается к первому (пилотному) дому
     pilot_house_fallback: bool = True
 
+    # Официальные оповещения по регионам (docs/ALERTS.md): воркер опрашивает источники и запускает тревоги
+    # в домах нужного региона. В тестах выключено.
+    alert_feeds_enabled: bool = True
+    alert_feed_interval_seconds: int = 60
+    # Тревога из ленты без официального отбоя снимается сама через столько часов
+    alert_feed_max_hours: int = 6
+    # Сервисный ключ приложения ВКонтакте для wall.get; пусто - источники vk_wall не опрашиваются
+    vk_service_token: SecretStr = SecretStr("")
+
+    # Укрытия: заглублённые объекты из OpenStreetMap (зеркала Overpass по очереди) и пешеходный маршрут (OSRM).
+    # Зеркала иногда отвечают 504, поэтому таймаут короткий, а результат кэшируется в базе на неделю.
+    overpass_urls: list[str] = Field(
+        default_factory=lambda: [
+            "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+            "https://overpass-api.de/api/interpreter",
+        ]
+    )
+    overpass_timeout_seconds: float = 20.0
+    # Пешеходный OSRM от FOSSGIS. Демо-сервер router.project-osrm.org знает только машину и молча
+    # игнорирует профиль foot: маршрут шёл по дорогам со скоростью ~16 км/ч (проверено 20.10.2026)
+    osrm_url: str = "https://routing.openstreetmap.de/routed-foot"
+    osrm_timeout_seconds: float = 8.0
+
     # Подпись временных ссылок на документы. Пусто = выводится из токена бота и ключа MinIO.
     files_secret: SecretStr = SecretStr("")
     files_link_ttl_seconds: int = 15 * 60

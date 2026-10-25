@@ -24,6 +24,7 @@ from domovoy.modules.issues.classifier import classify_rules
 from domovoy.modules.issues.models import Issue
 from domovoy.modules.moderation.guardrails import moderate
 from domovoy.modules.moderation.service import log_verdict
+from domovoy.modules.safety import feeds
 from domovoy.modules.users.membership import check_access, current_house, sync_chat
 from domovoy.modules.users.models import House, Membership, User
 from domovoy.modules.users.service import (
@@ -255,10 +256,15 @@ async def _notify_admins(session: AsyncSession, gw: Gateway, house: House, text:
 
 async def on_message(update: dict[str, Any], gw: Gateway) -> None:
     message = update.get("message") or {}
+    recipient = message.get("recipient") or {}
+    if recipient.get("chat_type") == "channel":
+        # Пост канала MAX (chat_type «channel», отправителя у поста нет): не модерируем и не отвечаем.
+        # Если канал в белом списке источников оповещений, текст уходит в ленты тревог (docs/ALERTS.md)
+        await feeds.ingest_channel_post(message)
+        return
     sender = message.get("sender") or {}
     if not sender or sender.get("is_bot"):
         return
-    recipient = message.get("recipient") or {}
     body = message.get("body") or {}
     text: str = (body.get("text") or "").strip()
     photo_urls = chat_flows.image_urls(body)
