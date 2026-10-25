@@ -405,7 +405,8 @@ async def ingest_post(session: AsyncSession, source: AlertSource, post: Post) ->
         region=source.region,
         source=f"{source.type}:{source.ref}",
         post_id=post.post_id,
-        event=verdict.event,
+        # не event=: это имя первого аргумента structlog, с ним вызов падал TypeError и тревога не запускалась
+        alert_event=verdict.event,
         kind=verdict.kind,
     )
     if verdict.event == "start":
