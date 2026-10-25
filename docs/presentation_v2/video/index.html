@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Домовой Кузя, ролик</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                 "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+<style>
+  /*
+   * Ролик 30 с, кадр 1280x720 -> 2560x1440, 60 кадров в секунду. Музыка 120 BPM: доля 0,5 с.
+   * iPhone - настоящая 3D-модель (Three.js): титановая рамка, стекло с отражениями, камеры сзади.
+   * Правило: пока зритель читает, телефон стоит почти ровно экраном к камере. Вращение, перевороты
+   * и наезды только в переходах между сценами; экран меняется, когда телефон повёрнут спиной.
+   * Кузя собран из слоёв позы и живёт каждый кадр: пружинит в долю, качает головой, моргает.
+   */
+  :root { --ground: #E9EEF4; --ink: #1B2533; --ink-2: #4A5668; --blue: #1F5FAF; --blue-soft: #DCE7F5; --red: #C62828; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; background: var(--ground); }
+  body { font-family: "Golos Text", "Segoe UI", sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  #stage { position: relative; width: 1280px; height: 720px; overflow: hidden; background: var(--ground); }
+  #gl { position: absolute; inset: 0; width: 1280px; height: 720px; z-index: 30; }
+  .abs { position: absolute; }
+  .layer { position: absolute; inset: 0; }
+  .w { display: inline-block; }
+
+  #pill { position: absolute; left: 0; top: 0; width: 240px; height: 76px; border-radius: 38px; background: var(--blue); z-index: 20;
+    display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 26px; font-weight: 700; white-space: nowrap; }
+  #pill .lbl { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; }
+
+  .kz { position: absolute; aspect-ratio: 472 / 500; }
+  .kz__fig, .kz__head, .kz img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .kz__fig { transform-origin: 50% 98.8%; }
+  .kz__lids { opacity: 0; }
+  .kz__shadow { position: absolute; left: 22%; right: 22%; bottom: -2%; height: 7%; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(16, 24, 40, .28), transparent); }
+
+  .copy { left: 600px; top: 130px; width: 630px; z-index: 32; }
+  .copy h2 { font-size: 62px; line-height: 1.02; font-weight: 800; letter-spacing: -.035em; }
+  .copy p { margin-top: 20px; font-size: 28px; line-height: 1.3; color: var(--ink-2); font-weight: 500; }
+  .tag { display: inline-block; font-size: 18px; font-weight: 700; color: var(--blue); background: var(--blue-soft); border-radius: 99px; padding: 7px 16px; margin-bottom: 18px; }
+  .hook h2 { font-size: 70px; }
+  .hook p { color: var(--blue); font-weight: 600; font-size: 32px; }
+
+  .chip { position: absolute; left: 600px; display: flex; align-items: center; gap: 14px; padding: 14px 22px 14px 16px; border-radius: 22px;
+    background: #FFFFFF; font-size: 24px; font-weight: 600; z-index: 32; }
+  .chip i { width: 40px; height: 40px; border-radius: 12px; background: var(--blue-soft); display: grid; place-items: center; font-style: normal; color: var(--blue); font-weight: 800; font-size: 20px; }
+  .chip span { color: var(--ink-2); font-weight: 500; }
+  .ava { position: absolute; width: 74px; height: 74px; border-radius: 50%; z-index: 31; }
+
+  .timer { left: 600px; top: 360px; z-index: 32; font-size: 104px; font-weight: 900; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  .timer small { display: block; font-size: 22px; font-weight: 600; letter-spacing: 0; color: var(--ink-2); margin-bottom: 4px; }
+  .track { left: 600px; top: 530px; width: 460px; height: 28px; border-radius: 14px; background: #D3DCE7; z-index: 32; overflow: hidden; }
+  .track b { position: absolute; inset: 0; border-radius: 14px; background: var(--blue); transform-origin: left center; }
+  .gji { left: 600px; top: 586px; max-width: 480px; z-index: 33; display: flex; align-items: center; gap: 16px; padding: 16px 24px 16px 16px; border-radius: 24px;
+    background: var(--red); color: #FFFFFF; font-size: 24px; font-weight: 700; line-height: 1.2; }
+  .gji i { flex: none; width: 46px; height: 46px; border-radius: 14px; background: rgba(255,255,255,.18); display: grid; place-items: center; font-style: normal; font-size: 24px; }
+
+
+  .outro { left: 560px; top: 120px; z-index: 60; color: #FFFFFF; width: 680px; }
+  .outro h1 { font-size: 104px; line-height: .92; font-weight: 900; letter-spacing: -.045em; }
+  .outro p { margin-top: 22px; font-size: 32px; line-height: 1.25; font-weight: 500; color: #DCE7F5; }
+  .qrbox { left: 560px; top: 440px; z-index: 60; display: flex; align-items: center; gap: 26px; }
+  .qrbox img { width: 196px; height: 196px; background: #FFFFFF; border-radius: 22px; padding: 12px; }
+  .qrbox b { display: block; font-size: 30px; color: #FFFFFF; }
+  .qrbox span { display: block; margin-top: 8px; font-size: 20px; color: #DCE7F5; }
+  .credit { left: 0; right: 0; bottom: 16px; text-align: center; font-size: 13px; color: #AFC4E2; z-index: 60; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="pill">
+    <span class="lbl" id="pillVote">Поддерживаю&nbsp;&nbsp;<span id="voteN">1</span>&nbsp;из&nbsp;6</span>
+    <span class="lbl" id="pillSent">Обращение ушло в УК</span>
+  </div>
+  <canvas id="gl"></canvas>
+
+  <!-- 1. Чат дома и шаг 1 на одном телефоне -->
+  <div class="copy hook abs" id="c1">
+    <h2 data-split>В чате пишут «у&nbsp;нас течёт».</h2>
+    <p data-split>А заявку в УК не подаёт никто.</p>
+  </div>
+  <div class="copy abs" id="c3">
+    <span class="tag">Домовой Кузя в чате MAX</span>
+    <h2 data-split>Фото и пара слов</h2>
+    <p data-split>Кузя сам находит, кто обязан починить и за какой срок</p>
+  </div>
+  <div class="chip" id="ch1" style="top:410px"><i>1</i>Категория:<span>кровля и протечки</span></div>
+  <div class="chip" id="ch2" style="top:490px"><i>2</i>Кто отвечает:<span>управляющая компания</span></div>
+  <div class="chip" id="ch3" style="top:570px"><i>3</i>Срок по закону:<span>1 сутки</span></div>
+
+  <div class="kz" id="kHelpOk" data-mood="ok" style="left:420px;top:540px;width:150px;z-index:34"></div>
+  <div class="kz" id="kHelpHappy" data-mood="happy" style="left:420px;top:540px;width:150px;z-index:34"></div>
+  <div class="kz" id="kHelpWorried" data-mood="worried" style="left:420px;top:540px;width:150px;z-index:34"></div>
+
+  <!-- 2. Голоса -->
+  <div class="copy abs" id="c4">
+    <span class="tag">Шаг 2. Соседи</span>
+    <h2 data-split>Соседи жмут «Поддерживаю»</h2>
+    <p id="c4p" data-split>Набрали порог, и Кузя сам отправляет обращение с фото и ссылкой на закон</p>
+  </div>
+  <img class="ava" id="a1" src="../../../frontend/public/avatars/1.webp" alt="">
+  <img class="ava" id="a2" src="../../../frontend/public/avatars/2.webp" alt="">
+  <img class="ava" id="a3" src="../../../frontend/public/avatars/3.webp" alt="">
+  <img class="ava" id="a4" src="../../../frontend/public/avatars/4.webp" alt="">
+  <img class="ava" id="a5" src="../../../frontend/public/avatars/5.webp" alt="">
+  <img class="ava" id="a6" src="../../../frontend/public/avatars/6.webp" alt="">
+
+  <!-- 3. Срок -->
+  <div class="copy abs" id="c5">
+    <span class="tag">Шаг 3. Контроль</span>
+    <h2 data-split>Кузя следит за сроком</h2>
+  </div>
+  <div class="timer abs" id="timer"><small>Осталось по закону</small><span id="timerT">24:00:00</span></div>
+  <div class="track abs" id="track"><b id="trackB"></b></div>
+  <div class="gji abs" id="gji"><i>!</i>Срок вышел: жалоба в Госжилинспекцию готова</div>
+
+  <!-- 4. Укрытия -->
+  <div class="copy abs" id="c6b">
+    <span class="tag">Укрытия</span>
+    <h2 data-split>Ближайшее укрытие и&nbsp;маршрут пешком</h2>
+    <p data-split>Для любого дома в России. Без мобильного интернета тоже: всё в чате MAX</p>
+  </div>
+
+  <!-- 5. Каждый день -->
+  <div class="copy abs" id="c7" style="top:590px;left:0;width:1280px;text-align:center">
+    <h2 data-split style="font-size:48px">А ещё субботники, вещи соседей и тёмная тема</h2>
+  </div>
+
+  <!-- 6. Финал -->
+  <div class="kz" id="kOutro" data-mood="proud" style="left:110px;top:120px;width:400px;z-index:60"></div>
+  <div class="outro abs" id="outro">
+    <h1 data-split>Домовой Кузя</h1>
+    <p data-split>Всё прямо в чате MAX. Для жителей бесплатно</p>
+  </div>
+  <div class="qrbox abs" id="qr">
+    <img src="../shots/qr_bot.svg" alt="">
+    <div><b>max.ru/id732818139220_bot</b><span>Наведите камеру и добавьте Кузю в чат дома</span></div>
+  </div>
+  <div class="credit abs" id="credit">Музыка и звуки: Freesound, CC0. Пилот «Умный город», Ульяновск</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const B = 0.5;
+const DUR = 30.0;
+const $ = (s) => document.querySelector(s);
+const TAU = Math.PI * 2;
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const easeOutBack = (x, s = 1.7) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+
+// ── загрузка: шрифты для текста на экране телефона и скриншоты ─────────
+await Promise.all(['500 30px "Golos Text"', '600 30px "Golos Text"', '700 30px "Golos Text"', '800 30px "Golos Text"'].map((f) => document.fonts.load(f)));
+const loadImg = (src) => new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = src; });
+const SHOTS = {};
+// одна заявка «течёт крыша» от чата до срока: экраны сняты на стенде скриптом shoot.py
+const OWN = ['bot_confirm', 'bot_group', 'issue_sla'];
+for (const n of ['bot_confirm', 'bot_group', 'issue_sla', 'safety', 'market', 'event', 'avatars', 'home_dark', 'achievements']) SHOTS[n] = await loadImg(OWN.includes(n) ? `assets/shots/${n}.png` : `../shots/${n}.png`);
+const KUZYA_AVA = await loadImg('../../../frontend/public/kuzya-avatar.png');
+
+// ── экран телефона: холст 780x1662, строка статуса сверху, скриншот под ней ──
+const SW = 780, SH = 1662, BAR = 96;
+const BAR_COLOR = { chat: ['#FFFFFF', '#1B2533'], bot_confirm: ['#FFFFFF', '#1B2533'], bot_group: ['#FFFFFF', '#1B2533'],
+  issue_sla: ['#F5F7FB', '#1B2533'], safety: ['#F5F7FB', '#1B2533'], market: ['#F5F7FB', '#1B2533'],
+  event: ['#F5F7FB', '#1B2533'], avatars: ['#626364', '#FFFFFF'], home_dark: ['#10151C', '#FFFFFF'], achievements: ['#F5F7FB', '#1B2533'] };
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function statusBar(ctx, name) {
+  const [bg, ink] = BAR_COLOR[name];
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, SW, BAR);
+  ctx.fillStyle = ink; ctx.font = '700 32px "Golos Text"'; ctx.textBaseline = 'alphabetic'; ctx.fillText('9:41', 64, 70);
+  for (let i = 0; i < 4; i++) { rr(ctx, 586 + i * 12, 64 - (i + 1) * 7, 8, (i + 1) * 7, 2); ctx.fill(); }
+  ctx.globalAlpha = 0.45; rr(ctx, 656, 44, 52, 26, 8); ctx.lineWidth = 2.5; ctx.strokeStyle = ink; ctx.stroke(); ctx.globalAlpha = 1;
+  rr(ctx, 661, 49, 40, 16, 4); ctx.fill();
+}
+function drawShot(ctx, name, scroll) {
+  ctx.fillStyle = BAR_COLOR[name][0]; ctx.fillRect(0, 0, SW, SH);
+  ctx.drawImage(SHOTS[name], 0, BAR - scroll, SW, SW * 1688 / 780);
+  statusBar(ctx, name);
+}
+// чат дома: сообщения соседей приходят прямо на экране
+const CHAT = [
+  ['Анна, кв. 12', '#0077B6', 'У нас течёт крыша над 9 этажом', '19:02'],
+  ['Олег, кв. 34', '#023E8A', 'И у нас в подъезде капает', '19:03'],
+  ['Мария, кв. 5', '#0096C7', 'Кто-нибудь звонил в УК?', '19:05'],
+  ['Ильдар, кв. 77', '#03045E', 'Я думал, вы позвонили', '19:06'],
+  ['Светлана, кв. 101', '#0077B6', 'Течёт уже третий день', '19:20'],
+];
+const CHAT_T = [0.6, 1.1, 1.6, 2.1, 2.6];
+function drawChat(ctx, t) {
+  ctx.fillStyle = '#BEDCF6'; ctx.fillRect(0, 0, SW, SH);
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, BAR, SW, 130);
+  ctx.fillStyle = '#2B7CE1'; ctx.beginPath(); ctx.arc(104, BAR + 65, 40, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#FFFFFF'; ctx.font = '700 34px "Golos Text"'; ctx.textAlign = 'center'; ctx.fillText('7', 104, BAR + 77); ctx.textAlign = 'left';
+  ctx.fillStyle = '#121417'; ctx.font = '700 32px "Golos Text"'; ctx.fillText('Дом 7 на Демонстрационной', 164, BAR + 58);
+  ctx.fillStyle = '#56657A'; ctx.font = '500 26px "Golos Text"'; ctx.fillText('Чат дома · 48 участников', 164, BAR + 96);
+  ctx.fillStyle = 'rgba(18,20,23,.08)'; ctx.fillRect(0, BAR + 129, SW, 2);
+  let y = BAR + 180;
+  CHAT.forEach(([name, color, text, time], i) => {
+    const p = clamp((t - CHAT_T[i]) / 0.35);
+    if (p <= 0) return;
+    const s = 0.6 + 0.4 * easeOutBack(p, 2.2);
+    ctx.save(); ctx.globalAlpha = clamp(p * 2); ctx.translate(40, y + 150); ctx.scale(s, s); ctx.translate(-40, -(y + 150));
+    ctx.font = '500 32px "Golos Text"';
+    const w = Math.max(ctx.measureText(text).width + 150, 360);
+    ctx.fillStyle = '#FFFFFF'; rr(ctx, 40, y, w, 140, [34, 34, 34, 10]); ctx.fill();
+    ctx.fillStyle = color; ctx.font = '700 26px "Golos Text"'; ctx.fillText(name, 66, y + 46);
+    ctx.fillStyle = '#121417'; ctx.font = '500 32px "Golos Text"'; ctx.fillText(text, 66, y + 96);
+    ctx.fillStyle = 'rgba(18,20,23,.55)'; ctx.font = '500 22px "Golos Text"'; ctx.fillText(time, 40 + w - 80, y + 122);
+    ctx.restore();
+    y += 168;
+  });
+  statusBar(ctx, 'chat');
+}
+
+// какой экран и с какой прокруткой в момент t; экраны меняются, когда телефон спиной к зрителю
+const SWAP = { confirm: 4.45, group: 8.95, sla: 14.95, safety: 18.95 };
+const smooth = (t, a, b) => { const x = clamp((t - a) / (b - a)); return x * x * (3 - 2 * x); };
+function heroScreen(t) {
+  if (t < SWAP.confirm) return ['chat', 0];
+  if (t < SWAP.group) return ['bot_confirm', smooth(t, 5.3, 6.3) * 120];
+  if (t < SWAP.sla) return ['bot_group', 120];
+  if (t < SWAP.safety) return ['issue_sla', 0];
+  return ['safety', 0];
+}
+// нажатия пальцем: кружок на экране в точке кнопки
+// координаты кнопок на холсте экрана: y скриншота x2 минус прокрутка плюс строка статуса
+const BTN = { send: [390, 1358], group: [390, 1358], route: [390, 1611] };
+const TAPS = [[7.5, ...BTN.send], ...[0, 1, 2, 3, 4, 5].map((k) => [10.0 + k * B, ...BTN.group]), [20.4, ...BTN.route]];
+function overlays(ctx, t) {
+  for (const [tt, x, y] of TAPS) {
+    const p = (t - tt) / 0.45;
+    if (p < 0 || p > 1) continue;
+    ctx.fillStyle = `rgba(31, 95, 175, ${0.35 * (1 - p)})`; ctx.beginPath(); ctx.arc(x, y, 30 + 70 * p, 0, TAU); ctx.fill();
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.7 * (1 - p)})`; ctx.beginPath(); ctx.arc(x, y, 26 * (1 - p * 0.5), 0, TAU); ctx.fill();
+  }
+  const flash = 1 - clamp((t - 4.75) / 0.35);
+  if (t >= 4.75 && flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash * 0.9})`; ctx.fillRect(0, 0, SW, SH); }
+}
+
+// ── 3D-сцена ──────────────────────────────────────────────────────────
+const canvas = $('#gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(1280, 720, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.setClearColor(0x000000, 0);
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(-120, 200, 300); scene.add(key);
+const rim = new THREE.DirectionalLight(0xdfe9ff, 1.2); rim.position.set(260, 80, -200); scene.add(rim);
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const camera = new THREE.PerspectiveCamera(30, 1280 / 720, 10, 3000);
+camera.position.set(0, 0, 330);
+
+// iPhone в миллиметрах: 71,6 x 147,6 x 7,8, скругление углов 11
+const PW = 71.6, PH = 147.6, PD = 7.8, PR = 11.2;
+function roundedShape(w, h, r) {
+  const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
+  s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+  return s;
+}
+function planeGeo(w, h, r) {
+  const g = new THREE.ShapeGeometry(roundedShape(w, h, r), 24);
+  const pos = g.attributes.position, uv = g.attributes.uv;
+  for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / w + 0.5, pos.getY(i) / h + 0.5);
+  return g;
+}
+const bev = 1.1;
+const bodyGeo = new THREE.ExtrudeGeometry(roundedShape(PW - bev * 2, PH - bev * 2, PR - bev), { depth: PD - bev * 2, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 8, curveSegments: 32 });
+bodyGeo.translate(0, 0, -(PD - bev * 2) / 2);
+const titanium = new THREE.MeshPhysicalMaterial({ color: 0x9aa1aa, metalness: 1, roughness: 0.28, clearcoat: 0.3 });
+const glassBlack = new THREE.MeshPhysicalMaterial({ color: 0x050607, metalness: 0, roughness: 0.05, clearcoat: 1 });
+const backGlass = new THREE.MeshPhysicalMaterial({ color: 0xcfd3d8, metalness: 0.1, roughness: 0.55 });
+const lensMat = new THREE.MeshPhysicalMaterial({ color: 0x0b0d12, metalness: 0.2, roughness: 0.08, clearcoat: 1 });
+const SCW = PW - 4.6, SCH = PH - 4.6, SCR = PR - 2.4;
+const frontZ = PD / 2;
+
+function makePhone(screenCanvas) {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(bodyGeo, titanium));
+  const front = new THREE.Mesh(planeGeo(PW - 1.2, PH - 1.2, PR - 0.6), glassBlack); front.position.z = frontZ + 0.02; g.add(front);
+  const tex = new THREE.CanvasTexture(screenCanvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const screen = new THREE.Mesh(planeGeo(SCW, SCH, SCR), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+  screen.position.z = frontZ + 0.05; g.add(screen);
+  // отражения на стекле поверх экрана: тёмный металл с аддитивным смешиванием даёт только блики
+  const gloss = new THREE.Mesh(planeGeo(PW - 1.2, PH - 1.2, PR - 0.6), new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 1, roughness: 0.12, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false }));
+  gloss.position.z = frontZ + 0.09; g.add(gloss);
+  const island = new THREE.Mesh(planeGeo(19, 5.6, 2.8), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  island.position.set(0, SCH / 2 - 4.4, frontZ + 0.08); g.add(island);
+  const back = new THREE.Mesh(planeGeo(PW - 1.2, PH - 1.2, PR - 0.6), backGlass); back.position.z = -frontZ - 0.02; back.rotation.y = Math.PI; g.add(back);
+  // блок камер сзади, сверху слева, если смотреть на спину
+  const bumpGeo = new THREE.ExtrudeGeometry(roundedShape(30, 31, 8), { depth: 0.8, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 4 });
+  const bump = new THREE.Mesh(bumpGeo, new THREE.MeshPhysicalMaterial({ color: 0xc4c9cf, metalness: 0.3, roughness: 0.25, clearcoat: 1 }));
+  bump.position.set(PW / 2 - 19, PH / 2 - 20, -frontZ - 0.1); bump.rotation.y = Math.PI; g.add(bump);
+  for (const [dx, dy] of [[-6.5, 7], [-6.5, -7], [6.5, 0]]) {
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 2.2, 40), titanium);
+    ring.rotation.x = Math.PI / 2; ring.position.set(PW / 2 - 19 - dx, PH / 2 - 20 + dy, -frontZ - 2.4); g.add(ring);
+    const lens = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 4.6, 2.4, 40), lensMat);
+    lens.rotation.x = Math.PI / 2; lens.position.set(PW / 2 - 19 - dx, PH / 2 - 20 + dy, -frontZ - 2.5); g.add(lens);
+  }
+  const flashL = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 1, 24), new THREE.MeshStandardMaterial({ color: 0xf3e6c4, roughness: 0.4 }));
+  flashL.rotation.x = Math.PI / 2; flashL.position.set(PW / 2 - 19 - 6.5, PH / 2 - 20 - 10, -frontZ - 1.4); g.add(flashL);
+  // кнопки громкости слева и питания справа
+  for (const [x, y, h] of [[-PW / 2 - 0.5, 34, 8], [-PW / 2 - 0.5, 22, 12], [-PW / 2 - 0.5, 8, 12], [PW / 2 + 0.5, 22, 20]]) {
+    const btn = new THREE.Mesh(new THREE.BoxGeometry(1.4, h, 3.2), titanium); btn.position.set(x, y, 0); g.add(btn);
+  }
+  g.userData.tex = tex;
+  return g;
+}
+
+// мягкая тень под телефоном
+const shadowCanvas = document.createElement('canvas'); shadowCanvas.width = 256; shadowCanvas.height = 256;
+{ const c = shadowCanvas.getContext('2d'); const gr = c.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gr.addColorStop(0, 'rgba(16,24,40,.42)'); gr.addColorStop(1, 'rgba(16,24,40,0)'); c.fillStyle = gr; c.fillRect(0, 0, 256, 256); }
+const shadowMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCanvas), transparent: true, depthWrite: false, toneMapped: false });
+
+const heroCanvas = document.createElement('canvas'); heroCanvas.width = SW; heroCanvas.height = SH;
+const heroCtx = heroCanvas.getContext('2d');
+const hero = makePhone(heroCanvas);
+const heroRig = new THREE.Group(); heroRig.add(hero); scene.add(heroRig);
+const heroShadow = new THREE.Mesh(new THREE.PlaneGeometry(110, 34), shadowMat.clone());
+heroShadow.rotation.x = -Math.PI / 2; scene.add(heroShadow);
+
+// карусель экранов «каждый день»
+const CAROUSEL = ['market', 'event', 'avatars', 'home_dark', 'achievements'];
+const carousel = new THREE.Group(); scene.add(carousel);
+const cards = CAROUSEL.map((n, i) => {
+  const cv = document.createElement('canvas'); cv.width = SW; cv.height = SH; drawShot(cv.getContext('2d'), n, 0);
+  const ph = makePhone(cv); const holder = new THREE.Group(); holder.add(ph); carousel.add(holder);
+  return { holder, ph, a: (i - 2) * 0.34 };
+});
+
+// ── состояние, которым управляет таймлайн ─────────────────────────────
+// H: положение героя (мм), повороты (рад). Покой: почти анфас, чтобы экран читался.
+const REST = { x: -88, y: 0, z: 0, rx: 0.02, ry: 0.16, rz: 0, s: 1 };
+const H = { x: -88, y: -40, z: -900, rx: 0.9, ry: -3.6, rz: 0.3, s: 1, op: 1, idle: 0 };
+const CAM = { x: 0, y: 0, z: 330 };
+const CAR = { y: -40, rot: 0.9, op: 0, spread: 0 };
+
+// ── 2D-слои: слова, Кузя ──────────────────────────────────────────────
+const NECK = { ok: 262, happy: 246, proud: 264, alarm: 280, worried: 252 };
+const LIDS = { ok: true, worried: true };
+document.querySelectorAll('.kz').forEach((el) => {
+  const m = el.dataset.mood;
+  el.innerHTML = `<span class="kz__shadow"></span><span class="kz__fig"><img src="assets/kz_${m}-body.png" alt="">` +
+    `<span class="kz__head" style="transform-origin:50% ${(NECK[m] / 500 * 100).toFixed(1)}%"><img src="assets/kz_${m}-head.png" alt="">` +
+    (LIDS[m] ? `<img class="kz__lids" src="assets/kz_${m}-lids.png" alt="">` : '') + '</span></span>';
+});
+document.querySelectorAll('[data-split]').forEach((el) => {
+  el.innerHTML = el.innerHTML.split(/(\s+)/).map((p) => (p.trim() ? `<span class="w">${p}</span>` : p)).join('');
+});
+const words = (sel) => document.querySelectorAll(`${sel} .w`);
+await Promise.all([...document.images].map((i) => i.decode().catch(() => {})));
+
+const CUES = [];
+const sfx = (t, name, vol = 0.8) => CUES.push({ t: +t.toFixed(3), name, vol });
+const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+
+gsap.set('.w', { yPercent: 110, opacity: 0 });
+gsap.set('#pill', { x: 600, y: 470, opacity: 0 });
+gsap.set(['#kOutro', '#kHelpOk', '#kHelpHappy', '#kHelpWorried'], { opacity: 0, y: 60, scale: 0.85 });
+gsap.set(['.chip', '.tag'], { opacity: 0, x: 30 });
+gsap.set('.ava', { opacity: 0, scale: 0.4 });
+gsap.set(['#timer', '#track', '#gji'], { opacity: 0, y: 24 });
+gsap.set(['#qr', '#credit'], { opacity: 0, y: 30 });
+
+const showWords = (sel, t, stagger = 0.045, dur = 0.55) => tl.to(words(sel), { yPercent: 0, opacity: 1, duration: dur, stagger, ease: 'power4.out' }, t);
+const tag = (sel, t) => tl.to(`${sel} .tag`, { opacity: 1, x: 0, duration: 0.4 }, t);
+const out = (sel, t) => tl.to(sel, { opacity: 0, y: -30, duration: 0.3, ease: 'power2.in' }, t);
+const kzIn = (sel, t) => tl.to(sel, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'back.out(2)' }, t);
+const kzSwap = (from, to, t) => { tl.to(from, { opacity: 0, scale: 0.92, duration: 0.15 }, t); tl.fromTo(to, { opacity: 0, y: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(2.4)' }, t); };
+const toRest = (t, d = 0.55) => tl.to(H, { ...REST, duration: d, ease: 'power3.out' }, t);
+
+// ── 1. Чат и шаг 1: 0 - 8,5 ───────────────────────────────────────────
+// телефон вылетает из глубины, поворачиваясь со спины на экран
+sfx(0.0, 'whoosh_deep', 0.55);
+tl.to(H, { z: 0, y: 0, rx: REST.rx, ry: REST.ry, rz: 0, duration: 1.1, ease: 'power3.out' }, 0);
+CHAT_T.forEach((t) => sfx(t, 'bubble', 0.5));
+showWords('#c1 h2', 1.0, 0.06, 0.6);
+showWords('#c1 p', 2.0, 0.04);
+out('#c1', 4.05);
+// поворот на 360: на спине экран меняется на карточку заявки, затем вспышка камеры
+sfx(3.95, 'whoosh2', 0.85);
+tl.to(H, { ry: REST.ry + TAU, z: 22, duration: 0.95, ease: 'power3.inOut' }, 4.0);
+tl.set(H, { ry: REST.ry }, 4.95);
+tl.to(H, { z: 0, duration: 0.4 }, 4.95);
+sfx(4.75, 'shutter', 0.8);
+tag('#c3', 4.7);
+showWords('#c3 h2', 4.75, 0.07);
+showWords('#c3 p', 5.15, 0.03);
+kzIn('#kHelpOk', 5.3);
+['#ch1', '#ch2', '#ch3'].forEach((c, i) => { tl.to(c, { opacity: 1, x: 0, duration: 0.42, ease: 'back.out(2)' }, 6.0 + i * B); sfx(6.0 + i * B, 'click', 0.9); });
+sfx(7.5, 'click', 0.7);
+out(['#c3', '.chip'], 8.2);
+
+// ── 2. Голоса: 8,5 - 14,5 ─────────────────────────────────────────────
+sfx(8.45, 'whoosh1', 0.8);
+tl.to(H, { ry: REST.ry - TAU, rx: 0.12, duration: 0.95, ease: 'power3.inOut' }, 8.5);
+tl.set(H, { ry: REST.ry }, 9.45);
+toRest(9.45, 0.4);
+tag('#c4', 9.0);
+showWords('#c4 h2', 9.05, 0.07);
+tl.set('#pillVote', { opacity: 1 }, 9.3);
+tl.set('#pill', { width: 420 }, 9.3);
+sfx(9.35, 'bubble', 0.7);
+for (let i = 0; i < 6; i++) {
+  const t = 10.0 + i * B;
+  gsap.set(`#a${i + 1}`, { x: 600 + i * 88, y: 594 });
+  tl.to(`#a${i + 1}`, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2.4)' }, t);
+  tl.fromTo('#pill', { scale: 0.94 }, { scale: 1, duration: 0.35, ease: 'back.out(3)' }, t);
+  sfx(t, 'click', 0.95);
+}
+const voteDone = 12.5;
+tl.to('#pill', { backgroundColor: '#1E7B45', width: 470, duration: 0.25 }, voteDone + 0.15);
+tl.to('#pillVote', { opacity: 0, duration: 0.15 }, voteDone + 0.15);
+tl.to('#pillSent', { opacity: 1, duration: 0.2 }, voteDone + 0.25);
+sfx(voteDone + 0.15, 'success', 0.75);
+kzSwap('#kHelpOk', '#kHelpHappy', voteDone + 0.15);
+tl.to('#kHelpHappy', { y: -60, duration: 0.22, ease: 'power2.out', repeat: 1, yoyo: true }, voteDone + 0.45);
+showWords('#c4p', voteDone + 0.3, 0.025);
+out(['#c4', '.ava', '#pill'], 14.2);
+
+// ── 3. Срок: 14,5 - 18,5 ──────────────────────────────────────────────
+sfx(14.45, 'whoosh2', 0.75);
+tl.to(H, { rx: REST.rx + TAU, z: 22, duration: 0.95, ease: 'power3.inOut' }, 14.5);
+tl.set(H, { rx: REST.rx }, 15.45);
+toRest(15.45, 0.4);
+kzSwap('#kHelpHappy', '#kHelpOk', 14.6);
+tag('#c5', 15.0);
+showWords('#c5 h2', 15.05, 0.07);
+tl.to(['#timer', '#track'], { opacity: 1, y: 0, duration: 0.45, stagger: 0.08 }, 15.2);
+const T0 = 15.4, T1 = 16.9;
+tl.to('#trackB', { scaleX: 0, duration: T1 - T0, ease: 'power1.in' }, T0);
+tl.to('#timerT', { color: '#C62828', duration: 0.2 }, T1);
+sfx(T1, 'ding', 0.8);
+kzSwap('#kHelpOk', '#kHelpWorried', T1);
+tl.to('#gji', { opacity: 1, y: 0, duration: 0.45, ease: 'back.out(1.8)' }, T1 + 0.2);
+sfx(T1 + 0.2, 'message', 0.7);
+out(['#c5', '#timer', '#track', '#gji', '#kHelpWorried'], 18.2);
+
+// ── 4. Укрытия: 18,5 - 22,5 ───────────────────────────────────────────
+sfx(18.45, 'whoosh1', 0.75);
+tl.to(H, { ry: REST.ry + TAU, z: 22, duration: 0.95, ease: 'power3.inOut' }, 18.5);
+tl.set(H, { ry: REST.ry }, 19.45);
+toRest(19.45, 0.4);
+tag('#c6b', 18.9);
+showWords('#c6b h2', 18.95, 0.06);
+showWords('#c6b p', 19.5, 0.03);
+sfx(20.4, 'click', 0.7);
+// наезд камеры на карту с маршрутом после нажатия «Маршрут на карте»
+tl.to(CAM, { x: -26, y: 16, z: 262, duration: 1.3, ease: 'power2.inOut' }, 20.6);
+out('#c6b', 22.25);
+
+// ── 5. Каждый день: 22,5 - 25,5 ───────────────────────────────────────
+sfx(22.4, 'whoosh_deep', 0.6);
+tl.to(CAM, { x: 0, y: 0, z: 330, duration: 0.7, ease: 'power3.inOut' }, 22.35);
+tl.to(H, { x: -260, z: -400, ry: -1.4, op: 0, duration: 0.6, ease: 'power3.in' }, 22.35);
+tl.to(CAR, { y: 22, op: 1, rot: 0.16, spread: 1, duration: 1.0, ease: 'power3.out' }, 22.6);
+tl.to(CAR, { rot: -0.12, duration: 2.2, ease: 'sine.inOut' }, 23.6);
+for (let i = 0; i < 5; i++) sfx(22.7 + i * 0.12, i % 2 ? 'click' : 'bubble', 0.5);
+showWords('#c7 h2', 23.0, 0.04);
+
+// ── 6. Финал: 25,5 - 30 ───────────────────────────────────────────────
+sfx(25.1, 'whoosh_deep', 0.6);
+tl.set('#pill', { x: -300, y: 322, width: 240, height: 76, scale: 1, opacity: 1, backgroundColor: '#1F5FAF', zIndex: 45 }, 25.0);
+tl.set(['#pillVote', '#pillSent'], { opacity: 0 }, 25.0);
+tl.to('#pill', { x: 520, duration: 0.35, ease: 'power3.in' }, 25.0);
+tl.to('#pill', { scale: 24, duration: 0.5, ease: 'power3.inOut' }, 25.3);
+tl.to(CAR, { y: 260, op: 0, duration: 0.5, ease: 'power3.in' }, 25.2);
+tl.to('#c7', { opacity: 0, duration: 0.2 }, 25.45);
+tl.fromTo('#kOutro', { opacity: 0, y: 300, scale: 0.6, rotation: 12 }, { opacity: 1, y: 0, scale: 1, rotation: 0, duration: 0.8, ease: 'back.out(1.6)' }, 25.8);
+sfx(25.8, 'poppy', 0.7);
+showWords('.outro h1', 26.0, 0.09, 0.7);
+showWords('.outro p', 26.6, 0.04);
+tl.to('#qr', { opacity: 1, y: 0, duration: 0.6, ease: 'back.out(1.5)' }, 27.2);
+sfx(27.2, 'chime', 0.6);
+tl.to('#credit', { opacity: 1, y: 0, duration: 0.5 }, 27.6);
+tl.to('#kOutro', { y: -50, duration: 0.22, ease: 'power2.out', repeat: 1, yoyo: true }, 28.5);
+tl.to({}, { duration: 0.01 }, DUR);
+
+// ── то, что считается каждый кадр ─────────────────────────────────────
+const pad = (n) => String(n).padStart(2, '0');
+const rigs = [...document.querySelectorAll('.kz')].map((el, k) => ({ fig: el.querySelector('.kz__fig'), head: el.querySelector('.kz__head'), lids: el.querySelector('.kz__lids'), phase: k * 0.37, mood: el.dataset.mood }));
+const v3 = new THREE.Vector3();
+function project(obj, lx, ly, lz) { v3.set(lx, ly, lz); obj.localToWorld(v3); v3.project(camera); return [(v3.x + 1) / 2 * 1280, (1 - v3.y) / 2 * 720]; }
+let lastKey = '';
+
+function live(t) {
+  // Кузя
+  rigs.forEach((r) => {
+    const beat = (t % B) / B, hop = Math.sin(Math.PI * Math.min(1, beat / 0.6));
+    const energetic = r.mood === 'happy' || r.mood === 'proud';
+    const squash = beat > 0.6 ? Math.sin(Math.PI * (beat - 0.6) / 0.4) * (energetic ? 0.05 : 0.03) : 0;
+    gsap.set(r.fig, { y: -hop * (energetic ? 10 : r.mood === 'alarm' ? 4 : 5), scaleY: 1 - squash, scaleX: 1 + squash * 0.8 });
+    gsap.set(r.head, { rotation: r.mood === 'alarm' ? Math.sin(t * TAU * 6) * 1.6 : Math.sin(t * TAU / (B * 4) + r.phase) * (energetic ? 6 : 4) });
+    if (r.lids) gsap.set(r.lids, { opacity: (t + r.phase * 3) % 2.6 < 0.12 ? 1 : 0 });
+  });
+  // герой: едва заметное покачивание, чтобы телефон был живым, но экран читался
+  heroRig.position.set(H.x, H.y + Math.sin(t * TAU / 3.2) * 1.2, H.z);
+  hero.rotation.set(H.rx + Math.sin(t * TAU / 6.4 + 1) * 0.012, H.ry + Math.sin(t * TAU / 5.6) * 0.02, H.rz);
+  hero.visible = H.op > 0.01;
+  heroShadow.position.set(H.x, H.y - PH / 2 - 10, H.z + 4);
+  heroShadow.material.opacity = H.op * clamp(1 - (H.z < 0 ? -H.z / 500 : 0));
+  heroShadow.visible = H.op > 0.01;
+  const [name, scroll] = heroScreen(t);
+  const k = `${name}:${scroll.toFixed(1)}:${Math.round(t * 60)}`;
+  if (k !== lastKey) {
+    lastKey = k;
+    if (name === 'chat') drawChat(heroCtx, t); else drawShot(heroCtx, name, scroll);
+    overlays(heroCtx, t);
+    hero.userData.tex.needsUpdate = true;
+  }
+  // карусель: пять телефонов дугой, вращаются в пространстве
+  carousel.position.set(0, CAR.y, -130);
+  carousel.rotation.y = CAR.rot;
+  cards.forEach((c, i) => {
+    const a = c.a * CAR.spread;
+    c.holder.position.set(Math.sin(a) * 280, 0, Math.cos(a) * 280 - 280 + 60);
+    c.holder.rotation.y = a * 0.5;
+    c.holder.scale.setScalar(0.78);
+    c.holder.visible = CAR.op > 0.01;
+  });
+  camera.position.set(CAM.x, CAM.y, CAM.z);
+  camera.lookAt(CAM.x, CAM.y, 0);
+  // кнопка «Поддерживаю» выезжает из кнопки на экране телефона
+  if (t >= 9.3 && t < 10.0) {
+    const p = easeOutBack(clamp((t - 9.3) / 0.6), 1.4);
+    const [bx, by] = project(hero, (BTN.group[0] / SW - 0.5) * SCW, (0.5 - BTN.group[1] / SH) * SCH, frontZ + 0.2);
+    const tx = 600 + 210, ty = 470 + 38;
+    gsap.set('#pill', { x: bx + (tx - bx) * p - 210, y: by + (ty - by) * p - 38, scale: 0.35 + 0.65 * clamp(p), opacity: clamp((t - 9.3) / 0.12) });
+  } else if (t >= 10.0 && t < 14.2) {
+    gsap.set('#pill', { x: 600, y: 470, opacity: 1 });
+  } else if (t >= 8.0 && t < 9.3) {
+    gsap.set('#pill', { opacity: 0 });
+  }
+  renderer.render(scene, camera);
+  // счётчики
+  $('#voteN').textContent = t < 10.0 ? 1 : Math.min(6, 1 + Math.floor((t - 10.0) / B + 1e-6));
+  const pt = clamp((t - T0) / (T1 - T0));
+  const left = Math.round(24 * 3600 * (1 - Math.pow(pt, 1.6)));
+  $('#timerT').textContent = `${pad(Math.floor(left / 3600))}:${pad(Math.floor((left % 3600) / 60))}:${pad(left % 60)}`;
+}
+
+window.CUES = CUES;
+window.DUR = DUR;
+window.__frame = (t) => { tl.seek(t, false); live(t); };
+window.__frame(0);
+window.READY = true;
+if (new URLSearchParams(location.search).has('play')) {
+  const start = performance.now();
+  const loop = () => { window.__frame(((performance.now() - start) / 1000) % DUR); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>

@@ -31,3 +31,12 @@ Thumbs.db
 # локальные настройки ИИ-ассистентов
 .claude/
 CLAUDE.md
+
+# PNG слайдов из docs/presentation_v2/tools/render.py
+docs/presentation_v2/tools/out/
+
+# промежуточные файлы сборки ролика
+docs/presentation_v2/video/build/
+
+# готовый ролик собирается из docs/presentation_v2/video
+/*.mp4

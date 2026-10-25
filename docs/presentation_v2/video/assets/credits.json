@@ -1,0 +1,106 @@
+{
+  "whoosh1": {
+    "title": "Swipe Whoosh",
+    "creator": "qubodup",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/qubodup/sounds/60007",
+    "duration": 447
+  },
+  "whoosh2": {
+    "title": "Swosh swoosh whoosh air sound, free, high quality",
+    "creator": "qubodup",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/qubodup/sounds/60026",
+    "duration": 490
+  },
+  "whoosh_deep": {
+    "title": "Deep Whoosh #1",
+    "creator": "Kinoton",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/Kinoton/sounds/351256",
+    "duration": 3155
+  },
+  "bubble": {
+    "title": "Bubble",
+    "creator": "deleted_user_3854053",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/deleted_user_3854053/sounds/269583",
+    "duration": 383
+  },
+  "poppy": {
+    "title": "cartoon poppyup appearances -0005.aiff",
+    "creator": "martian",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/martian/sounds/19288",
+    "duration": 1236
+  },
+  "click": {
+    "title": "UI Button Click",
+    "creator": "benzix2",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/benzix2/sounds/467951",
+    "duration": 123
+  },
+  "message": {
+    "title": "Message sound.wav",
+    "creator": "Sunart1",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/Sunart1/sounds/592772",
+    "duration": 1500
+  },
+  "chime": {
+    "title": "Chime Notification",
+    "creator": "Jofae",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/Jofae/sounds/380482",
+    "duration": 323
+  },
+  "shutter": {
+    "title": "Camera Shutter",
+    "creator": "roachpowder",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/roachpowder/sounds/170229",
+    "duration": 295
+  },
+  "success": {
+    "title": "SFX-Success!.wav",
+    "creator": "HenryRichard",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/HenryRichard/sounds/448274",
+    "duration": 1199
+  },
+  "riser": {
+    "title": "Riser",
+    "creator": "Rizzard",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/Rizzard/sounds/561207",
+    "duration": 2000
+  },
+  "ding": {
+    "title": "Ding 1",
+    "creator": "greenvwbeetle",
+    "license": "cc0",
+    "license_version": "1.0",
+    "foreign_landing_url": "https://freesound.org/people/greenvwbeetle/sounds/241288",
+    "duration": 524
+  },
+  "music_positive_weekend": {
+    "title": "Positive Weekend",
+    "creator": "Antenalosmusic",
+    "license": "cc0",
+    "foreign_landing_url": "https://freesound.org/people/Antenalosmusic/sounds/713065",
+    "duration": 48027,
+    "description": null
+  }
+}

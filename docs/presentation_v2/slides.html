@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Домовой Кузя</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /*
+   * Версия 2: bento-сетка. Каждый слайд - фасад панельного дома: ячейки-квартиры разного размера.
+   * Палитра мини-приложения (frontend/src/plugins/vuetify.ts). Поверхности разделяет шаг тона,
+   * без рамок и теней; скругление 28px, как у карточек в приложении.
+   * Порядок: продукт, деньги и пилот, потом техника; служебный слайд для проверки в конце.
+   */
+  @page { size: 1280px 720px; margin: 0; }
+  :root {
+    --ground: #E9EEF4; --cell: #FFFFFF; --cell-2: #F4F7FA; --tone: #DCE5EF;
+    --ink: #1B2533; --ink-2: #4A5668;
+    --accent: #1F5FAF; --accent-2: #174C8C; --accent-soft: #DCE7F5;
+    --teal: #0F766E; --teal-soft: #D6EEEA; --amber: #8A5300; --amber-soft: #FBEFD9;
+    --red: #C62828; --red-soft: #FBE4E4; --night: #121A26;
+    --r: 28px; --r-in: 20px; --gap: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Golos Text", "Segoe UI", system-ui, sans-serif; color: var(--ink); background: #CBD3DD; counter-reset: slide; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .slide { width: 1280px; height: 720px; padding: 40px 44px 40px; background: var(--ground); position: relative; overflow: hidden;
+    page-break-after: always; display: flex; flex-direction: column; counter-increment: slide; }
+  .slide:last-child { page-break-after: auto; }
+  .slide::after { content: counter(slide); position: absolute; right: 30px; bottom: 14px; font-size: 13px; color: var(--ink-2); }
+  h1 { font-size: 104px; line-height: .92; letter-spacing: -.04em; font-weight: 800; margin: 0; }
+  h2 { font-size: 44px; line-height: 1.04; letter-spacing: -.025em; font-weight: 700; margin: 0 0 22px; max-width: 1100px; }
+  h3 { font-size: 25px; line-height: 1.15; letter-spacing: -.01em; font-weight: 700; margin: 0 0 8px; }
+  p, li { font-size: 19.5px; line-height: 1.42; margin: 0; }
+  ul { margin: 0; padding-left: 20px; } li { margin-bottom: 5px; }
+  b { font-weight: 700; }
+  .lead { font-size: 24px; line-height: 1.38; }
+  .note { font-size: 14px; line-height: 1.4; color: var(--ink-2); }
+  code { font-family: inherit; font-weight: 600; background: var(--accent-soft); color: var(--accent-2); padding: 1px 7px; border-radius: 8px; font-size: .92em; }
+
+  /* сетка: 12 колонок, строки делят высоту слайда */
+  .bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--gap); flex: 1; min-height: 0; }
+  .c { background: var(--cell); border-radius: var(--r); padding: 24px 26px; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .c.soft { background: var(--cell-2); } .c.tone { background: var(--tone); }
+  .c.blue { background: var(--accent); color: #FFFFFF; } .c.blue .note, .c.blue p { color: #E3ECF8; }
+  .c.night { background: var(--night); color: #F2F5F9; } .c.night .note { color: #AAB6C6; }
+  .c.teal { background: var(--teal-soft); } .c.amber { background: var(--amber-soft); } .c.red { background: var(--red); color: #FFFFFF; }
+  .c.red .note { color: #FFE3E3; }
+  .c.flat { background: transparent; padding: 0; }
+  .num { font-size: 78px; font-weight: 800; letter-spacing: -.045em; line-height: .9; }
+  .num.m { font-size: 58px; } .num.s { font-size: 44px; }
+  .c .num + p, .c .num + .note { margin-top: 10px; }
+  .bottom { margin-top: auto; }
+
+  /* скриншот в ячейке: верх виден, низ уходит за край ячейки, как в bento */
+  .shot { position: absolute; left: 50%; transform: translateX(-50%); width: var(--w, 62%); top: var(--top, 26px); border-radius: 22px; display: block; }
+  .shot.left { left: auto; transform: none; right: var(--right, 26px); }
+  /*
+   * Телефон вокруг скриншота (tools/phone_frames.py): тёмный корпус, строка статуса с «9:41»
+   * и Dynamic Island. Цвет строки совпадает с верхом экрана (--bar, --ink), низ уходит за край ячейки.
+   */
+  .phone { position: absolute; left: 50%; transform: translateX(-50%); width: var(--w, 62%); top: var(--top, 26px); margin: 0; display: block; container-type: inline-size; }
+  .phone__body { display: block; padding: 2.6cqw; border-radius: 15cqw; background: #0C1117; }
+  .phone img { display: block; width: 100%; border-radius: 0 0 12.4cqw 12.4cqw; }
+  /* все размеры в долях ширины телефона (cqw): на узком и широком кадре пропорции одинаковые */
+  .phone__bar { position: relative; display: flex; align-items: flex-end; justify-content: space-between; height: 13.5cqw; padding: 0 6.5cqw 2.4cqw 8cqw; border-radius: 12.4cqw 12.4cqw 0 0; background: var(--bar, #F5F7FB); color: var(--ink, #1B2533); font-size: 4.3cqw; font-weight: 700; line-height: 1; }
+  .phone__island { position: absolute; left: 50%; top: 2.8cqw; width: 31cqw; height: 8.2cqw; margin-left: -15.5cqw; border-radius: 6cqw; background: #000000; }
+  .phone__status { display: block; width: 19cqw; height: auto; }
+  .cap { font-size: 15px; line-height: 1.35; font-weight: 600; position: relative; z-index: 1; }
+  .cap-under { position: absolute; left: 22px; right: 22px; bottom: 18px; z-index: 2; background: var(--cell); border-radius: 16px; padding: 10px 14px; font-size: 15px; font-weight: 600; line-height: 1.3; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 17.5px; line-height: 1.38; }
+  th, td { text-align: left; padding: 9px 14px 9px 0; vertical-align: top; }
+  tr + tr td { border-top: 1px solid var(--tone); }
+  th { color: var(--ink-2); font-weight: 600; font-size: 15px; padding-bottom: 6px; }
+  .tech td:first-child { width: 230px; color: var(--ink-2); }
+  .tech td { font-size: 15px; padding: 7px 14px 7px 0; }
+
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: baseline; }
+  .kv b { font-size: 26px; letter-spacing: -.02em; }
+  .chip { display: inline-block; font-size: 14px; font-weight: 600; padding: 4px 11px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-2); }
+  .chip.teal { background: var(--teal-soft); color: var(--teal); } .chip.amber { background: var(--amber-soft); color: var(--amber); }
+  .steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .row { display: flex; gap: var(--gap); }
+  .kuzya { position: absolute; display: block; }
+  ul.src li { font-size: 15.5px; line-height: 1.36; margin-bottom: 4px; }
+  ul.big li { font-size: 22px; margin-bottom: 8px; }
+  .plaque { background: var(--teal-soft); border-radius: var(--r-in); padding: 14px 18px; font-size: 17px; line-height: 1.4; }
+  .compact td { padding: 6px 14px 6px 0; }
+  .ready td { padding: 6px 12px 6px 0; } .ready .chip { font-size: 13px; padding: 3px 9px; }
+  .qr { width: 196px; height: 196px; background: #FFFFFF; border-radius: var(--r-in); padding: 12px; display: block; }
+</style>
+</head>
+<body>
+
+<!-- Титул -->
+<section class="slide">
+  <div class="bento" style="grid-template-rows: 1fr 1fr 1fr">
+    <div class="c" style="grid-column: 1 / 8; grid-row: 1 / 3; padding: 40px 42px">
+      <h1>Домовой<br>Кузя</h1>
+      <p class="lead" style="margin-top:26px;max-width:580px">Помощник с нейросетью для домовых чатов в MAX. Превращает жалобы соседей в коллективное обращение в УК, сам находит ответственного по закону и следит за сроком ремонта.</p>
+    </div>
+    <div class="c blue" style="grid-column: 8 / 11; grid-row: 1 / 4; padding: 0">
+      <figure class="phone" data-shot="home.png" style="--w:78%;--top:34px;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/home.png" alt="Главный экран мини-приложения"></span></figure>
+    </div>
+    <div class="c amber" style="grid-column: 11 / 13; grid-row: 1 / 3; padding: 0">
+      <img class="kuzya" src="shots/kuzya_ok.png" alt="" style="width:94%;left:3%;bottom:-4%">
+    </div>
+    <div class="c" style="grid-column: 1 / 8; grid-row: 3 / 4; flex-direction: row; align-items: center; justify-content: space-between; gap: 20px; padding: 24px 34px">
+      <p style="font-size:20px;line-height:1.35;white-space:nowrap"><b>Симаков Максим</b><br><span style="color:var(--ink-2)">ML и DevOps</span></p>
+      <p style="font-size:20px;line-height:1.35;white-space:nowrap"><b>Вериялов Кирилл</b><br><span style="color:var(--ink-2)">бэкенд</span></p>
+      <p style="font-size:20px;line-height:1.35;white-space:nowrap"><b>Храмов Альберт</b><br><span style="color:var(--ink-2)">бэкенд</span></p>
+    </div>
+    <div class="c soft" style="grid-column: 11 / 13; grid-row: 3 / 4">
+      <p style="font-size:16px;line-height:1.35"><b>Умный город</b><br>пилот в Ульяновске</p>
+    </div>
+  </div>
+</section>
+
+<!-- Проблема -->
+<section class="slide">
+  <h2>В домовом чате сотни сообщений «у нас течёт», но до УК доходят единицы</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c" style="grid-column: 1 / 6; grid-row: 1 / 3">
+      <p class="lead">Председатель совета дома хочет, чтобы УК устранила протечку кровли в срок. Жалобы разбросаны по чату, никто не знает, кто отвечает и какой срок положен, и каждый думает, что заявку уже подал сосед.</p>
+      <div class="bottom">
+        <h3>Гипотезы пилота</h3>
+        <ul>
+          <li>жители не подают заявки, потому что не знают ответственного и срок по нормативу</li>
+          <li>коллективное обращение с фото и ссылкой на закон закрывают быстрее, чем разрозненные звонки диспетчеру</li>
+        </ul>
+        <p class="note" style="margin-top:8px">Проверим опросом 30+ жителей и сравнением жалоб в чате с заявками в УК за 4 недели до запуска.</p>
+      </div>
+    </div>
+    <div class="c blue" style="grid-column: 6 / 9">
+      <span class="num m">1 сутки</span>
+      <p>на протечку кровли и неисправный лифт. Постановление Госстроя № 170</p>
+    </div>
+    <div class="c red" style="grid-column: 9 / 13">
+      <span class="num">+38,7%</span>
+      <p>жалоб в Госжилинспекцию Татарстана за 8 месяцев 2026 года, 21,9 тыс. обращений</p>
+      <p class="note bottom">Бизнес Online, 11.09.2026</p>
+    </div>
+    <div class="c tone" style="grid-column: 6 / 9">
+      <h3>Четыре адресата</h3>
+      <p>УК, регоператор ТКО, администрация района, аварийная газовая служба. Жители путают, кому писать.</p>
+      <p class="note bottom">ЖК РФ, ПП № 491, 131-ФЗ</p>
+    </div>
+    <div class="c amber" style="grid-column: 9 / 13">
+      <h3 style="color:var(--amber)">Окно возможностей</h3>
+      <p>С 1 сентября 2026 года все УК обязаны принимать обращения жителей через MAX. Домовые чаты становятся официальным каналом, и в них нужен помощник.</p>
+      <p class="note bottom">ПП РФ от 26.01.2026 № 40</p>
+    </div>
+  </div>
+</section>
+
+<!-- Спрос и альтернативы -->
+<section class="slide">
+  <h2>Онлайн-сервисы ЖКХ уже есть, но 91,5% заявок в них одиночные</h2>
+  <div class="bento" style="grid-template-rows: 1fr">
+    <div class="c" style="grid-column: 1 / 6">
+      <div style="display:flex;align-items:flex-end;gap:16px">
+        <span class="num" style="color:var(--accent)">8,5%</span>
+        <p style="padding-bottom:4px">заявок в УК через «Госуслуги.Дом» коллективные</p>
+      </div>
+      <svg id="units" width="440" height="220" viewBox="0 0 440 220" role="img" aria-label="Из каждых 200 заявок 17 коллективных" style="margin-top:20px"></svg>
+      <p class="note bottom">1 клетка ≈ 7 500 заявок. Январь-апрель 2025: 1,5 млн заявок, у приложения 10+ млн установок. Минстрой и Минцифры (CNews, 13.05.2025).</p>
+    </div>
+    <div class="c" style="grid-column: 6 / 13">
+      <table>
+        <tr><th style="width:190px">Что есть сейчас</th><th>Чего не хватает</th></tr>
+        <tr><td><b>«Госуслуги.Дом»</b></td><td>Отдельное приложение со входом через Госуслуги. Соседи договариваются в чате, а заявку оформляют заново. Поддержать может только собственник, адресат только УК.</td></tr>
+        <tr><td><b>«Решаем вместе»</b></td><td>Сообщение от одного человека, не видно, что соседи уже пожаловались. 30 дней на ответ, а не норматив на ремонт.</td></tr>
+        <tr><td><b>Чат без бота</b></td><td>Все соседи уже здесь, но разговор не становится заявкой: нет адресата, срока и контроля.</td></tr>
+      </table>
+      <p class="bottom" style="background:var(--accent-soft);border-radius:var(--r-in);padding:14px 18px">Кузя объединяет соседей там, где они уже общаются, в чате MAX, и направляет коллективное обращение в УК. Поддержать могут не только собственники с подтверждённым аккаунтом Госуслуг, но и арендаторы и члены семьи.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Решение: 4 шага -->
+<section class="slide">
+  <h2>От фото до ремонта: четыре шага, три из них делает Кузя</h2>
+  <div class="bento" style="grid-template-rows: auto 1fr">
+    <div class="c soft" style="grid-column: 1 / 4; padding-bottom: 18px"><h3>Житель сообщает</h3><p>отправляет фото и пару слов. Кузя сам определяет категорию, ответственного и срок ремонта по закону</p></div>
+    <div class="c soft" style="grid-column: 4 / 7; padding-bottom: 18px"><h3>Соседи поддерживают</h3><p>нажимают «Поддерживаю» прямо в чате дома или в мини-приложении</p></div>
+    <div class="c soft" style="grid-column: 7 / 10; padding-bottom: 18px"><h3>Заявка уходит исполнителю</h3><p>как только набран порог голосов, Кузя отправляет готовое обращение с фото и ссылкой на закон</p></div>
+    <div class="c soft" style="grid-column: 10 / 13; padding-bottom: 18px"><h3>Кузя следит за сроком</h3><p>считает дни по нормативу. Если ремонт просрочен, готовит жалобу в ГЖИ</p></div>
+    <div class="c blue" style="grid-column: 1 / 4; padding: 0"><figure class="phone" data-shot="new_issue.png" style="--w:80%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/new_issue.png" alt="Новая заявка с подсказкой Кузи"></span></figure></div>
+    <div class="c tone" style="grid-column: 4 / 7; padding: 0"><figure class="phone" data-shot="bot_group.png" style="--w:80%;--top:-262px;--bar:#FFFFFF;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/bot_group.png" alt="Заявка в чате дома с кнопкой Поддерживаю"></span></figure></div>
+    <div class="c tone" style="grid-column: 7 / 10; padding: 0"><figure class="phone" data-shot="issue_vote.png" style="--w:80%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/issue_vote.png" alt="Карточка заявки с голосованием"></span></figure></div>
+    <div class="c blue" style="grid-column: 10 / 13; padding: 0"><figure class="phone" data-shot="issue_sla.png" style="--w:80%;--bar:#F0F5FA;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/issue_sla.png" alt="Срок устранения с полоской"></span></figure></div>
+  </div>
+</section>
+
+<!-- Бот без приложения -->
+<section class="slide">
+  <h2>Всё основное доступно прямо в чате, без перехода в мини-приложение</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c" style="grid-column: 1 / 5; grid-row: 1 / 3">
+      <p class="lead">Для бытовых вопросов жителю не нужно открывать приложение: всё работает кнопками в чате MAX.</p>
+      <ul style="margin-top:16px">
+        <li>заявка с фото и карточкой проверки</li>
+        <li>голосование соседей, отправка обращения в УК и жалоба в ГЖИ</li>
+        <li>список заявок дома, события и объявления соседей</li>
+        <li>адреса ближайших укрытий текстом</li>
+      </ul>
+      <p class="note bottom">Важно для регионов: когда в Ульяновске ограничивают мобильный интернет, MAX продолжает работать, он в «белом списке». Бот остаётся на связи.</p>
+    </div>
+    <div class="c blue" style="grid-column: 5 / 9; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="bot_confirm.png" style="--w:90%;--bar:#FFFFFF;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/bot_confirm.png" alt="Карточка проверки заявки с фото"></span></figure><div class="cap-under" style="color:var(--ink)">Карточка с фото, исполнителем и сроком до отправки</div></div>
+    <div class="c tone" style="grid-column: 9 / 13; grid-row: 1 / 2; padding: 0"><figure class="phone" data-shot="bot_shelters.png" style="--w:90%;--top:-209px;--bar:#FFFFFF;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/bot_shelters.png" alt="Ближайшие укрытия текстом в чате с ботом"></span></figure></div>
+    <div class="c tone" style="grid-column: 9 / 13; grid-row: 2 / 3; padding: 0"><figure class="phone" data-shot="bot_group.png" style="--w:90%;--top:-422px;--bar:#FFFFFF;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/bot_group.png" alt="Заявка в чате дома с кнопкой Поддерживаю"></span></figure></div>
+  </div>
+</section>
+
+<!-- Кто отвечает и какой срок -->
+<section class="slide">
+  <h2>Кто обязан починить и за какой срок</h2>
+  <div class="c" style="flex:1;padding:24px 28px 20px">
+    <!-- данные: backend/src/domovoy/modules/issues/catalog.py, deadline_hours -->
+    <svg id="deadlines" width="1136" height="400" viewBox="0 0 1136 400" role="img" aria-label="Нормативные сроки по категориям проблем"></svg>
+    <p class="note bottom">Сроки и основания берутся из выверенного справочника: ПП РФ № 290, 354, 410, 491, 1156, постановление Госстроя № 170, 59-ФЗ. Нейросеть только определяет категорию проблемы, а норму и адресата подставляет алгоритм, поэтому придумать срок она не может. Перед пилотом справочник проверяет юрист УК. Для дорог 30 дней: это срок ответа по 59-ФЗ.</p>
+  </div>
+</section>
+
+<!-- Как сейчас и как с Кузей -->
+<section class="slide">
+  <h2>Кузя снимает с жителей рутину и превращает хаос чата в работу с УК по правилам</h2>
+  <div class="bento" style="grid-template-rows: 1fr auto">
+    <div class="c" style="grid-column: 1 / 13">
+      <table style="font-size:17.5px" class="compact">
+        <tr><th style="width:170px">Шаг</th><th style="width:360px">Сейчас</th><th>С Кузей</th></tr>
+        <tr><td><b>Заметили</b></td><td>«у нас течёт» и 20 ответов «у нас тоже»</td><td>фото и описание; Кузя проверяет, нет ли уже такой заявки, чтобы не плодить дубли</td></tr>
+        <tr><td><b>Кому писать</b></td><td>ищут в интернете, путают УК и регоператора</td><td>исполнитель виден сразу, из справочника</td></tr>
+        <tr><td><b>Заявление</b></td><td>пишет один активист, остальные в стороне</td><td>соседи жмут «Поддерживаю», текст Кузя собирает сам</td></tr>
+        <tr><td><b>Срок</b></td><td>никто не знает</td><td>в обращении, со ссылкой на норматив</td></tr>
+        <tr><td><b>Контроль</b></td><td>никто не помнит, когда подавали</td><td>таймер срока в карточке заявки; при просрочке готовая жалоба в ГЖИ в одно нажатие</td></tr>
+        <tr><td><b>Итог</b></td><td>проблема висит неделями</td><td>статус «Решено», соседи видят результат</td></tr>
+      </table>
+    </div>
+    <div class="c teal" style="grid-column: 1 / 7"><h3 style="color:var(--teal)">Жителям больше не нужно</h3><p>искать ответственного, писать заявление вручную, звонить в УК с вопросом «а подавали ли уже»</p></div>
+    <div class="c blue" style="grid-column: 7 / 13"><h3>Кузя делает сам</h3><p>находит адресата, собирает текст обращения, следит за сроком, готовит жалобу при просрочке</p></div>
+  </div>
+</section>
+
+<!-- Новый интерфейс -->
+<section class="slide">
+  <h2>Доступный интерфейс, понятный жителям любого возраста</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c tone" style="grid-column: 1 / 4; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="home.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/home.png" alt="Главная в светлой теме"></span></figure><div class="cap-under">Главная: от срочного к справке</div></div>
+    <div class="c tone" style="grid-column: 4 / 7; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="home_dark.png" style="--w:82%;--bar:#10151C;--ink:#FFFFFF"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/home_dark.png" alt="Главная в тёмной теме"></span></figure><div class="cap-under">Тёмная тема</div></div>
+    <div class="c tone" style="grid-column: 7 / 10; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="issues.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/issues.png" alt="Заявки дома с подсказкой о голосе"></span></figure><div class="cap-under">Счётчик на вкладке: только заявки, где нужен ваш голос</div></div>
+    <div class="c" style="grid-column: 10 / 13">
+      <span class="num m">44 px</span>
+      <p>минимум для кнопки. Шрифт от 14 px, подписи словами, а не значками</p>
+    </div>
+    <div class="c blue" style="grid-column: 10 / 13">
+      <h3>Удобно и бережно</h3>
+      <p>свайпы между вкладками, плавные переходы, тёмная тема. Если в телефоне включено «уменьшить движение», анимации выключаются</p>
+    </div>
+  </div>
+</section>
+
+<!-- Повод открывать каждую неделю -->
+<section class="slide">
+  <h2>Польза каждую неделю: зачем открывать Кузю между поломками</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c tone" style="grid-column: 1 / 4; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="event.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/event.png" alt="Событие с фото и описанием"></span></figure><div class="cap-under">События с фото и подробностями</div></div>
+    <div class="c amber" style="grid-column: 4 / 7; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="market.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/market.png" alt="Вещи соседей с каруселью фото"></span></figure><div class="cap-under">Вещи соседей: отдать рассаду, продать коляску</div></div>
+    <div class="c" style="grid-column: 7 / 10">
+      <h3>События двора</h3>
+      <p>субботник или собрание одной фразой в чате: анонс, запись кнопкой «Иду», напоминание за пару часов</p>
+    </div>
+    <div class="c teal" style="grid-column: 10 / 13; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="avatars.png" style="--w:82%;--bar:#626364;--ink:#FFFFFF"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/avatars.png" alt="Выбор аватарки из войлочных шариков"></span></figure><div class="cap-under">Аватарка из набора или своё фото</div></div>
+    <div class="c soft" style="grid-column: 7 / 10">
+      <h3>Рейтинг и приватность</h3>
+      <p>очки за заявки, голоса и субботники, звание «Добрый сосед». Написать соседу можно без раскрытия номера телефона</p>
+    </div>
+  </div>
+</section>
+
+<!-- Безопасность -->
+<section class="slide">
+  <h2>Укрытия и тревога по всей России, и без мобильного интернета</h2>
+  <div class="bento" style="grid-template-rows: auto 1fr 1fr">
+    <div class="c red" style="grid-column: 1 / 4; grid-row: 1 / 4; padding: 0"><figure class="phone" data-shot="alert.png" style="--w:82%;--bar:#CB3B3B;--ink:#FFFFFF"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/alert.png" alt="Оповещение о беспилотной опасности"></span></figure></div>
+    <div class="c tone" style="grid-column: 4 / 7; grid-row: 1 / 4; padding: 0"><figure class="phone" data-shot="safety.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/safety.png" alt="Карта укрытий с маршрутом"></span></figure><div class="cap-under">Маршрут пешком на карте, рядом ссылка в Яндекс Карты</div></div>
+    <div class="c" style="grid-column: 7 / 13; padding: 18px 26px 16px">
+      <span class="num s">несколько раз в неделю</span>
+      <p style="margin-top:6px;font-size:17px">в Ульяновске объявляют «Беспилотную опасность». 25.09.2026 при атаке пострадали до 15 человек. Lenta.ru, ВЗГЛЯД</p>
+    </div>
+    <div class="c blue" style="grid-column: 7 / 13; padding: 18px 26px">
+      <h3>Тревога приходит сама, в свой регион</h3>
+      <p style="font-size:17px">Кузя читает официальные каналы региона: МЧС и губернатор в MAX, Telegram, лента сайта МЧС. Дома региона получают памятку на весь экран, ближайшее укрытие и сообщение в чат. MAX в «белом списке»: работает и без мобильного интернета.</p>
+    </div>
+    <div class="c teal" style="grid-column: 7 / 13; padding: 18px 26px">
+      <h3 style="color:var(--teal)">Укрытия для любого дома в стране</h3>
+      <p style="font-size:17px">Есть реестр региона - показываем его. Реестра нет - подсказываем заглублённые объекты из OpenStreetMap: подземные паркинги, переходы, метро. Маршрут пешком строится прямо в приложении.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Дом из чата и MAX -->
+<section class="slide">
+  <h2>Запуск за минуту: без регистрации, паролей и ручной настройки</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c" style="grid-column: 1 / 5">
+      <h3>Дом появляется сам</h3>
+      <p>Достаточно добавить Кузю в домовой чат: дом и список соседей появятся в приложении сами. Вышел из чата, и доступ к данным дома закрылся.</p>
+    </div>
+    <div class="c tone" style="grid-column: 5 / 8; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="people.png" style="--w:82%;--bar:#F5F7FB;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/people.png" alt="Соседи с ролями"></span></figure><div class="cap-under">Соседи и администраторы</div></div>
+    <div class="c" style="grid-column: 8 / 13">
+      <h3>Живое голосование в чате</h3>
+      <p>Счётчик на кнопке «Поддерживаю (4/6)» обновляется после каждого нажатия. Кузя закрепляет важные объявления, удаляет спам, показывает фото заявки прямо в чате.</p>
+    </div>
+    <div class="c soft" style="grid-column: 1 / 5">
+      <h3>Права из чата</h3>
+      <p>Администратор чата, например старший по дому, сразу получает права администратора в приложении: адрес, УК, порог голосов, объявления.</p>
+    </div>
+    <div class="c blue" style="grid-column: 8 / 13">
+      <h3>Мини-приложение внутри MAX</h3>
+      <p>Вход по подписи MAX без паролей, прямая ссылка сразу в нужную заявку, системная кнопка «Назад», виброотклик, приглашение соседей в одно нажатие.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Что изменилось после онлайн-этапа -->
+<section class="slide">
+  <h2>Что сделали после онлайн-этапа</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c tone" style="grid-column: 1 / 4; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="bot_menu.png" style="--w:84%;--bar:#FFFFFF;--ink:#1B2533"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/bot_menu.png" alt="Меню бота в чате MAX"></span></figure><div class="cap-under">Меню бота прямо в чате</div></div>
+    <div class="c blue" style="grid-column: 4 / 9">
+      <h3>Бот работает без мини-приложения</h3>
+      <p style="font-size:17.5px">По замечанию экспертов отбора основной сценарий перенесли в чат MAX: заявка с фото, голос соседей, обращение и жалоба, события, вещи и укрытия работают кнопками.</p>
+    </div>
+    <div class="c" style="grid-column: 9 / 13">
+      <h3>Укрытия по всей России</h3>
+      <p style="font-size:17.5px">Реестр региона, а где его нет, заглублённые объекты из OpenStreetMap. Маршрут пешком на карте в приложении.</p>
+    </div>
+    <div class="c teal" style="grid-column: 4 / 7">
+      <h3 style="color:var(--teal)">Тревоги по регионам</h3>
+      <p style="font-size:17.5px">Официальные ленты МЧС 89 регионов, каналы губернаторов. Тревога приходит только домам своего региона.</p>
+    </div>
+    <div class="c soft" style="grid-column: 7 / 10">
+      <h3>Новый интерфейс</h3>
+      <p style="font-size:17.5px">Фото в заявках и событиях, свайпы, тёмная тема, счётчик заявок, где нужен ваш голос.</p>
+    </div>
+    <div class="c" style="grid-column: 10 / 13">
+      <span class="num m">356</span>
+      <p style="font-size:17.5px">автоматических проверок и нагрузочный замер API</p>
+    </div>
+  </div>
+</section>
+
+<!-- Бизнес-модель -->
+<section class="slide">
+  <h2>Платят УК и регион, для жителей сервис всегда бесплатный</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c blue" style="grid-column: 1 / 7">
+      <h3>Управляющая компания</h3>
+      <p class="note" style="margin-bottom:8px">подписка за дом в месяц</p>
+      <p>Меньше нагрузки на диспетчерскую: одна проверенная заявка с фото вместо 20 звонков соседей. Меньше штрафов ГЖИ за просрочки: срок виден заранее. Статусы диспетчер меняет прямо в MAX.</p>
+    </div>
+    <div class="c" style="grid-column: 7 / 13">
+      <h3>Регион или муниципалитет</h3>
+      <p class="note" style="margin-bottom:8px">подключение домовых чатов региона</p>
+      <p>Выполнение задачи Минстроя по работе с жителями через MAX. Ульяновская область сама просит сделать чаты каналом работы с УК. Надзор получает прозрачную статистику по УК и готовые доказательства.</p>
+    </div>
+    <div class="c teal" style="grid-column: 1 / 8">
+      <h3 style="color:var(--teal)">Почему жителям бесплатно</h3>
+      <p>Польза растёт с числом соседей в чате: чем больше голосует, тем быстрее обращение уходит в УК. Платный вход срезал бы охват, а без охвата нечего продавать УК.</p>
+    </div>
+    <div class="c tone" style="grid-column: 8 / 13">
+      <span class="num m">2 ГБ</span>
+      <p>памяти хватает на пилот целого города на одном сервере. Основной сценарий работает на правилах без платных запросов к нейросети, поэтому себестоимость низкая</p>
+    </div>
+  </div>
+  <p class="note" style="margin-top:10px">Тариф определим по итогам пилота: замерим, сколько часов работы диспетчера УК экономит Кузя в месяц.</p>
+</section>
+
+<!-- Метрики -->
+<section class="slide">
+  <h2>Эффект пилота и как его измерим</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c blue" style="grid-column: 1 / 5"><span class="num">&lt; 24 ч</span><p>медиана от сообщения о проблеме до отправки обращения</p></div>
+    <div class="c" style="grid-column: 5 / 9"><span class="num" style="color:var(--accent)">+30%</span><p>рост доли заявок, которые УК закрыла в законный срок</p></div>
+    <div class="c" style="grid-column: 9 / 13"><span class="num" style="color:var(--accent)">&gt; 50%</span><p>однотипных жалоб объединены: житель поддержал существующую заявку, а не создал дубль</p></div>
+    <div class="c tone" style="grid-column: 1 / 5"><span class="num">&gt; 25%</span><p>участников чата проголосовали за месяц</p></div>
+    <div class="c tone" style="grid-column: 5 / 9"><span class="num">0-1</span><p>звонок в УК на одну проблему вместо 5-10 у инициатора</p></div>
+    <div class="c soft" style="grid-column: 9 / 13"><h3>Методика</h3><p>Сравниваем 4 недели пилота с базовой линией: 4 неделями истории того же чата до подключения Кузи. Цели - гипотезы.</p></div>
+  </div>
+</section>
+
+<!-- Почему Ульяновск и пилот -->
+<section class="slide">
+  <h2>Пилот: один дом в Ульяновске, 4 недели</h2>
+  <div class="bento" style="grid-template-rows: auto auto 1fr">
+    <div class="c blue" style="grid-column: 1 / 5"><span class="num m">128 тыс.</span><p>ульяновцев уже в домовых чатах MAX</p></div>
+    <div class="c" style="grid-column: 5 / 9"><span class="num m" style="color:var(--accent)">5 тыс.</span><p>домовых чатов, куда можно добавить Кузю</p></div>
+    <div class="c" style="grid-column: 9 / 13"><span class="num m" style="color:var(--accent)">135</span><p>каналов УК и ресурсоснабжающих организаций в MAX</p></div>
+    <div class="c soft" style="grid-column: 1 / 13; padding: 18px 22px">
+      <svg id="timeline" width="1136" height="86" viewBox="0 0 1136 86" role="img" aria-label="План пилота по неделям"></svg>
+    </div>
+    <div class="c" style="grid-column: 1 / 7">
+      <h3>Где и с кем</h3>
+      <p>Площадка: типовая девятиэтажка в Новом Городе Ульяновска, вместе с председателем совета дома и УК, которая принимает обращения по почте или в MAX. Партнёры пилота: управление ЖКХ администрации города и Агентство госстройжилнадзора.</p>
+    </div>
+    <div class="c tone" style="grid-column: 7 / 13">
+      <h3>Регион ставит ту же задачу</h3>
+      <p>Губернатор: сделать чаты «полноценным инструментом взаимодействия жителей с управляющими организациями». Администрация просит УК перенести чаты в MAX.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Масштабирование -->
+<section class="slide">
+  <h2>Новые регионы без переписывания кода</h2>
+  <div class="bento" style="grid-template-rows: auto 1fr">
+    <div class="c soft" style="grid-column: 1 / 13; padding: 20px 22px">
+      <svg id="path" width="1136" height="110" viewBox="0 0 1136 110" role="img" aria-label="Порядок масштабирования"></svg>
+    </div>
+    <div class="c" style="grid-column: 1 / 7">
+      <h3>Не меняется</h3>
+      <ul class="big"><li>сценарий «фото, голоса, обращение, контроль»</li><li>бот, мини-приложение, агент, модель данных</li><li>модерация, события, очки</li></ul>
+    </div>
+    <div class="c blue" style="grid-column: 7 / 13">
+      <h3>Настраивается под регион</h3>
+      <ul class="big"><li>справочник исполнителей и сроков</li><li>канал, через который УК принимает обращения</li><li>реестр укрытий, каналы оповещения, тарифы</li></ul>
+      <p class="bottom" style="font-size:17px"><b>Другие сегменты без доработок:</b> ТСЖ и ЖСК, коттеджные посёлки, кампусы и общежития.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Риски -->
+<section class="slide">
+  <h2>Риски и что с ними делаем</h2>
+  <div class="c" style="flex:1">
+    <table style="font-size:19px">
+      <tr><th style="width:330px">Риск</th><th>Что делаем</th></tr>
+      <tr><td>УК игнорирует обращения из бота</td><td>в обращении основание и срок, при просрочке жалоба в ГЖИ, с УК договариваемся до пилота</td></tr>
+      <tr><td>Нейросеть ошиблась с категорией</td><td>правовая часть из справочника, газ определяется правилами, житель видит категорию до отправки</td></tr>
+      <tr><td>Накрутка голосов</td><td>строго один голос от одного участника чата, порог от числа жителей, защита от повторных нажатий на уровне базы данных</td></tr>
+      <tr><td>Спам и оскорбления в чате</td><td>двухслойная модерация, журнал срабатываний, уведомление администраторов</td></tr>
+      <tr><td>Нейросеть недоступна</td><td>основной сценарий работает на правилах без неё</td></tr>
+      <tr><td>Отключили мобильный интернет</td><td>заявка, голос и укрытия работают кнопками в чате MAX; домен приложения просим в региональный белый список</td></tr>
+      <tr><td>Голос в чате путают с решением собрания</td><td>разграничиваем: в Кузе собирают подписи под обращением в УК, а юридически значимые голосования собственников бот перенаправляет в «Госуслуги.Дом»</td></tr>
+    </table>
+    <p class="note bottom">Ограничения MVP: отправка обращения и данные ГИС ЖКХ модельные, реестр укрытий загружается для каждого региона отдельно, тревога из лент зависит от официальных каналов региона. Подробно в README.</p>
+  </div>
+</section>
+
+<!-- Данные и интеграции -->
+<section class="slide">
+  <h2>Готовность к пилоту: что уже работает и что подключаем на старте</h2>
+  <div class="c" style="flex:1;padding:18px 26px 20px">
+    <table style="font-size:15px" class="ready">
+      <tr><th style="width:270px">Модуль</th><th>Работает в MVP</th><th style="width:360px">Шаг при запуске в регионе</th></tr>
+      <tr><td>MAX Bot API и MAX Bridge</td><td><span class="chip teal">работает</span> вход по подписи MAX, она проверяется на сервере</td><td>токен бота, HTTPS-адрес приложения</td></tr>
+      <tr><td>Справочник исполнителей и сроков</td><td><span class="chip teal">настоящие нормы</span></td><td>проверка юристом УК, региональные нормы</td></tr>
+      <tr><td>Участники и администраторы чата</td><td><span class="chip teal">работает</span> синхронизация через MAX Bot API</td><td>добавить Кузю в домовой чат</td></tr>
+      <tr><td>Отправка обращения в УК</td><td><span class="chip">тестовый режим</span> письмо уходит на проверочный адрес с пометкой «[ТЕСТ]»</td><td>почта диспетчерской УК или ГИС ЖКХ</td></tr>
+      <tr><td>Паспорт дома, тарифы, капремонт</td><td><span class="chip">модельные данные</span> в MCP</td><td>ГИС ЖКХ, региональный фонд капремонта</td></tr>
+      <tr><td>Укрытия</td><td><span class="chip teal">по всей России</span> реестр региона, где его нет - заглублённые объекты OpenStreetMap</td><td>загрузить реестр укрытий региона</td></tr>
+      <tr><td>Оповещение о БПЛА</td><td><span class="chip teal">из официальных лент</span> каналы МЧС и губернатора, RSS сайта МЧС, по регионам</td><td>добавить Кузю администратором в канал региона в MAX</td></tr>
+      <tr><td>Нейросеть</td><td><span class="chip teal">Ollama Cloud</span> или правила без сети</td><td>выбор модели, при желании своя Ollama</td></tr>
+    </table>
+    <p class="plaque bottom" style="font-size:15px;padding:10px 16px"><b>152-ФЗ, персональные данные.</b> Лишнего не собираем и переписку чата не храним: только имя и ID из MAX, номер квартиры по желанию, фото без метаданных. Остаются лишь срабатывания модерации.</p>
+  </div>
+</section>
+
+<!-- Фронтенд -->
+<section class="slide">
+  <h2>Фронтенд: быстро открывается на слабом телефоне и проверен на доступность</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c blue" style="grid-column: 1 / 4">
+      <span class="num m">306 КБ</span>
+      <p>весит первая загрузка: приложение открывается за доли секунды даже на бюджетном смартфоне и медленной сети</p>
+    </div>
+    <div class="c" style="grid-column: 4 / 7">
+      <span class="num">0</span>
+      <p>нарушений доступности по WCAG AA: все 22 экрана в двух темах, 44 прогона аудита</p>
+    </div>
+    <div class="c tone" style="grid-column: 7 / 10; grid-row: 1 / 3; padding: 0"><figure class="phone" data-shot="market_dark.png" style="--w:82%;--bar:#10151C;--ink:#FFFFFF"><span class="phone__body"><span class="phone__bar"><b>9:41</b><i class="phone__island"></i><svg class="phone__status" viewBox="0 0 72 14" width="72" height="14" fill="currentColor" aria-hidden="true"><rect x="0" y="9" width="3" height="5" rx="1"/><rect x="5" y="6.5" width="3" height="7.5" rx="1"/><rect x="10" y="4" width="3" height="10" rx="1"/><rect x="15" y="1.5" width="3" height="12.5" rx="1"/><path d="M24 5.2a9 9 0 0 1 12 0l-1.5 1.6a6.8 6.8 0 0 0-9 0zM26.6 8a5.3 5.3 0 0 1 6.8 0l-1.5 1.6a3.2 3.2 0 0 0-3.8 0zM29.3 10.8a1.6 1.6 0 0 1 1.4 0L30 12.4z"/><rect x="43" y="1.5" width="24" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><rect x="45" y="3.5" width="18" height="7" rx="2"/><rect x="68.3" y="5" width="2" height="4" rx="1" opacity=".5"/></svg></span><img src="shots/market_dark.png" alt="Вещи соседей в тёмной теме"></span></figure></div>
+    <div class="c" style="grid-column: 10 / 13; grid-row: 1 / 3">
+      <h3>Стек</h3>
+      <p>Vue 3 и TypeScript, Vuetify 4, Tailwind 4, Pinia, GSAP. Обновления приходят в реальном времени, без перезагрузки.</p>
+      <h3 style="margin-top:18px">Демо без сервера</h3>
+      <p>Весь API повторён в браузере: сценарии «тревога», «просрочка», «пусто», «ошибка» открываются по ссылке.</p>
+    </div>
+    <div class="c soft" style="grid-column: 1 / 7">
+      <h3>Проверки на каждый коммит</h3>
+      <p>Проверка типов, линтер и форматирование, 48 юнит-тестов. Правила дизайна записаны в <code>frontend/DESIGN.md</code>: цвета, размеры, состояния каждого экрана.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Бэкенд -->
+<section class="slide">
+  <h2>Бэкенд: защита данных жителей и запас на рост</h2>
+  <div class="bento" style="grid-template-rows: 1fr 1fr">
+    <div class="c" style="grid-column: 1 / 4">
+      <span class="num">55</span>
+      <p>эндпоинтов REST, все описаны в <code>docs/openapi.json</code></p>
+    </div>
+    <div class="c blue" style="grid-column: 4 / 7">
+      <span class="num">4</span>
+      <p>процесса из одного образа: api, bot, worker, mcp. Связь через очередь RabbitMQ</p>
+    </div>
+    <div class="c" style="grid-column: 7 / 13; grid-row: 1 / 3">
+      <h3>Что внутри</h3>
+      <table style="font-size:17px">
+        <tr><td style="width:170px"><b>FastAPI</b></td><td>12 модулей: заявки, события, вещи, укрытия, модерация, награды</td></tr>
+        <tr><td><b>Postgres</b></td><td>поиск дублей заявок по словам и по смыслу (pgvector)</td></tr>
+        <tr><td><b>Агент</b></td><td>понимает свободный текст, память в базе; без сети отвечает на правилах</td></tr>
+        <tr><td><b>MCP</b></td><td>навыки Кузи подключаются как отдельные серверы, свои и внешние</td></tr>
+        <tr><td><b>MinIO</b></td><td>фото пересжаты до 1600 px, EXIF и геотеги удалены</td></tr>
+        <tr><td><b>Справочник</b></td><td>исполнители и сроки из закона, а не из нейросети</td></tr>
+      </table>
+    </div>
+    <div class="c soft" style="grid-column: 1 / 7">
+      <h3>Защита и надёжность</h3>
+      <p>Голоса считаются под транзакционной блокировкой в базе: повторный голос невозможен. Фото проверяются по типу и размеру, ссылки в чате фильтруются. Если нейросеть недоступна, бот переходит на правила без остановки сервиса.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Проверки -->
+<section class="slide">
+  <h2>356 автоматических проверок: обновления выходят без риска сломать работающий сервис</h2>
+  <div class="bento" style="grid-template-rows: 1fr">
+    <div class="c" style="grid-column: 1 / 8">
+      <svg id="tests" width="680" height="380" viewBox="0 0 680 380" role="img" aria-label="Число автоматических проверок по уровням"></svg>
+    </div>
+    <div class="c blue" style="grid-column: 8 / 13">
+      <span class="num">356</span>
+      <p>проверок и прогонов аудита. Все проходят на текущем коммите</p>
+      <p style="margin-top:18px">Плюс статический анализ кода: типы и линтеры с правилами безопасности на бэкенде и фронтенде.</p>
+      <ul class="bottom" style="font-size:17px">
+        <li>юнит-тесты бэкенда и фронтенда</li>
+        <li>сквозные проверки на поднятом стенде: API, функции, бот</li>
+        <li>аудит экранов в браузере: доступность, тач-зоны, мелкий текст</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Нагрузка и масштабирование -->
+<section class="slide">
+  <h2>Запас прочности: один сервер выдержит пиковую нагрузку всех 5 000 домов Ульяновска</h2>
+  <div class="bento" style="grid-template-rows: 1fr auto">
+    <div class="c" style="grid-column: 1 / 8; grid-row: 1 / 3">
+      <svg id="load" width="680" height="420" viewBox="0 0 680 420" role="img" aria-label="Пропускная способность и задержка: 1 и 3 процесса API"></svg>
+    </div>
+    <div class="c blue" style="grid-column: 8 / 13">
+      <h3>Что это значит для пилота</h3>
+      <p style="font-size:17px">Житель за визит делает около 10 запросов. Даже если все 5 000 домовых чатов Ульяновска откроют приложение в один час, это примерно 60 запросов в секунду: с запасом для одного процесса.</p>
+      <p class="note bottom">Оценка, а не замер: 40 участников в чате, каждый заходит раз в день, на вечерний час приходится 10% заходов.</p>
+    </div>
+    <div class="c soft" style="grid-column: 8 / 13">
+      <p style="font-size:15px;line-height:1.4">Замер: 60 клиентов 20 секунд читают заявки, вещи, события и пульс дома. Ryzen 5 5600X, 32 ГБ, Docker Desktop на Windows; база, очередь и генератор нагрузки на той же машине, поэтому три процесса дают +37%, а не втрое. Ошибок 0.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Архитектура -->
+<section class="slide">
+  <h2>Архитектура</h2>
+  <div class="c" style="flex:1;padding:22px 26px">
+    <svg viewBox="0 0 1136 470" width="1136" height="470" font-family="Golos Text, Segoe UI, sans-serif" role="img" aria-label="Схема процессов">
+      <defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1F5FAF"/></marker></defs>
+      <g fill="#F4F7FA">
+        <rect x="0" y="30" width="220" height="86" rx="20"/><rect x="0" y="190" width="220" height="86" rx="20"/>
+        <rect x="320" y="30" width="210" height="86" rx="20" fill="#1F5FAF"/><rect x="320" y="190" width="210" height="86" rx="20" fill="#1F5FAF"/><rect x="320" y="350" width="210" height="86" rx="20" fill="#1F5FAF"/>
+        <rect x="630" y="190" width="190" height="86" rx="20" fill="#DCE5EF"/><rect x="630" y="30" width="190" height="86" rx="20"/><rect x="630" y="350" width="190" height="86" rx="20" fill="#DCE5EF"/>
+        <rect x="920" y="30" width="216" height="86" rx="20"/><rect x="920" y="190" width="216" height="86" rx="20"/><rect x="920" y="350" width="216" height="86" rx="20" fill="#DCE5EF"/>
+      </g>
+      <g font-weight="700" text-anchor="middle" font-size="17" fill="#1B2533">
+        <text x="110" y="68">Домовой чат MAX</text><text x="110" y="228">Мини-приложение</text>
+        <text x="725" y="228">RabbitMQ</text><text x="725" y="68">Агент Кузи</text><text x="725" y="388">Postgres + pgvector</text>
+        <text x="1028" y="68">Ollama / правила</text><text x="1028" y="228">MCP-серверы</text><text x="1028" y="388">MinIO, фото</text>
+      </g>
+      <g font-weight="700" text-anchor="middle" font-size="17" fill="#FFFFFF">
+        <text x="425" y="68">bot</text><text x="425" y="228">api, FastAPI</text><text x="425" y="388">worker</text>
+      </g>
+      <g text-anchor="middle" font-size="13.5" fill="#4A5668">
+        <text x="110" y="92">Bot API</text><text x="110" y="252">Vue 3 + MAX Bridge</text>
+        <text x="725" y="252">очередь событий</text><text x="725" y="92">LangGraph, память в БД</text><text x="725" y="412">поиск дублей</text>
+        <text x="1028" y="92">без сети работают правила</text><text x="1028" y="252">навигатор ЖКХ и внешние</text><text x="1028" y="412">без EXIF</text>
+      </g>
+      <g text-anchor="middle" font-size="13.5" fill="#DCE7F5">
+        <text x="425" y="92">чат, модерация, агент</text><text x="425" y="252">REST + SSE</text><text x="425" y="412">обращения, сроки, тревоги</text>
+      </g>
+      <g stroke="#1F5FAF" stroke-width="2.5" fill="none" marker-end="url(#a)">
+        <path d="M220,73 H318"/><path d="M220,233 H318"/><path d="M530,233 H628"/><path d="M530,73 C580,73 580,215 628,220"/>
+        <path d="M530,393 C580,393 580,252 628,247"/><path d="M530,63 H628"/><path d="M820,73 H918"/><path d="M820,88 C870,88 870,220 918,226"/>
+        <path d="M530,248 C600,300 600,370 628,380"/><path d="M530,262 C700,330 850,385 918,390"/>
+      </g>
+    </svg>
+    <p class="note bottom">Один пакет Python, четыре процесса из одного образа. Сервер API не хранит состояние сессий: сессия - это подпись MAX, а события идут через RabbitMQ. Поэтому при росте числа регионов новые процессы api добавляются без остановки сервиса.</p>
+  </div>
+</section>
+
+<!-- Источники -->
+<section class="slide">
+  <h2>Источники</h2>
+  <div class="bento" style="grid-template-rows: 1fr">
+    <div class="c" style="grid-column: 1 / 10">
+      <ul class="src" style="columns:2;column-gap:40px">
+        <li>ТЗ трека «Умный город», 2026</li>
+        <li>ПП РФ от 26.01.2026 № 40 (взаимодействие через MAX)</li>
+        <li>Жилищный кодекс РФ</li>
+        <li>ПП РФ от 13.08.2006 № 491</li>
+        <li>ПП РФ от 03.04.2013 № 290</li>
+        <li>ПП РФ от 06.05.2011 № 354</li>
+        <li>ПП РФ от 15.05.2013 № 416</li>
+        <li>Постановление Госстроя от 27.09.2003 № 170</li>
+        <li>ПП РФ от 14.05.2013 № 410</li>
+        <li>ПП РФ от 12.11.2016 № 1156</li>
+        <li>Федеральный закон № 59-ФЗ</li>
+        <li>Федеральный закон № 131-ФЗ</li>
+        <li>CNews, 13.05.2025: 1,5 млн заявок через «Госуслуги.Дом», 8,5% коллективных</li>
+        <li>Минстрой России, 17.09.2024: коллективная заявка</li>
+        <li>Бизнес Online, 11.09.2026: жалобы в ГЖИ Татарстана</li>
+        <li>Документация MAX: dev.max.ru/docs, dev.max.ru/docs-api</li>
+        <li>Lenta.ru, ВЗГЛЯД: атака БПЛА на Ульяновск, 25.09.2026</li>
+        <li>АиФ Ульяновск: ограничения мобильного интернета</li>
+        <li>Forbes, РБК: ограничения интернета в Ульяновске, 11.11.2025</li>
+        <li>Улправда: 128 тыс. ульяновцев в домовых чатах MAX, 18.08.2026</li>
+        <li>1ul.ru: администрация рекомендует УК перенести чаты в MAX, 29.08.2025</li>
+        <li>Укрытия: реестры регионов, OpenStreetMap (ODbL); тревоги: каналы МЧС и губернаторов, RSS сайтов МЧС</li>
+        <li>Фото демо-данных: Unsplash, список в <code>frontend/public/demo/CREDITS.md</code></li>
+        <li>Замеры нагрузки и проверок: октябрь 2026, текущий коммит <code>main</code></li>
+      </ul>
+    </div>
+    <div class="c amber" style="grid-column: 10 / 13; padding: 0">
+      <img class="kuzya" src="shots/kuzya_happy.png" alt="" style="left:6%;top:6%;width:88%;height:90%;object-fit:contain;object-position:center bottom">
+    </div>
+  </div>
+</section>
+
+<!-- Призыв: попробовать бота и контакты -->
+<section class="slide">
+  <div class="bento" style="grid-template-rows: 1fr 1fr 1fr">
+    <div class="c blue" style="grid-column: 1 / 8; grid-row: 1 / 4; padding: 40px 42px">
+      <h2 style="color:#FFFFFF;max-width:640px;margin-bottom:18px">Добавьте Кузю в чат дома, и первая заявка уйдёт в УК уже сегодня</h2>
+      <p class="lead" style="max-width:560px">Откройте бота в MAX, нажмите «Сообщить о проблеме» и пришлите фото. Остальное Кузя сделает сам.</p>
+      <div class="bottom" style="display:flex;align-items:flex-end;gap:28px">
+        <img class="qr" src="shots/qr_bot.svg" alt="QR-код: бот Домовой Кузя в MAX">
+        <div>
+          <p style="font-size:26px;font-weight:700;color:#FFFFFF">max.ru/id732818139220_bot</p>
+          <p class="note" style="margin-top:6px">Наведите камеру: откроется чат с Кузей в MAX. Для проверки в группе добавьте бота в чат администратором.</p>
+        </div>
+      </div>
+    </div>
+    <div class="c" style="grid-column: 8 / 13; grid-row: 1 / 3">
+      <h3>Команда MISIS MOJARUNG</h3>
+      <p><b>Симаков Максим</b>, ML и DevOps<br><b>Вериялов Кирилл</b>, бэкенд<br><b>Храмов Альберт</b>, бэкенд</p>
+      <p class="bottom" style="font-size:17px">По пилоту пишите через GitHub: <b>github.com/Mojarung/max_hack</b>. Пилот в Ульяновске стартует по договорённости с УК и управлением ЖКХ города.</p>
+    </div>
+    <div class="c amber" style="grid-column: 8 / 13; grid-row: 3 / 4; padding: 0">
+      <img class="kuzya" src="shots/kuzya_proud.png" alt="" style="width:50%;right:5%;top:14px">
+      <p style="position:absolute;left:26px;top:24px;max-width:240px;font-size:18px;font-weight:600">Спасибо! Вопросы и предложения по пилоту ждём прямо сейчас.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Приложение: служебный слайд для технической проверки -->
+<section class="slide">
+  <h2>Приложение: данные для технического жюри и проверки</h2>
+  <div class="c" style="flex:1">
+    <table class="tech">
+      <tr><td>Бот в MAX</td><td><b>https://max.ru/id732818139220_bot</b> (@id732818139220_bot)</td></tr>
+      <tr><td>Мини-приложение</td><td><b>https://linkog.ru</b>, открывается кнопкой в чате бота и диплинком <code>https://max.ru/id732818139220_bot?startapp=home</code></td></tr>
+      <tr><td>Репозиторий и commit hash</td><td>https://github.com/Mojarung/max_hack, ветка <code>main</code>; сдаём последний коммит <code>main</code> на момент дедлайна (<code>git rev-parse HEAD</code>)</td></tr>
+      <tr><td>Собственный API</td><td>для проверки не нужен; REST описан в <code>docs/openapi.json</code> и <code>docs/API.md</code></td></tr>
+      <tr><td>Тестовые учётные записи</td><td>в MAX: ваш аккаунт, в личке с ботом /start. Сценарий в группе: добавьте бота в чат администратором с правом «Читать сообщения».<br>Без MAX: демо-жители 1001-1008 в переключателе мини-приложения, 1001 администратор</td></tr>
+      <tr><td>Переменные окружения</td><td><code>.env.example</code> работает без изменений: локальный запуск идёт в мок-режиме с эмулятором чата. <code>MAX_BOT_TOKEN</code> нужен только для своего экземпляра бота</td></tr>
+      <tr><td>Запуск</td><td><code>docker compose up -d --build</code> → http://localhost:8180 (приложение), http://localhost:8180/dev/chat (эмулятор чата MAX), http://localhost:8025 (тестовая почта с обращениями)</td></tr>
+      <tr><td>Основной сценарий в чате</td><td>/меню → «Сообщить о проблеме» → фото и текст → «Отправить соседям» → голоса кнопкой «Поддерживаю» в чате дома → на пороге обращение само уходит в УК, в карточке запускается таймер срока</td></tr>
+      <tr><td>Тот же сценарий в приложении</td><td>«Заявки» → «Сообщить» → фото и описание → голоса соседей → обращение → статус и срок</td></tr>
+      <tr><td>Проверки</td><td><code>uv run pytest</code>, <code>npm test</code>, <code>scripts/smoke.py</code>, <code>smoke_features.py</code>, <code>smoke_bot.py</code></td></tr>
+    </table>
+  </div>
+</section>
+
+<script>
+  // Графики рисуются из данных при открытии, чтобы числа не расходились с подписями.
+  const NS = 'http://www.w3.org/2000/svg';
+  const C = { accent: '#1F5FAF', soft: '#C9D7EA', ink: '#1B2533', muted: '#4A5668', tone: '#DCE5EF', cell2: '#F4F7FA', amber: '#8A5300', amberSoft: '#FBEFD9', teal: '#0F766E' };
+  const FONT = 'Golos Text, Segoe UI, sans-serif';
+  const el = (parent, tag, attrs, text) => {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    parent.appendChild(n);
+    return n;
+  };
+  const T = (svg, x, y, text, size, opts = {}) => el(svg, 'text', { x, y, 'font-family': FONT, 'font-size': size, fill: opts.fill ?? C.ink, 'font-weight': opts.weight ?? 400, 'text-anchor': opts.anchor ?? 'start' }, text);
+
+  // 200 клеток, 17 из них коллективные заявки (8,5%)
+  (() => {
+    const svg = document.getElementById('units');
+    const cols = 20, size = 18, gap = 4;
+    for (let i = 0; i < 200; i++) {
+      el(svg, 'rect', { x: (i % cols) * (size + gap), y: Math.floor(i / cols) * (size + gap), width: size, height: size, rx: 5, fill: i < 17 ? C.accent : C.soft });
+    }
+  })();
+
+  // Нормативные сроки из catalog.py: ступени срока равными колонками
+  (() => {
+    const svg = document.getElementById('deadlines');
+    const groups = [
+      { tick: '1 час', items: [['Запах газа', 'аварийная газовая служба', true]] },
+      { tick: '1 сутки', items: [['Кровля и протечки', 'УК'], ['Лифт', 'УК'], ['Вода и канализация', 'УК'], ['Отопление', 'УК'], ['Вывоз мусора', 'регоператор ТКО', true]] },
+      { tick: '3 суток', items: [['Подъезд и уборка', 'УК'], ['Двор', 'УК']] },
+      { tick: '7 суток', items: [['Освещение в доме', 'УК']] },
+      { tick: '30 дней', items: [['Дороги и фонари', 'администрация района', true]] },
+    ];
+    const axisY = 352, colW = 1136 / groups.length, chipW = 206, chipH = 50, chipGap = 7;
+    el(svg, 'rect', { x: 0, y: axisY - 3, width: 1136, height: 6, rx: 3, fill: C.tone });
+    groups.forEach((g, gi) => {
+      const cx = colW * (gi + 0.5);
+      el(svg, 'circle', { cx, cy: axisY, r: 9, fill: C.accent });
+      T(svg, cx, axisY + 38, g.tick, 21, { weight: 700, anchor: 'middle' });
+      g.items.forEach(([title, org, other], i) => {
+        const y = axisY - 24 - (i + 1) * chipH - i * chipGap;
+        el(svg, 'rect', { x: cx - chipW / 2, y, width: chipW, height: chipH, rx: 14, fill: other ? C.amberSoft : C.cell2 });
+        T(svg, cx - chipW / 2 + 14, y + 22, title, 15.5, { weight: 600 });
+        T(svg, cx - chipW / 2 + 14, y + 40, org, 13.5, { fill: other ? C.amber : C.muted });
+      });
+    });
+    [[C.cell2, 'отвечает УК'], [C.amberSoft, 'отвечает другая организация']].forEach(([fill, label], i) => {
+      const x = 640 + i * 160;
+      el(svg, 'rect', { x, y: 0, width: 18, height: 18, rx: 5, fill });
+      T(svg, x + 26, 14, label, 14, { fill: C.muted });
+    });
+  })();
+
+  // Число автоматических проверок по уровням
+  (() => {
+    const svg = document.getElementById('tests');
+    const rows = [
+      ['Юнит-тесты бэкенда', 'заявки, укрытия, ленты тревог', 190],
+      ['Сквозные проверки', 'API, функции и бот на стенде', 74],
+      ['Юнит-тесты фронтенда', 'формат, состояния, компоненты', 48],
+      ['Аудит экранов', '22 экрана × 2 темы', 44],
+    ];
+    const max = 190, x0 = 250, w = 380, rowH = 88;
+    rows.forEach(([title, sub, n], i) => {
+      const y = 20 + i * rowH;
+      T(svg, 0, y + 26, title, 19, { weight: 700 });
+      T(svg, 0, y + 50, sub, 13.5, { fill: C.muted });
+      el(svg, 'rect', { x: x0, y: y + 6, width: w, height: 48, rx: 14, fill: C.cell2 });
+      el(svg, 'rect', { x: x0, y: y + 6, width: Math.max(60, (n / max) * w), height: 48, rx: 14, fill: i === 0 ? C.accent : C.soft });
+      T(svg, x0 + 16, y + 38, String(n), 22, { weight: 800, fill: i === 0 ? '#FFFFFF' : C.ink });
+    });
+  })();
+
+  // Нагрузка: 1 и 3 процесса api, запросы в секунду и медиана ответа
+  (() => {
+    const svg = document.getElementById('load');
+    const data = [['1 процесс', 219, 235], ['3 процесса', 300, 130]];
+    T(svg, 0, 24, 'Запросов в секунду', 19, { weight: 700 });
+    T(svg, 360, 24, 'Медиана ответа, мс', 19, { weight: 700 });
+    const base = 380, hMax = 300;
+    data.forEach(([label, rps, p50], i) => {
+      const x = 10 + i * 150, h = (rps / 300) * hMax;
+      el(svg, 'rect', { x, y: base - h, width: 120, height: h, rx: 16, fill: i ? C.accent : C.soft });
+      T(svg, x + 60, base - h + 42, String(rps), 30, { weight: 800, anchor: 'middle', fill: i ? '#FFFFFF' : C.ink });
+      T(svg, x + 60, base + 30, label, 15, { anchor: 'middle', fill: C.muted });
+      const x2 = 370 + i * 150, h2 = (p50 / 235) * hMax;
+      el(svg, 'rect', { x: x2, y: base - h2, width: 120, height: h2, rx: 16, fill: i ? C.accent : C.soft });
+      T(svg, x2 + 60, base - h2 + 42, String(p50), 30, { weight: 800, anchor: 'middle', fill: i ? '#FFFFFF' : C.ink });
+      T(svg, x2 + 60, base + 30, label, 15, { anchor: 'middle', fill: C.muted });
+    });
+  })();
+
+  // План пилота: 4 недели базовой линии и 4 недели с Кузей
+  (() => {
+    const svg = document.getElementById('timeline');
+    const w = 1136 / 8;
+    [{ from: 0, to: 4, fill: C.tone, ink: C.accent, label: 'Базовая линия: 4 недели истории чата до Кузи' },
+     { from: 4, to: 8, fill: C.accent, ink: '#FFFFFF', label: 'Пилот: Кузя в чате, считаем метрики' }].forEach((p) => {
+      el(svg, 'rect', { x: p.from * w + 2, y: 0, width: (p.to - p.from) * w - 4, height: 50, rx: 16, fill: p.fill });
+      T(svg, p.from * w + 22, 32, p.label, 17, { weight: 600, fill: p.ink });
+    });
+    for (let i = 0; i <= 8; i++) {
+      const label = i < 4 ? `−${4 - i}` : i === 4 ? 'запуск' : i === 8 ? '+4 нед.' : `+${i - 4}`;
+      T(svg, Math.min(Math.max(i * w, 12), 1124), 78, label, 14, { anchor: i === 0 ? 'start' : i === 8 ? 'end' : 'middle', fill: i === 4 ? C.ink : C.muted, weight: i === 4 ? 700 : 400 });
+    }
+  })();
+
+  // Порядок масштабирования
+  (() => {
+    const svg = document.getElementById('path');
+    const steps = [['Дом', 'пилот, 4 недели'], ['Все дома УК', 'один справочник и канал'], ['УК Ульяновска', 'через управление ЖКХ'], ['Поволжье', 'Самара, Пенза, Казань'], ['Другие регионы', 'нормы региона']];
+    const gap = 12, w = (1136 - gap * (steps.length - 1)) / steps.length, h = 100;
+    steps.forEach(([title, sub], i) => {
+      const x = i * (w + gap), strong = i === 0;
+      el(svg, 'rect', { x, y: 0, width: w, height: h, rx: 20, fill: strong ? C.accent : '#FFFFFF' });
+      T(svg, x + 20, 44, title, 21, { weight: 700, fill: strong ? '#FFFFFF' : C.ink });
+      T(svg, x + 20, 72, sub, 14.5, { fill: strong ? '#DCE7F5' : C.muted });
+    });
+  })();
+</script>
+</body>
+</html>
