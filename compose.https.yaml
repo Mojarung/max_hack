@@ -30,7 +30,8 @@ services:
     mem_limit: 256m
   minio:
     ports: !reset []
-    mem_limit: 192m
+    # при старте MinIO берёт больше 192 МБ: с меньшим лимитом его убивает OOM-killer
+    mem_limit: 512m
   mailpit:
     # только для себя: ssh -L 8025:127.0.0.1:8025 user@server, затем http://localhost:8025
     ports: !override
