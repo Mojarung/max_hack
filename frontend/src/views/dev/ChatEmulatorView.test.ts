@@ -128,6 +128,17 @@ describe('Эмулятор чата MAX: переписка', () => {
     expect(queryButton('Скрытая кнопка')).toBeNull()
   })
 
+  it('старый экран, который бот удалил сам, пропадает без пометки, как в MAX', async () => {
+    history[GROUP.chat_id] = [
+      ...HISTORY,
+      message({ id: 'm5', text: 'Старый список заявок', deleted: true, notice: 'Экран убран' }),
+    ]
+    await openChat()
+    expect(queryByText('Старый список заявок')).toBeNull()
+    expect(queryByText('Экран убран')).toBeNull()
+    expect(document.querySelectorAll('.max-msg--deleted')).toHaveLength(1)
+  })
+
   it('пустой чат дома: «Сообщений пока нет»', async () => {
     history[GROUP.chat_id] = []
     await renderRoute('/dev/chat')

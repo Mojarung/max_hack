@@ -58,6 +58,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from domovoy.agent import runtime
 from domovoy.api import app as api_app
 from domovoy.bot import main as bot_main
+from domovoy.bot import screens
 from domovoy.core import bus, storage
 from domovoy.modules.safety import osm
 from domovoy.worker import main as worker_main
@@ -117,6 +118,14 @@ def broker() -> Iterator[FakeBroker]:
     BROKER.published.clear()
     yield BROKER
     BROKER.published.clear()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_screens() -> Iterator[None]:
+    """Экраны бота живут в памяти процесса: у каждого теста свой чистый реестр и никаких таймеров."""
+    screens.reset()
+    yield
+    screens.reset()
 
 
 @pytest.fixture

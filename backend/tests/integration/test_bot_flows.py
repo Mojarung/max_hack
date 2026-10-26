@@ -1,15 +1,16 @@
 """Кузя без мини-приложения: заявка с фото и подтверждением, карточки, голос кнопкой, статусы, списки и выбор дома."""
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
 import pytest
 from fakes import FakeBroker, FakeInternet, FakeMinio
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domovoy.bot import handlers
+from domovoy.bot import handlers, screens
 from domovoy.core.config import get_settings
 from domovoy.core.db import get_sessionmaker
 from domovoy.modules.events.models import Event, EventParticipant
@@ -317,7 +318,8 @@ class TestLists:
         assert payloads(gw.last["buttons"])[:2] == [f"issue:{second.id}", f"issue:{first.id}"]
         await press(gw, user, "menu:mine")
         assert gw.last["text"].startswith("🗂 **Мои заявки**")
-        assert payloads(gw.last["buttons"])[0] == f"issue:{first.id}"
+        assert payloads(gw.last["buttons"])[0] == f"issue:{first.id}:mine"
+        assert payloads(gw.last["buttons"])[-1] == "menu:menu"
 
     async def test_events_join_and_leave(self, home: Home, session: AsyncSession) -> None:
         gw = FakeGateway()
@@ -366,7 +368,7 @@ class TestLists:
         assert "Продавец: Олег Первый, кв. 2" in gw.last["text"]
         assert payloads(gw.last["buttons"])[0] == f"contact:{item.id}"
         await press(gw, seller, f"listing:{item.id}")
-        assert payloads(gw.last["buttons"]) == [f"listing_{item.id}"]
+        assert payloads(gw.last["buttons"]) == [f"listing_{item.id}", "menu:market"]
 
         broker.published.clear()
         assert await press(gw, buyer, f"contact:{item.id}") == "Передал продавцу, он ответит вам в личных сообщениях"
@@ -403,7 +405,7 @@ class TestLists:
         await session.commit()
         dacha_id = dacha.id
         await press(gw, user, "menu:houses")
-        assert payloads(gw.last["buttons"]) == [f"house:{home.house.id}", f"house:{dacha.id}"]
+        assert payloads(gw.last["buttons"]) == [f"house:{home.house.id}", f"house:{dacha.id}", "menu:menu"]
         assert gw.last["buttons"][0][0]["text"].startswith("✓ ")
 
         assert await press(gw, user, f"house:{dacha.id}") == "Дом выбран"
@@ -418,3 +420,231 @@ class TestLists:
         await write(gw, user, "Течёт кран в подвале")
         await press(gw, user, f"house:{dacha_id}")
         assert await press(gw, user, "report:send") == "Вы сменили дом, начните заявку заново"
+
+
+class TestScreens:
+    """Кнопки меняют экран на месте, «Назад» ведёт обратно, старые экраны не копятся в чате."""
+
+    async def test_navigation_edits_one_message(self, home: Home) -> None:
+        gw = FakeGateway()
+        user = home.residents[0]
+        await press(gw, user, "menu")
+        screen = gw.last["mid"]
+        await press(gw, user, "menu:issues", mid=screen)
+        assert len(gw.sent) == 1 and gw.edits[-1]["mid"] == screen
+        assert gw.edits[-1]["text"] == "Открытых заявок нет. Дом в порядке 🏠"
+        assert payloads(gw.edits[-1]["buttons"])[-1] == "menu:menu"
+        await press(gw, user, "menu:menu", mid=screen)
+        assert gw.edits[-1]["text"] == f"🏠 {home.house.title}. Что сделать?"
+
+        issue = await new_issue(home, "Не работает лифт в третьем подъезде", author=user)
+        await press(gw, user, "menu:mine", mid=screen)
+        await press(gw, user, f"issue:{issue.id}:mine", mid=screen)
+        card = gw.edits[-1]
+        assert card["text"].startswith(f"📋 **{issue.title}**") and payloads(card["buttons"])[-1] == "menu:mine"
+        await make_sent(issue.id)
+        await worker.dispatch_issue(issue.id)
+        await press(gw, user, f"appeal:{issue.id}:mine", mid=screen)
+        assert gw.edits[-1]["text"].startswith("📄 **Текст обращения**")
+        assert payloads(gw.edits[-1]["buttons"]) == [f"issue:{issue.id}:mine"]
+        assert len(gw.sent) == 1 and gw.deleted == []
+
+    async def test_new_screen_replaces_old_and_cancel_cleans_draft(self, home: Home) -> None:
+        gw = FakeGateway()
+        user = home.residents[1]
+        await write(gw, user, "/меню")
+        first = gw.last["mid"]
+        await write(gw, user, "/события")
+        assert gw.deleted == [first]
+
+        await press(gw, user, "menu:report")
+        prompt = gw.last["mid"]
+        assert await press(gw, user, "report:cancel", mid=prompt) == "Отменено"
+        assert prompt in gw.deleted and gw.last["text"] == "Отменил, заявка не отправлена."
+
+    async def test_group_screen_deletes_itself(self, home: Home, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(screens, "SCREEN_TTL_S", 0.05)
+        gw = FakeGateway()
+        await handle(message_update(home.residents[0], home.chat_id, "/заявки"), gw)
+        screen = gw.last["mid"]
+        assert gw.last["chat_id"] == home.chat_id and gw.deleted == []
+        await asyncio.sleep(0.15)
+        assert gw.deleted == [screen]
+
+
+ISSUE_TEXTS = (
+    "Сломаны качели на детской площадке",
+    "Не горит свет на лестнице третьего этажа",
+    "Течёт кран в подвале второго подъезда",
+    "Не работает домофон в первом подъезде",
+    "Разбито окно между пятым и шестым этажом",
+    "Не вывозят мусор с контейнерной площадки",
+    "Сломан доводчик двери в четвёртом подъезде",
+)
+
+
+class TestPages:
+    """Списки по пять позиций со стрелками, подпись «Показано: 6-7 из 7», «Назад» на ту же страницу."""
+
+    async def test_issue_list_pages_and_back_to_same_page(self, home: Home) -> None:
+        created = [await new_issue(home, text) for text in ISSUE_TEXTS]
+        gw = FakeGateway()
+        user = home.residents[1]
+        await press(gw, user, "menu:issues")
+        screen = gw.last["mid"]
+        assert "Показано: 1-5 из 7" in gw.last["text"]
+        keys = payloads(gw.last["buttons"])
+        assert sum(k.startswith("issue:") for k in keys) == 5 and "menu:issues:2" in keys
+
+        await press(gw, user, "menu:issues:2", mid=screen)
+        page2 = gw.edits[-1]
+        assert "Показано: 6-7 из 7" in page2["text"] and "\n6. " in page2["text"]
+        keys = payloads(page2["buttons"])
+        assert f"issue:{created[0].id}:issues:2" in keys and "menu:issues:1" in keys and "menu:issues:3" not in keys
+
+        await press(gw, user, f"issue:{created[0].id}:issues:2", mid=screen)
+        assert payloads(gw.edits[-1]["buttons"])[-1] == "menu:issues:2"
+        assert len(gw.sent) == 1
+
+    async def test_events_page_two_join_stays_on_page(self, home: Home, session: AsyncSession) -> None:
+        start = datetime.now(UTC) + timedelta(days=2)
+        evs = [
+            Event(
+                house_id=home.house.id,
+                author_id=home.admin.id,
+                title=f"Встреча {n}",
+                kind="meeting",
+                starts_at=start + timedelta(days=n),
+                place="Холл",
+            )
+            for n in range(6)
+        ]
+        session.add_all(evs)
+        await session.commit()
+        gw = FakeGateway()
+        user = home.residents[0]
+        await press(gw, user, "menu:events")
+        screen = gw.last["mid"]
+        assert "Показано: 1-5 из 6" in gw.last["text"]
+        await press(gw, user, "menu:events:2", mid=screen)
+        assert "Показано: 6 из 6" in gw.edits[-1]["text"]
+        assert payloads(gw.edits[-1]["buttons"])[0] == f"join:{evs[5].id}:list:2"
+        assert await press(gw, user, f"join:{evs[5].id}:list:2", mid=screen) == "Записал! Напомню заранее 🙌"
+        assert "Показано: 6 из 6" in gw.edits[-1]["text"]
+        assert payloads(gw.edits[-1]["buttons"])[0] == f"leave:{evs[5].id}:list:2"
+
+    async def test_market_page_two_listing_back(self, home: Home, session: AsyncSession) -> None:
+        items = [
+            Listing(house_id=home.house.id, author_id=home.admin.id, title=f"Вещь {n}", description="", price=n)
+            for n in range(6)
+        ]
+        for item in items:
+            session.add(item)
+            await session.flush()
+        await session.commit()
+        gw = FakeGateway()
+        user = home.residents[0]
+        await press(gw, user, "menu:market")
+        screen = gw.last["mid"]
+        assert "Показано: 1-5 из 6" in gw.last["text"] and "menu:market:2" in payloads(gw.last["buttons"])
+        await press(gw, user, "menu:market:2", mid=screen)
+        oldest = f"listing:{items[0].id}:2"
+        assert oldest in payloads(gw.edits[-1]["buttons"])
+        await press(gw, user, oldest, mid=screen)
+        assert payloads(gw.edits[-1]["buttons"])[-1] == "menu:market:2"
+
+
+class TestSellInChat:
+    """«Разместить свою вещь» прямо в личке: одно сообщение с названием и ценой, фото, карточка, кнопка."""
+
+    async def test_sell_with_photo(self, home: Home, minio: FakeMinio, session: AsyncSession) -> None:
+        gw = FakeGateway()
+        user = home.residents[1]
+        await press(gw, user, "menu:market")
+        screen = gw.last["mid"]
+        assert "sell:start" in payloads(gw.last["buttons"])
+        assert await press(gw, user, "sell:start", mid=screen) == "Открываю"
+        assert gw.edits[-1]["text"].startswith("🛍 Что отдаёте или продаёте?")
+
+        card = await write(gw, user, "Детская коляска, почти новая, 3000 ₽", photos=[png_data_url()])
+        assert "**Детская коляска** · 3000 ₽" in card["text"] and "🏷 Раздел: Детское" in card["text"]
+        (key,) = card["photos"]
+        assert key.startswith("listings/") and key in minio.objects
+
+        assert await press(gw, user, "sell:send", mid=card["mid"]) == "Объявление размещено"
+        item = await session.scalar(select(Listing).where(Listing.house_id == home.house.id))
+        assert item is not None
+        assert (item.title, item.description, item.price, item.category, item.photos) == (
+            "Детская коляска",
+            "Почти новая",
+            3000,
+            "kids",
+            [key],
+        )
+        # карточка остаётся в переписке без кнопок, ниже экран с объявлением
+        assert {"mid": card["mid"], "text": None, "buttons": []}.items() <= gw.edits[-1].items()
+        assert gw.last["text"].startswith("✅ Объявление «Детская коляска» размещено")
+        assert payloads(gw.last["buttons"]) == [f"listing:{item.id}", "menu:menu"]
+        assert await press(gw, user, "sell:send", mid=card["mid"]) == "Черновик устарел, начните заново"
+
+    async def test_free_item_edit_and_cancel(self, home: Home, session: AsyncSession) -> None:
+        gw = FakeGateway()
+        user = home.residents[2]
+        await write(gw, user, "/отдать")
+        assert gw.last["text"].startswith("🛍 Что отдаёте или продаёте?")
+        assert (await write(gw, user, "Ой"))["text"].startswith("Напишите, что это за вещь")
+        assert (await write(gw, user, "Шкаф 99999999 ₽"))["text"].startswith("Цена слишком большая")
+
+        card = await write(gw, user, "Пылесос, работает")
+        assert "**Пылесос** · даром" in card["text"] and "Цену я не нашёл" in card["text"]
+        assert await press(gw, user, "sell:edit", mid=card["mid"]) == "Жду новый текст"
+        card = await write(gw, user, "Отдам даром книги для школьников")
+        assert "**Книги для школьников** · даром" in card["text"] and "Цену я не нашёл" not in card["text"]
+        # кнопка заявки со старой карточки не отправит объявление как заявку
+        assert await press(gw, user, "report:send") == "Черновик устарел, начните заново"
+
+        assert await press(gw, user, "sell:cancel", mid=card["mid"]) == "Отменено"
+        assert card["mid"] in gw.deleted and gw.last["text"] == "Отменил, объявление не размещено."
+        count = select(func.count()).select_from(Listing).where(Listing.house_id == home.house.id)
+        assert await session.scalar(count) == 0
+        assert await press(gw, user, "sell:send") == "Черновик устарел, начните заново"
+
+    async def test_photo_first_then_text(self, home: Home) -> None:
+        gw = FakeGateway()
+        user = home.residents[0]
+        await press(gw, user, "sell:start")
+        asked = await write(gw, user, photos=[png_data_url("blue")])
+        assert asked["text"].startswith("Фото получил (1). Теперь напишите название и цену")
+        card = await write(gw, user, "Дрель на выходные за 300")
+        assert "**Дрель на выходные** · 300 ₽" in card["text"] and "📷 Фото: 1" in card["text"]
+
+    async def test_group_chat_sends_seller_to_dm(self, home: Home) -> None:
+        gw = FakeGateway()
+        user = home.residents[0]
+        await handle(message_update(user, home.chat_id, "/вещи"), gw)
+        keys = payloads(gw.last["buttons"])
+        assert "sell:start" not in keys and "market" in keys
+        await press(gw, user, "sell:start", chat_id=home.chat_id, group=True)
+        assert gw.last["text"].startswith("Объявление размещается в личных сообщениях")
+
+    async def test_blocked_listing_keeps_draft(self, home: Home) -> None:
+        gw = FakeGateway()
+        user = home.residents[0]
+        await write(gw, user, "/продать")
+        card = await write(gw, user, "Заработок от 100000 в день, пиши в личку t.me/xxx")
+        note = await press(gw, user, "sell:send", mid=card["mid"])
+        assert note.startswith("Кузя не пропустил объявление")
+        assert await press(gw, user, "sell:edit", mid=card["mid"]) == "Жду новый текст"
+
+    async def test_house_switch_drops_listing_draft(self, home: Home, session: AsyncSession) -> None:
+        gw = FakeGateway()
+        user = home.residents[0]
+        dacha = House(max_chat_id=None, title="Дача у озера", address="СНТ")
+        session.add(dacha)
+        await session.flush()
+        session.add(Membership(user_id=user.id, house_id=dacha.id))
+        await session.commit()
+        await press(gw, user, "sell:start")
+        await write(gw, user, "Стол письменный, 500 ₽")
+        await press(gw, user, f"house:{dacha.id}")
+        assert await press(gw, user, "sell:send") == "Вы сменили дом, начните заново"

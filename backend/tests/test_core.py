@@ -149,9 +149,11 @@ class TestAgentStub:
         assert infer_kind("Собрание жителей") == "meeting"
 
     def test_long_lists_are_cut_for_group_chat(self) -> None:
-        text = short_list("Проблемы дома (8)", [f"№{i}" for i in range(8)], "все заявки в приложении")
+        text = short_list("Проблемы дома", [f"№{i}" for i in range(8)], "все заявки в приложении")
+        assert text.startswith("Проблемы дома (показано 5 из 8):\n")
         assert text.count("№") == 5
         assert text.endswith("...и ещё 3, все заявки в приложении.")
+        assert short_list("События", ["№1"], "все события").startswith("События (показано 1 из 1):")
 
     def test_greeting_needs_no_tool(self) -> None:
         assert pick_intent("Привет, Кузя!", self.tools) is None

@@ -4,6 +4,7 @@ import pytest
 
 from domovoy.agent.stub import pick_intent
 from domovoy.bot import chat_flows as flows
+from domovoy.bot import photos, ui
 
 TOOLS = {"create_issue", "list_issues", "vote_issue", "search_house", "nearest_shelters"}
 
@@ -53,7 +54,7 @@ class TestFormat:
         [(1, "1 час"), (24, "1 сутки"), (72, "3 суток"), (168, "7 суток"), (720, "30 дней"), (3, "3 часа")],
     )
     def test_hours(self, hours: int, text: str) -> None:
-        assert flows.fmt_hours(hours) == text
+        assert ui.fmt_hours(hours) == text
 
     def test_strip_kuzya(self) -> None:
         assert flows.strip_kuzya("Кузя, течёт крыша") == "течёт крыша"
@@ -71,10 +72,10 @@ class TestPhotos:
                 {"type": "image", "payload": {}},
             ],
         }
-        assert flows.image_urls(body) == ["https://i.max.ru/1.jpg"]
+        assert photos.image_urls(body) == ["https://i.max.ru/1.jpg"]
 
     async def test_data_url_from_emulator(self) -> None:
-        raw = await flows._download("data:image/png;base64,aGVsbG8=")
+        raw = await photos._download("data:image/png;base64,aGVsbG8=")
         assert raw == b"hello"
 
 
@@ -118,10 +119,10 @@ class TestReviewFixes:
         ],
     )
     def test_photo_url_must_be_public_https(self, url: str) -> None:
-        assert not flows._allowed_url(url)
+        assert not photos._allowed_url(url)
 
     def test_public_https_photo_url_allowed(self) -> None:
-        assert flows._allowed_url("https://i.oneme.ru/i?r=abc")
+        assert photos._allowed_url("https://i.oneme.ru/i?r=abc")
 
     def test_draft_after_card_lets_text_pass(self) -> None:
         key = (777, 888)

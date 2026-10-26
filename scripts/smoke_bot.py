@@ -30,20 +30,30 @@ def msgs(chat: int) -> list[dict]:
 
 def last_bot(chat: int, after: int) -> list[dict]:
     return [
-        m
-        for m in msgs(chat)[after:]
-        if m.get("from_bot") or m.get("is_bot") or m.get("from_name") in ("Кузя", None)
+        m for m in msgs(chat)[after:] if m.get("from_bot") or m.get("is_bot") or m.get("from_name") in ("Кузя", None)
     ]
 
 
-def wait_new(chat: int, before: int, timeout: float = 15) -> list[dict]:
+def wait_new(chat: int, before: int, timeout: float = 15, seen: list[dict] | None = None) -> list[dict]:
+    """Новые ответы бота, а если передан seen, то и сообщения, которые бот изменил на месте."""
+    old = {m["id"]: (m.get("text"), m.get("buttons")) for m in seen or []}
+
+    def fresh(ms: list[dict]) -> list[dict]:
+        edited = [
+            m
+            for m in ms[:before]
+            if is_bot(m)
+            and not m.get("deleted")
+            and m["id"] in old
+            and old[m["id"]] != (m.get("text"), m.get("buttons"))
+        ]
+        return edited + [m for m in ms[before:] if is_bot(m)]
+
     end = time.time() + timeout
     while time.time() < end:
-        new = msgs(chat)[before:]
-        bot = [m for m in new if is_bot(m)]
-        if bot:
+        if fresh(msgs(chat)):
             time.sleep(0.6)
-            return [m for m in msgs(chat)[before:] if is_bot(m)]
+            return fresh(msgs(chat))
         time.sleep(0.4)
     return []
 
@@ -65,9 +75,7 @@ def show(title: str, ms: list[dict]) -> None:
             print("   [", b.get("text"), "->", b.get("payload") or b.get("url"), "]")
 
 
-def send(
-    chat: int, user: int, text: str = "", photos: list[str] | None = None
-) -> list[dict]:
+def send(chat: int, user: int, text: str = "", photos: list[str] | None = None) -> list[dict]:
     before = len(msgs(chat))
     r = c.post(
         f"{API}/chat/send",
@@ -77,10 +85,9 @@ def send(
     return wait_new(chat, before)
 
 
-def press(
-    chat: int, user: int, message: dict, payload: str, expect_new: bool = True
-) -> list[dict]:
-    before = len(msgs(chat))
+def press(chat: int, user: int, message: dict, payload: str, expect_new: bool = True) -> list[dict]:
+    seen = msgs(chat)
+    before = len(seen)
     r = c.post(
         f"{API}/chat/callback",
         json={
@@ -92,7 +99,8 @@ def press(
     )
     r.raise_for_status()
     if expect_new:
-        return wait_new(chat, before)
+        # меню, списки и карточки бот меняет на месте, остальное приходит новым сообщением
+        return wait_new(chat, before, seen=seen)
     time.sleep(2)
     return [m for m in msgs(chat) if m.get("id") == message["id"]]
 
@@ -143,9 +151,7 @@ check(
     "бот просит описание",
 )
 
-ms = send(
-    DM, DM, "В подвале второго подъезда течёт кран, вода на полу", [photo_data_url()]
-)
+ms = send(DM, DM, "В подвале второго подъезда течёт кран, вода на полу", [photo_data_url()])
 show("Описание + фото", ms)
 check(
     any("Проверьте заявку" in (m.get("text") or "") for m in ms),
@@ -166,11 +172,7 @@ check(any(f"№{issue_id}" in (m.get("text") or "") for m in ms), "карточ�
 
 group = msgs(GROUP)
 post = next(
-    (
-        m
-        for m in reversed(group)
-        if f"vote:{issue_id}" in json.dumps(m.get("buttons"), ensure_ascii=False)
-    ),
+    (m for m in reversed(group) if f"vote:{issue_id}" in json.dumps(m.get("buttons"), ensure_ascii=False)),
     None,
 )
 check(post is not None, "заявка опубликована в чате дома с голосованием")
@@ -191,10 +193,7 @@ time.sleep(4)
 ms = press(DM, DM, card_btn[0], card_btn[1])
 show("Карточка после голосования", ms)
 check(
-    any(
-        "Отправлено" in (m.get("text") or "") or "📨" in (m.get("text") or "")
-        for m in ms
-    ),
+    any("Отправлено" in (m.get("text") or "") or "📨" in (m.get("text") or "") for m in ms),
     "порог набран, обращение отправлено",
 )
 appeal = find(ms, "appeal:")
@@ -249,6 +248,25 @@ for payload, title, marker in (
             if ct:
                 press(DM, DM, ct[0], ct[1], expect_new=False)
                 check(True, "написать продавцу")
+        check(
+            any("Показано:" in (m.get("text") or "") for m in ms),
+            "в списке видно, сколько из скольких",
+        )
+        sell = find(ms, "sell:start")
+        check(sell is not None, "вещь размещается прямо в боте")
+        if sell:
+            press(DM, DM, sell[0], sell[1])
+            card = send(DM, DM, "Детская коляска, почти новая, 3000 ₽", [photo_data_url()])
+            show("Карточка объявления", card)
+            hit = find(card, "sell:send")
+            check(hit is not None, "карточка объявления с кнопкой «Разместить»")
+            if hit:
+                done = press(DM, DM, hit[0], "sell:send")
+                show("Объявление размещено", done)
+                check(
+                    any("размещено" in (m.get("text") or "") for m in done),
+                    "объявление размещено из чата",
+                )
     if payload == "menu:houses":
         h = find(ms, "house:")
         if h:

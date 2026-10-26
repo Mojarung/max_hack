@@ -59,8 +59,9 @@ CHAT_LIST_LIMIT = 5
 
 
 def short_list(title: str, lines: list[str], rest_hint: str) -> str:
+    """Первые пять строк и подпись, сколько из скольких видно: «Заявки дома (показано 5 из 8)»."""
     shown = lines[:CHAT_LIST_LIMIT]
-    text = f"{title}:\n" + "\n".join(shown)
+    text = f"{title} (показано {len(shown)} из {len(lines)}):\n" + "\n".join(shown)
     hidden = len(lines) - len(shown)
     if hidden > 0:
         text += f"\n...и ещё {hidden}, {rest_hint}."
@@ -108,7 +109,7 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
             + (" (срок истёк!)" if i.is_overdue else "")
             for i in items
         ]
-        return short_list(f"Заявки дома ({len(items)})", lines, "все заявки в приложении")
+        return short_list("Заявки дома", lines, "все заявки в приложении")
 
     @tool
     async def create_issue(description: str) -> str:
@@ -155,7 +156,7 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
             + (" (вы записаны)" if e.joined_by_me else "")
             for e in items
         ]
-        return short_list(f"Ближайшие события ({len(items)})", lines, "все события в приложении")
+        return short_list("Ближайшие события", lines, "все события в приложении")
 
     @tool
     async def create_event(
@@ -257,7 +258,7 @@ def build_tools(ctx: AgentContext) -> list[BaseTool]:
         if not items:
             return "В «Вещах соседей» по этому запросу пока пусто."
         lines = [f"№{i.id} «{i.title}» - {'даром' if i.is_free else f'{i.price} ₽'}" for i in items]
-        return short_list(f"Вещи соседей ({len(items)})", lines, "все объявления в приложении")
+        return short_list("Вещи соседей", lines, "все объявления в приложении")
 
     @tool
     async def nearest_shelters() -> str:

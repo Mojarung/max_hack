@@ -50,8 +50,11 @@ const QUICK: { label: string; text: string }[] = [
 ]
 
 const chatId = computed(() => store.currentChatId)
+// Своё сообщение, удалённое ботом (старый экран меню), в MAX пропадает целиком, без плашки
 const messages = computed<ChatMessage[]>(() =>
-  chatId.value === null ? [] : (store.messages[chatId.value] ?? []),
+  chatId.value === null
+    ? []
+    : (store.messages[chatId.value] ?? []).filter((m) => !(m.deleted && !m.from)),
 )
 const me = computed(() => session.devUserId ?? session.me?.user.max_user_id ?? null)
 const currentChat = computed(() => store.chats.find((c) => c.chat_id === chatId.value) ?? null)

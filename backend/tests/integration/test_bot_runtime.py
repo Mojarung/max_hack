@@ -49,6 +49,10 @@ class TestMockGateway:
         assert await gw.pin(chat_id=home.chat_id, mid=mid) is True
         (msg,) = await history(home.chat_id)
         assert (msg["text"], msg["notice"], msg["buttons"]) == ("Обновлено", "📌 Закреплено Кузей", APP_BUTTONS)
+        assert len(msg["photos"]) == 3
+        # экран без фото: как в MAX, пустой список вложений убирает прежние фото
+        await gw.edit(mid=mid, text="Вещи соседей", buttons=[], media=[])
+        assert (await history(home.chat_id))[0]["photos"] == []
         assert await gw.delete(mid=mid) is True
         assert (await history(home.chat_id))[0]["deleted"] is True
 

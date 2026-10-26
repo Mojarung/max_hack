@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from domovoy.agent.runtime import run_agent
 from domovoy.agent.tools import AgentContext
-from domovoy.bot import chat_flows
+from domovoy.bot import chat_flows, photos
 from domovoy.bot.gateway import Gateway, media_of
 from domovoy.bot.identity import BOT
 from domovoy.core.config import get_settings
@@ -51,7 +51,7 @@ HELP_TEXT = (
     "• за помощь дому начисляю очки и награды.\n\n"
     "В общем чате обращайтесь ко мне по имени: «Кузя, какие заявки открыты?». Грубость и рекламу я удаляю.\n\n"
     "Всё основное можно сделать прямо здесь, кнопками ниже или командами: /новая, /проблемы, /мои, "
-    "/события, /вещи, /укрытия, /профиль, /меню."
+    "/события, /вещи, /продать, /укрытия, /профиль, /меню."
 )
 MENTION_RE = re.compile(r"\bкуз[яеиюь]", re.IGNORECASE)
 # Жалобы, на которые Кузя отвечает в общем чате без обращения к нему
@@ -267,7 +267,7 @@ async def on_message(update: dict[str, Any], gw: Gateway) -> None:
         return
     body = message.get("body") or {}
     text: str = (body.get("text") or "").strip()
-    photo_urls = chat_flows.image_urls(body)
+    photo_urls = photos.image_urls(body)
     chat_id = recipient.get("chat_id")
     is_group = recipient.get("chat_type") == "chat"
     if chat_id is None or not (text or photo_urls):

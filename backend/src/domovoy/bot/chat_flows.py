@@ -2,27 +2,36 @@
 
 Меню на кнопках-колбэках, подача заявки с фото и подтверждением, карточка заявки со сроком
 и текстом обращения, смена статуса, списки заявок, событий, вещей, укрытия, профиль и выбор дома.
+Меню, списки и карточки - «экраны»: кнопка меняет экран на месте, на каждом есть «⬅️ Назад».
+Списки идут страницами по 5 позиций со стрелками и подписью «Показано: 1-5 из 12».
+Объявление в «Вещах соседей» размещается в sell_flow.py на том же черновике, что и заявка.
 Черновик заявки живёт в памяти процесса бота (один процесс на все чаты) и сбрасывается через 30 минут.
 """
 
-import base64
-import ipaddress
 import time
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
-from typing import Any
-from zoneinfo import ZoneInfo
 
-import httpx
 import structlog
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from domovoy.bot import screens
 from domovoy.bot.gateway import Buttons, Gateway
-from domovoy.core.config import get_settings
+from domovoy.bot.photos import MAX_DRAFT_PHOTOS, store_photos
+from domovoy.bot.ui import (
+    Page,
+    back_row,
+    button,
+    fmt_dt,
+    fmt_hours,
+    fmt_left,
+    page_arg,
+    pager_row,
+    paginate,
+    price_text,
+)
 from domovoy.core.db import get_sessionmaker
-from domovoy.core.storage import save_bytes
 from domovoy.modules.achievements.catalog import ACHIEVEMENTS, level_for
 from domovoy.modules.events import service as events
 from domovoy.modules.events.models import Event
@@ -38,21 +47,18 @@ from domovoy.modules.users.models import House, Membership, User
 
 log = structlog.get_logger(__name__)
 
-# Время в сообщениях Кузи - московское с пометкой «МСК», как в уведомлениях воркера (worker/main.py)
-MSK = ZoneInfo("Europe/Moscow")
 DRAFT_TTL_S = 30 * 60
-MAX_DRAFT_PHOTOS = 5
-MAX_PHOTO_BYTES = 10 * 1024 * 1024
-LIST_LIMIT = 8
+MARKET_LIMIT = 200
 
 STATUS_ICON = {"voting": "✋", "sent": "📨", "in_progress": "🔧", "resolved": "✅", "rejected": "✖️"}
 
 
 @dataclass
 class Draft:
-    """Черновик заявки: житель пишет текст и шлёт фото, Кузя показывает карточку для подтверждения."""
+    """Черновик заявки или объявления: житель пишет текст и шлёт фото, Кузя показывает карточку."""
 
     house_id: int
+    kind: str = "issue"  # issue - заявка, listing - объявление в «Вещах соседей» (sell_flow.py)
     stage: str = "text"  # text - ждём описание, confirm - показали карточку
     text: str = ""
     photos: list[str] = field(default_factory=list)
@@ -75,10 +81,6 @@ class Who:
     is_admin: bool
     chat_id: int
     is_group: bool
-
-
-def button(text: str, payload: str) -> dict[str, str]:
-    return {"type": "callback", "text": text, "payload": payload}
 
 
 def main_menu(*, dm: bool) -> Buttons:
@@ -113,6 +115,9 @@ COMMANDS = {
     "/события": "events",
     "/вещи": "market",
     "/барахолка": "market",
+    "/продать": "sell",
+    "/отдать": "sell",
+    "/разместить": "sell",
     "/укрытия": "shelters",
     "/профиль": "profile",
     "/дом": "houses",
@@ -124,104 +129,6 @@ def command_of(text: str) -> str | None:
     word = text.strip().split(maxsplit=1)[0].lower() if text.strip() else ""
     word = word.split("@", 1)[0]
     return COMMANDS.get(word)
-
-
-# ---------- форматирование ----------
-
-
-def fmt_hours(hours: int) -> str:
-    if hours < 24:
-        return f"{hours} {_plural(hours, 'час', 'часа', 'часов')}"
-    days = hours // 24
-    return f"{days} {_plural(days, 'сутки', 'суток', 'суток')}" if days < 30 else f"{days} дней"
-
-
-def fmt_dt(value: datetime) -> str:
-    return value.astimezone(MSK).strftime("%d.%m в %H:%M МСК")
-
-
-def fmt_left(deadline: datetime) -> str:
-    left = deadline - datetime.now(UTC)
-    hours = int(abs(left).total_seconds() // 3600)
-    span = f"{hours} ч" if hours < 48 else f"{hours // 24} дн"
-    return f"осталось {span}" if left.total_seconds() > 0 else f"просрочено на {span}"
-
-
-def _plural(n: int, one: str, few: str, many: str) -> str:
-    if n % 10 == 1 and n % 100 != 11:
-        return one
-    if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
-        return few
-    return many
-
-
-# ---------- фото из сообщения ----------
-
-
-def image_urls(body: dict[str, Any]) -> list[str]:
-    """Ссылки на фото из вложений сообщения MAX (в эмуляторе - data:-ссылки)."""
-    out = []
-    for att in body.get("attachments") or []:
-        if att.get("type") == "image":
-            url = (att.get("payload") or {}).get("url")
-            if url:
-                out.append(str(url))
-    return out
-
-
-def _allowed_url(url: str) -> bool:
-    """Фото качаем только по https с публичного хоста: никаких localhost и адресов внутренней сети."""
-    try:
-        parsed = httpx.URL(url)
-    except (httpx.InvalidURL, ValueError):
-        return False
-    host = (parsed.host or "").lower()
-    if parsed.scheme != "https" or not host or host == "localhost" or host.endswith((".local", ".internal")):
-        return False
-    try:
-        return ipaddress.ip_address(host).is_global
-    except ValueError:
-        return "." in host  # доменное имя, не голый адрес
-
-
-async def _download(url: str) -> bytes | None:
-    try:
-        if url.startswith("data:image/"):
-            # data:-ссылки шлёт только эмулятор чата; от настоящего MAX их не принимаем
-            if not get_settings().mock_max or len(url) > MAX_PHOTO_BYTES * 4 // 3 + 100:
-                return None
-            return base64.b64decode(url.split(",", 1)[1])
-        if not _allowed_url(url):
-            return None
-        async with (
-            httpx.AsyncClient(timeout=20, follow_redirects=False) as client,
-            client.stream("GET", url) as resp,
-        ):
-            resp.raise_for_status()
-            chunks, size = [], 0
-            async for chunk in resp.aiter_bytes():
-                size += len(chunk)
-                if size > MAX_PHOTO_BYTES:
-                    return None
-                chunks.append(chunk)
-            return b"".join(chunks)
-    except Exception:
-        log.warning("chat.photo_download_failed", exc_info=True)
-        return None
-
-
-async def store_photos(urls: list[str], house_id: int) -> list[str]:
-    keys = []
-    for url in urls[:MAX_DRAFT_PHOTOS]:
-        raw = await _download(url)
-        if raw is None:
-            continue
-        try:
-            keys.append(await save_bytes(f"issues/{house_id}", raw))
-        except Exception:
-            # нечитаемое фото или недоступно хранилище: заявку всё равно можно подать без него
-            log.warning("chat.photo_store_failed", exc_info=True)
-    return keys
 
 
 # ---------- кто нажал ----------
@@ -240,6 +147,32 @@ async def resolve(session: AsyncSession, user: User, chat_id: int, is_group: boo
     if role is None:
         return None
     return Who(user=user, house=house, is_admin=role == "admin", chat_id=chat_id, is_group=is_group)
+
+
+# ---------- экраны ----------
+
+
+async def show(
+    gw: Gateway,
+    who: Who,
+    mid: str | None,
+    text: str,
+    buttons: Buttons,
+    *,
+    photos: list[str] | None = None,
+    in_place: bool = False,
+) -> None:
+    """Экран вместо нажатого сообщения (bot/screens.py): кнопки меняют его на месте."""
+    await screens.show(
+        gw,
+        chat_id=who.chat_id,
+        is_group=who.is_group,
+        mid=mid,
+        text=text,
+        buttons=buttons,
+        photos=photos,
+        in_place=in_place,
+    )
 
 
 # ---------- подача заявки ----------
@@ -281,12 +214,39 @@ async def start_report(gw: Gateway, who: Who) -> None:
     )
 
 
+def get_draft(who: Who) -> Draft | None:
+    return _drafts.get((who.chat_id, who.user.max_user_id))
+
+
+def drop_draft(who: Who, kind: str) -> None:
+    """Убрать черновик этого вида: отмена со старой карточки объявления не трогает начатую заявку."""
+    draft = get_draft(who)
+    if draft is not None and draft.kind == kind:
+        _drafts.pop((who.chat_id, who.user.max_user_id), None)
+
+
+async def close_draft(gw: Gateway, who: Who, mid: str | None, text: str) -> None:
+    """Черновик отменён: его вопрос или карточку убираем, вместо них меню."""
+    if mid and not screens.known(mid):
+        await gw.delete(mid=mid)
+        mid = None
+    await show(gw, who, mid, text, main_menu(dm=not who.is_group))
+
+
 async def draft_message(gw: Gateway, who: Who, text: str, photo_urls: list[str]) -> None:
     """Сообщение жителя, у которого открыт черновик: описание, фото или исправленный текст."""
     draft = _drafts[(who.chat_id, who.user.max_user_id)]
+    if draft.kind == "listing":
+        # sell_flow сам берёт черновики и экраны из этого модуля, поэтому импорт здесь, а не наверху
+        from domovoy.bot import sell_flow
+
+        await sell_flow.draft_message(gw, who, draft, text, photo_urls)
+        return
     if photo_urls:
         room = MAX_DRAFT_PHOTOS - len(draft.photos)
-        draft.photos = (draft.photos + await store_photos(photo_urls[:room], who.house.id))[:MAX_DRAFT_PHOTOS]
+        draft.photos = (draft.photos + await store_photos(photo_urls[:room], f"issues/{who.house.id}"))[
+            :MAX_DRAFT_PHOTOS
+        ]
     if text:
         draft.text = text
     if not draft.text:
@@ -340,16 +300,14 @@ async def show_confirm(gw: Gateway, who: Who, draft: Draft) -> None:
     await gw.send(chat_id=who.chat_id, text="\n".join(lines), buttons=buttons, photos=list(draft.photos) or None)
 
 
-async def report_action(gw: Gateway, who: Who, action: str) -> str:
+async def report_action(gw: Gateway, who: Who, action: str, mid: str | None = None) -> str:
     key = (who.chat_id, who.user.max_user_id)
     draft = _drafts.get(key)
     if action == "cancel":
-        _drafts.pop(key, None)
-        await gw.send(
-            chat_id=who.chat_id, text="Отменил, заявка не отправлена.", buttons=main_menu(dm=not who.is_group)
-        )
+        drop_draft(who, "issue")
+        await close_draft(gw, who, mid, "Отменил, заявка не отправлена.")
         return "Отменено"
-    if draft is None:
+    if draft is None or draft.kind != "issue":
         return "Черновик устарел, начните заново"
     if action == "edit":
         draft.stage = "text"
@@ -387,7 +345,7 @@ async def report_action(gw: Gateway, who: Who, action: str) -> str:
 # ---------- карточка заявки ----------
 
 
-async def issue_card(session: AsyncSession, issue: Issue, who: Who) -> tuple[str, Buttons]:
+async def issue_card(session: AsyncSession, issue: Issue, who: Who, origin: str = "issues") -> tuple[str, Buttons]:
     cat = category(issue.category)
     org = issue.responsible_org.name if issue.responsible_org else "ответственная служба"
     lines = [
@@ -421,14 +379,17 @@ async def issue_card(session: AsyncSession, issue: Issue, who: Who) -> tuple[str
         if issue.status == "sent":
             row.insert(0, button("🔧 В работе", f"status:{issue.id}:in_progress"))
         buttons.append(row)
+    # хвост «:mine:2» помнит, из какого списка и с какой страницы открыли заявку: туда и вернёт «Назад»
+    tail = "" if origin == "issues" else f":{origin}"
     extra = []
     if issue.appeal_text:
-        extra.append(button("📄 Обращение", f"appeal:{issue.id}"))
+        extra.append(button("📄 Обращение", f"appeal:{issue.id}{tail}"))
     if issue.escalated_at:
-        extra.append(button("⚖️ Жалоба в ГЖИ", f"complaint:{issue.id}"))
+        extra.append(button("⚖️ Жалоба в ГЖИ", f"complaint:{issue.id}{tail}"))
     if extra:
         buttons.append(extra)
     buttons.append([issues.app_button("Открыть в приложении", f"issue_{issue.id}")])
+    buttons.append(back_row("⬅️ Назад к заявкам", f"menu:{origin}"))
     return "\n".join(lines), buttons
 
 
@@ -436,11 +397,11 @@ async def _issue_of(session: AsyncSession, who: Who, issue_id: int) -> Issue:
     return await issues.get_issue(session, issue_id, who.house.id)
 
 
-async def send_issue_card(gw: Gateway, who: Who, issue_id: int) -> str:
+async def send_issue_card(gw: Gateway, who: Who, issue_id: int, mid: str | None = None, origin: str = "issues") -> str:
     async with get_sessionmaker()() as session:
         issue = await _issue_of(session, who, issue_id)
-        text, buttons = await issue_card(session, issue, who)
-    await gw.send(chat_id=who.chat_id, text=text, buttons=buttons, photos=None)
+        text, buttons = await issue_card(session, issue, who, origin)
+    await show(gw, who, mid, text, buttons)
     return "Карточка заявки"
 
 
@@ -451,8 +412,7 @@ async def vote_from_card(gw: Gateway, who: Who, issue_id: int, mid: str | None) 
         user = await session.get(User, who.user.id) or who.user
         issue, reached = await issues.vote(session, issue, user)
         text, buttons = await issue_card(session, issue, who)
-    if mid:
-        await gw.edit(mid=mid, text=text, buttons=buttons)
+    await show(gw, who, mid, text, buttons, in_place=True)
     return (
         "Голосов хватило! Отправляю обращение 📨"
         if reached
@@ -469,12 +429,13 @@ async def change_status(gw: Gateway, who: Who, issue_id: int, status: str, mid: 
             return "Статус можно менять после отправки обращения"
         issue = await issues.set_status(session, issue, who.user, who.is_admin, status, "")
         text, buttons = await issue_card(session, issue, who)
-    if mid:
-        await gw.edit(mid=mid, text=text, buttons=buttons)
+    await show(gw, who, mid, text, buttons, in_place=True)
     return "Отметил: решено 🎉" if status == "resolved" else "Отметил: в работе"
 
 
-async def send_appeal(gw: Gateway, who: Who, issue_id: int, complaint: bool) -> str:
+async def send_appeal(
+    gw: Gateway, who: Who, issue_id: int, complaint: bool, mid: str | None = None, origin: str = "issues"
+) -> str:
     async with get_sessionmaker()() as session:
         issue = await _issue_of(session, who, issue_id)
         if complaint:
@@ -488,72 +449,79 @@ async def send_appeal(gw: Gateway, who: Who, issue_id: int, complaint: bool) -> 
         else:
             body = issue.appeal_text or "Обращение ещё не отправлено: идёт сбор голосов."
     head = "⚖️ **Жалоба в Госжилинспекцию**" if complaint else "📄 **Текст обращения**"
-    await gw.send(chat_id=who.chat_id, text=f"{head}\n\n{body[:3500]}")
+    back = back_row("⬅️ Назад к заявке", f"issue:{issue_id}" if origin == "issues" else f"issue:{issue_id}:{origin}")
+    await show(gw, who, mid, f"{head}\n\n{body[:3500]}", [back])
     return "Отправил текст"
 
 
 # ---------- списки ----------
 
 
-async def send_issue_list(gw: Gateway, who: Who, mine: bool) -> None:
+async def send_issue_list(gw: Gateway, who: Who, mine: bool, mid: str | None = None, page: int = 1) -> None:
     async with get_sessionmaker()() as session:
         where = [Issue.house_id == who.house.id]
         where.append(Issue.author_id == who.user.id if mine else Issue.status.in_(OPEN_STATUSES))
-        rows = list(
-            await session.scalars(select(Issue).where(*where).order_by(Issue.created_at.desc()).limit(LIST_LIMIT))
+        ids = list(
+            await session.scalars(select(Issue.id).where(*where).order_by(Issue.created_at.desc(), Issue.id.desc()))
         )
+        page_ids, pg = paginate(ids, page)
+        found = {i.id: i for i in await session.scalars(select(Issue).where(Issue.id.in_(page_ids)))}
+    rows = [found[i] for i in page_ids if i in found]
     if not rows:
         text = "У вас пока нет заявок." if mine else "Открытых заявок нет. Дом в порядке 🏠"
-        await gw.send(chat_id=who.chat_id, text=text, buttons=[[button("📸 Сообщить о проблеме", "menu:report")]])
+        await show(gw, who, mid, text, [[button("📸 Сообщить о проблеме", "menu:report")], back_row()])
         return
-    lines = ["🗂 **Мои заявки**" if mine else "📋 **Заявки дома**", ""]
+    name = "mine" if mine else "issues"
+    origin = f"{name}{pg.tail}"
+    lines = ["🗂 **Мои заявки**" if mine else "📋 **Заявки дома**", pg.shown, ""]
     buttons: Buttons = []
-    for n, i in enumerate(rows, 1):
+    for n, i in enumerate(rows, pg.first):
         state = STATUS_TITLES.get(i.status, i.status).lower()
         if i.status == "voting":
             state = f"голосов {i.votes_count} из {i.votes_needed}"
         elif i.deadline_at and i.status in ("sent", "in_progress"):
             state += f", {fmt_left(i.deadline_at)}"
         lines.append(f"{n}. {STATUS_ICON.get(i.status, '•')} {i.title}: {state}")
-        buttons.append([button(f"{n}. {i.title[:30]}", f"issue:{i.id}")])
-    buttons.append([issues.app_button("Все заявки в приложении", "issues")])
-    await gw.send(chat_id=who.chat_id, text="\n".join(lines), buttons=buttons)
+        buttons.append(
+            [button(f"{n}. {i.title[:30]}", f"issue:{i.id}" if origin == "issues" else f"issue:{i.id}:{origin}")]
+        )
+    if arrows := pager_row(pg, f"menu:{name}"):
+        buttons.append(arrows)
+    buttons += [[issues.app_button("Все заявки в приложении", "issues")], back_row()]
+    await show(gw, who, mid, "\n".join(lines), buttons)
 
 
-def _events_text_and_buttons(items: list[events.EventOut]) -> tuple[str, Buttons]:
-    lines = ["📅 **Ближайшие события**", ""]
+def _events_text_and_buttons(items: list[events.EventOut], pg: Page) -> tuple[str, Buttons]:
+    lines = ["📅 **Ближайшие события**", pg.shown, ""]
     buttons: Buttons = []
-    for n, e in enumerate(items, 1):
+    for n, e in enumerate(items, pg.first):
         seats = f", свободно {e.max_participants - e.participants_count}" if e.max_participants else ""
         lines.append(f"{n}. {e.title}: {fmt_dt(e.starts_at)}, {e.place} · идут {e.participants_count}{seats}")
         if e.joined_by_me:
-            buttons.append([button(f"✓ {n}. Вы идёте · отменить", f"leave:{e.id}:list")])
+            buttons.append([button(f"✓ {n}. Вы идёте · отменить", f"leave:{e.id}:list{pg.tail}")])
         else:
-            buttons.append([button(f"🙋 {n}. Иду: {e.title[:26]}", f"join:{e.id}:list")])
-    buttons.append([issues.app_button("Все события", "events")])
+            buttons.append([button(f"🙋 {n}. Иду: {e.title[:26]}", f"join:{e.id}:list{pg.tail}")])
+    if arrows := pager_row(pg, "menu:events"):
+        buttons.append(arrows)
+    buttons += [[issues.app_button("Все события", "events")], back_row()]
     return "\n".join(lines), buttons
 
 
-async def send_events(gw: Gateway, who: Who, mid: str | None = None) -> None:
+async def send_events(gw: Gateway, who: Who, mid: str | None = None, page: int = 1, *, in_place: bool = False) -> None:
     async with get_sessionmaker()() as session:
-        items = (await events.list_events(session, who.house.id, who.user.id))[:5]
+        items, pg = paginate(await events.list_events(session, who.house.id, who.user.id), page)
     if not items:
-        await gw.send(
-            chat_id=who.chat_id,
-            text=(
-                "Ближайших событий нет. Чтобы позвать соседей, напишите: "
-                "«Кузя, создай субботник в субботу в 11 у площадки»."
-            ),
+        text = (
+            "Ближайших событий нет. Чтобы позвать соседей, напишите: "
+            "«Кузя, создай субботник в субботу в 11 у площадки»."
         )
+        await show(gw, who, mid, text, [back_row()], in_place=in_place)
         return
-    text, buttons = _events_text_and_buttons(items)
-    if mid:
-        await gw.edit(mid=mid, text=text, buttons=buttons)
-    else:
-        await gw.send(chat_id=who.chat_id, text=text, buttons=buttons)
+    text, buttons = _events_text_and_buttons(items, pg)
+    await show(gw, who, mid, text, buttons, in_place=in_place)
 
 
-async def toggle_event(gw: Gateway, who: Who, event_id: int, join: bool, mid: str | None) -> str:
+async def toggle_event(gw: Gateway, who: Who, event_id: int, join: bool, mid: str | None, page: int = 1) -> str:
     async with get_sessionmaker()() as session:
         ev = await session.get(Event, event_id)
         if ev is None or ev.house_id != who.house.id:
@@ -563,37 +531,42 @@ async def toggle_event(gw: Gateway, who: Who, event_id: int, join: bool, mid: st
             await events.join(session, ev, user)
         else:
             await events.leave(session, ev, user)
-    await send_events(gw, who, mid)
+    await send_events(gw, who, mid, page, in_place=True)
     return "Записал! Напомню заранее 🙌" if join else "Отменил запись"
 
 
-async def send_market(gw: Gateway, who: Who) -> None:
+def sell_button(who: Who) -> dict[str, str]:
+    """В личке вещь размещается прямо в чате (sell_flow.py), в чате дома - через приложение."""
+    if who.is_group:
+        return issues.app_button("Разместить свою вещь", "market")
+    return button("➕ Разместить свою вещь", "sell:start")
+
+
+async def send_market(gw: Gateway, who: Who, mid: str | None = None, page: int = 1) -> None:
     async with get_sessionmaker()() as session:
-        items = (await market.list_listings(session, who.house.id, who.user.id, limit=6))[:6]
+        items, pg = paginate(await market.list_listings(session, who.house.id, who.user.id, limit=MARKET_LIMIT), page)
     if not items:
-        await gw.send(
-            chat_id=who.chat_id,
-            text="В «Вещах соседей» пока пусто.",
-            buttons=[[issues.app_button("Разместить вещь", "market")]],
-        )
+        buttons: Buttons = [[sell_button(who)], back_row()]
+        await show(gw, who, mid, "В «Вещах соседей» пока пусто.", buttons)
         return
-    lines = ["🛍 **Вещи соседей**", ""]
-    buttons: Buttons = []
-    for n, it in enumerate(items, 1):
-        price = "даром" if it.is_free else f"{it.price} ₽"
-        lines.append(f"{n}. {it.title}: {price}")
-        buttons.append([button(f"{n}. {it.title[:30]}", f"listing:{it.id}")])
-    buttons.append([issues.app_button("Разместить свою вещь", "market")])
-    await gw.send(chat_id=who.chat_id, text="\n".join(lines), buttons=buttons)
+    lines = ["🛍 **Вещи соседей**", pg.shown, ""]
+    buttons = []
+    for n, it in enumerate(items, pg.first):
+        lines.append(f"{n}. {it.title}: {price_text(it.price)}")
+        buttons.append([button(f"{n}. {it.title[:30]}", f"listing:{it.id}{pg.tail}")])
+    if arrows := pager_row(pg, "menu:market"):
+        buttons.append(arrows)
+    buttons += [[sell_button(who)], back_row()]
+    await show(gw, who, mid, "\n".join(lines), buttons)
 
 
-async def send_listing(gw: Gateway, who: Who, listing_id: int) -> str:
+async def send_listing(gw: Gateway, who: Who, listing_id: int, mid: str | None = None, page: int = 1) -> str:
     async with get_sessionmaker()() as session:
         item = await market.get_listing(session, listing_id, who.house.id)
         seller = item.author
-        price = "даром" if item.price == 0 else f"{item.price} ₽"
-        text = f"🛍 **{item.title}** · {price}\n{item.description[:500]}\n\nПродавец: {seller.full_name}" + (
-            f", кв. {seller.apartment}" if seller.apartment else ""
+        text = (
+            f"🛍 **{item.title}** · {price_text(item.price)}\n{item.description[:500]}\n\nПродавец: {seller.full_name}"
+            + (f", кв. {seller.apartment}" if seller.apartment else "")
         )
         photos = list(item.photos or [])
         mine = item.author_id == who.user.id
@@ -601,7 +574,8 @@ async def send_listing(gw: Gateway, who: Who, listing_id: int) -> str:
     if not mine:
         buttons.append([button("✉️ Написать продавцу", f"contact:{listing_id}")])
     buttons.append([issues.app_button("Открыть в приложении", f"listing_{listing_id}")])
-    await gw.send(chat_id=who.chat_id, text=text, buttons=buttons, photos=photos)
+    buttons.append(back_row("⬅️ Назад к вещам", f"menu:market{f':{page}' if page > 1 else ''}"))
+    await show(gw, who, mid, text, buttons, photos=photos)
     return "Объявление"
 
 
@@ -617,12 +591,12 @@ async def contact(who: Who, listing_id: int) -> str:
     return "Передал продавцу, он ответит вам в личных сообщениях"
 
 
-async def send_shelters(gw: Gateway, who: Who) -> None:
+async def send_shelters(gw: Gateway, who: Who, mid: str | None = None) -> None:
     async with get_sessionmaker()() as session:
         items = await safety.nearest_shelters(session, who.house.lat, who.house.lon, limit=3)
     map_button = issues.app_button("🗺 Карта укрытий", "alert")
     if not items:
-        await gw.send(chat_id=who.chat_id, text=safety.NO_SHELTERS_ADVICE, buttons=[[map_button]])
+        await show(gw, who, mid, safety.NO_SHELTERS_ADVICE, [[map_button], back_row()])
         return
     lines = ["🛡 **Ближайшие укрытия**", ""]
     buttons: Buttons = []
@@ -631,12 +605,12 @@ async def send_shelters(gw: Gateway, who: Who) -> None:
         addr = f"\n{s.address}" if s.address else ""
         lines.append(f"{n}. {s.name} ({s.kind_title.lower()}): {s.distance_m} м{cap}, {safety.shelter_note(s)}{addr}")
         buttons.append([{"type": "link", "text": f"🚶 №{n}: маршрут в Яндекс Картах", "url": s.yandex_url}])
-    buttons.append([map_button])
+    buttons += [[map_button], back_row()]
     lines += ["", "При тревоге: отойдите от окон, спуститесь в укрытие или встаньте в коридоре без окон."]
-    await gw.send(chat_id=who.chat_id, text="\n".join(lines), buttons=buttons)
+    await show(gw, who, mid, "\n".join(lines), buttons)
 
 
-async def send_profile(gw: Gateway, who: Who) -> None:
+async def send_profile(gw: Gateway, who: Who, mid: str | None = None) -> None:
     async with get_sessionmaker()() as session:
         user = await session.get(User, who.user.id)
         if user is None:
@@ -668,34 +642,29 @@ async def send_profile(gw: Gateway, who: Who) -> None:
     medals = ("🥇", "🥈", "🥉")
     if top:
         lines += ["", "**Лучшие соседи**"] + [f"{medals[i]} {f} {last}: {p}" for i, (f, last, p) in enumerate(top)]
-    await gw.send(
-        chat_id=who.chat_id, text="\n".join(lines), buttons=[[issues.app_button("Мои награды", "achievements")]]
-    )
+    await show(gw, who, mid, "\n".join(lines), [[issues.app_button("Мои награды", "achievements")], back_row()])
 
 
-async def send_houses(gw: Gateway, who: Who) -> None:
+async def send_houses(gw: Gateway, who: Who, mid: str | None = None) -> None:
     async with get_sessionmaker()() as session:
         rows = await my_houses(session, who.user)
     if len(rows) < 2:
-        await gw.send(
-            chat_id=who.chat_id,
-            text=(
-                f"Ваш дом: **{who.house.title}**. "
-                "Если вы есть в чате другого дома, где живёт Кузя, этот дом тоже появится здесь."
-            ),
+        text = (
+            f"Ваш дом: **{who.house.title}**. "
+            "Если вы есть в чате другого дома, где живёт Кузя, этот дом тоже появится здесь."
         )
+        await show(gw, who, mid, text, [back_row()])
         return
     buttons: Buttons = [
         [button(("✓ " if h.id == who.house.id else "") + h.title[:40], f"house:{h.id}")] for h, _ in rows[:8]
     ]
-    await gw.send(
-        chat_id=who.chat_id,
-        text="🏘 Выберите дом: здесь, в личных сообщениях, я буду показывать его заявки и события.",
-        buttons=buttons,
+    buttons.append(back_row())
+    await show(
+        gw, who, mid, "🏘 Выберите дом: здесь, в личных сообщениях, я буду показывать его заявки и события.", buttons
     )
 
 
-async def pick_house(gw: Gateway, who: Who, house_id: int) -> str:
+async def pick_house(gw: Gateway, who: Who, house_id: int, mid: str | None = None) -> str:
     async with get_sessionmaker()() as session:
         user = await session.get(User, who.user.id)
         rows = await my_houses(session, who.user)
@@ -705,7 +674,7 @@ async def pick_house(gw: Gateway, who: Who, house_id: int) -> str:
         user.active_house_id = house.id
         title = house.title
         await session.commit()
-    await gw.send(chat_id=who.chat_id, text=f"Готово, ваш дом: **{title}**.", buttons=main_menu(dm=True))
+    await show(gw, who, mid, f"Готово, ваш дом: **{title}**.", main_menu(dm=True))
     return "Дом выбран"
 
 
@@ -715,30 +684,33 @@ async def pick_house(gw: Gateway, who: Who, house_id: int) -> str:
 PRIVATE_COMMANDS = frozenset({"mine", "profile", "houses"})
 
 
-async def run_command(gw: Gateway, who: Who, name: str) -> None:
+async def run_command(gw: Gateway, who: Who, name: str, mid: str | None = None, page: int = 1) -> None:
+    """Команда текстом или кнопкой меню; mid - экран, на котором нажали: его и меняем; page - страница списка."""
     if who.is_group and name in PRIVATE_COMMANDS:
-        await gw.send(chat_id=who.chat_id, text="Это личное: напишите мне в личные сообщения, и я покажу 🙂")
+        await show(gw, who, mid, "Это личное: напишите мне в личные сообщения, и я покажу 🙂", [back_row()])
         return
     if name == "menu":
-        await gw.send(
-            chat_id=who.chat_id, text=f"🏠 {who.house.title}. Что сделать?", buttons=main_menu(dm=not who.is_group)
-        )
+        await show(gw, who, mid, f"🏠 {who.house.title}. Что сделать?", main_menu(dm=not who.is_group))
     elif name == "report":
         await start_report(gw, who)
     elif name == "issues":
-        await send_issue_list(gw, who, mine=False)
+        await send_issue_list(gw, who, mine=False, mid=mid, page=page)
     elif name == "mine":
-        await send_issue_list(gw, who, mine=True)
+        await send_issue_list(gw, who, mine=True, mid=mid, page=page)
     elif name == "events":
-        await send_events(gw, who)
+        await send_events(gw, who, mid, page)
     elif name == "market":
-        await send_market(gw, who)
+        await send_market(gw, who, mid, page)
+    elif name == "sell":
+        from domovoy.bot import sell_flow  # см. draft_message: sell_flow импортирует этот модуль
+
+        await sell_flow.start(gw, who, mid)
     elif name == "shelters":
-        await send_shelters(gw, who)
+        await send_shelters(gw, who, mid)
     elif name == "profile":
-        await send_profile(gw, who)
+        await send_profile(gw, who, mid)
     elif name == "houses":
-        await send_houses(gw, who)
+        await send_houses(gw, who, mid)
 
 
 CALLBACK_ACTIONS = {
@@ -754,6 +726,7 @@ CALLBACK_ACTIONS = {
     "listing",
     "contact",
     "house",
+    "sell",
 }
 
 
@@ -761,7 +734,7 @@ def is_flow_callback(payload: str) -> bool:
     """Колбэки, которые обрабатывает этот модуль. Старые «vote:N» и «join:N» остаются в handlers."""
     parts = payload.split(":")
     if parts[0] in ("vote", "join"):
-        return len(parts) == 3
+        return len(parts) >= 3
     return parts[0] in CALLBACK_ACTIONS
 
 
@@ -769,36 +742,46 @@ async def on_callback(gw: Gateway, who: Who, payload: str, mid: str | None) -> s
     """Возвращает текст всплывающего уведомления для ответа на нажатие."""
     action, *args = payload.split(":")
     num = int(args[0]) if args and args[0].isdigit() else 0
+    # из какого списка и с какой страницы открыли заявку («issue:5:mine:2»): туда и ведёт «Назад»
+    name = "mine" if len(args) > 1 and args[1] == "mine" and not who.is_group else "issues"
+    page = page_arg(args, 2)
+    origin = f"{name}:{page}" if page > 1 else name
     try:
         if action == "menu":
-            await run_command(gw, who, args[0] if args else "menu")
+            await run_command(gw, who, args[0] if args else "menu", mid, page_arg(args, 1))
             return "Открываю"
         if action == "report":
-            return await report_action(gw, who, args[0] if args else "")
+            return await report_action(gw, who, args[0] if args else "", mid)
         if action == "issue":
-            return await send_issue_card(gw, who, num)
+            return await send_issue_card(gw, who, num, mid, origin)
         if action == "vote":
             return await vote_from_card(gw, who, num, mid)
         if action == "status":
             return await change_status(gw, who, num, args[1] if len(args) > 1 else "", mid)
         if action in ("appeal", "complaint"):
-            return await send_appeal(gw, who, num, complaint=action == "complaint")
+            return await send_appeal(gw, who, num, action == "complaint", mid, origin)
         if action in ("join", "leave"):
-            return await toggle_event(gw, who, num, join=action == "join", mid=mid)
+            return await toggle_event(gw, who, num, join=action == "join", mid=mid, page=page_arg(args, 2))
         if action == "listing":
-            return await send_listing(gw, who, num)
+            return await send_listing(gw, who, num, mid, page_arg(args, 1))
         if action == "contact":
             return await contact(who, num)
         if action == "house":
-            return await pick_house(gw, who, num)
+            return await pick_house(gw, who, num, mid)
+        if action == "sell":
+            from domovoy.bot import sell_flow  # см. draft_message: sell_flow импортирует этот модуль
+
+            return await sell_flow.action(gw, who, args[0] if args else "", mid)
     except HTTPException as exc:
         return str(exc.detail)
     return "Кнопка устарела"
 
 
-def open_draft(who: Who) -> None:
+def open_draft(who: Who, kind: str = "issue") -> Draft:
     """Черновик без вопроса: житель сразу прислал фото, описание возьмём из подписи."""
-    _drafts[(who.chat_id, who.user.max_user_id)] = Draft(house_id=who.house.id)
+    _purge_drafts()
+    draft = _drafts[(who.chat_id, who.user.max_user_id)] = Draft(house_id=who.house.id, kind=kind)
+    return draft
 
 
 def strip_kuzya(text: str) -> str:

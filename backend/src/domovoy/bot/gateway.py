@@ -226,6 +226,9 @@ class MockGateway:
         fields: dict[str, Any] = {"buttons": buttons}
         if text is not None:
             fields["text"] = text
+        if media is not None:
+            # как PUT /messages в MAX: переданные вложения заменяют прежние, пустой список убирает фото
+            fields["photos"] = [str(m["payload"]["url"]) for m in media if (m.get("payload") or {}).get("url")]
         async with get_sessionmaker()() as session:
             await devchat.update(session, mid, **fields)
 
